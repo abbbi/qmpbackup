@@ -29,7 +29,7 @@ In order to create a full backup use the following command:
 ```
 
 the command will create a new dirty bitmap and backup the virtual machines
-first disk to /tmp/backup/FULL-<timestamp>. It ensures consistency by
+first disk to ```/tmp/backup/FULL-<timestamp>```. It ensures consistency by
 creating the bitmap and the backup within one QMP transaction.
 
 See the following discussion on the qmeu-block mailinglist regarding
@@ -45,9 +45,9 @@ qmpbackup create an incremental backup for you, this works by:
 ```
 
 the changed delta since your last full (or inc) backup will be dumped to
-/tmp/backup/INC-<timestamp>, the dirty-bitmap is automatically cleared after
-this and you can continue creating further incremental backups by re-issuing
-the command likewise.
+```/tmp/backup/INC-<timestamp>```, the dirty-bitmap is automatically cleared
+after this and you can continue creating further incremental backups by
+re-issuing the command likewise.
 
 Restore
 -------
@@ -96,15 +96,18 @@ for more information and commands.
 Limitations
 -----------
 
- 1) Currently qmpbackup supports only vms with one disk, this should be changed
-    so it handles multiple disks of the vm in a good way.
- 2) Dirty-bitmaps are not saved through vm shutdowns currently, qmpbackup will
-    fail accordingly if no bitmap is existing and an incremental backup is
-    attempted. Newer qemu versions might change that behavior and will make
-    bitmaps persistent.
- 3) qmpbackup does not talk to the qemu agent in order to thaw the filesystem
-    or make sure your backed up data is consistent up to a application level.
- 4) Using the QMP protocol it cannot be used together with libvirt as libvirt
-    exclusively uses the virtual machines monitor socket. Livirt however will
-    make sure to provide a good implementation of the dirty-bitmap feature
-    in the future. Any hints on this are appreciated.
+1) Currently qmpbackup supports only vms with one disk, this should be changed
+so it handles multiple disks of the vm in a good way. 
+
+2) Dirty-bitmaps are not saved through vm shutdowns currently, qmpbackup will
+fail accordingly if no bitmap is existing and an incremental backup is
+attempted. Newer qemu versions might change that behavior and will make bitmaps
+persistent.
+
+3) qmpbackup does not talk to the qemu agent in order to thaw the filesystem or
+make sure your backed up data is consistent up to a application level.
+
+4) Using the QMP protocol it cannot be used together with libvirt as libvirt
+exclusively uses the virtual machines monitor socket. Livirt however will make
+sure to provide a good implementation of the dirty-bitmap feature in the
+future. Any hints on this are appreciated.
