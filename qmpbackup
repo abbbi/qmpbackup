@@ -1,0 +1,134 @@
+#!/usr/bin/env python
+# qmpbackup: Full an incremental backup using Qemus
+# dirty bitmap feature
+#
+# Copyright (C) 2016  Michael Ablassmeier
+#
+# Authors:
+#  Michael Ablassmeier <abi@grinser.de>
+#
+# This work is licensed under the terms of the GNU GPL, version 3.  See
+# the LICENSE file in the top-level directory.
+import os
+import sys
+import json
+import argparse
+import string
+import logging
+from time import sleep, time
+
+from libqmpbackup.qmp import QEMUMonitorProtocol
+from libqmpbackup.qmpcommon import QmpCommon
+from libqmpbackup.lib import QmpBackup
+from libqmpbackup.vm import VMInfo
+
+''' Argument parsing '''
+parser = argparse.ArgumentParser(prog=sys.argv[0])
+parser.add_argument('--socket', dest="socket", help="qmp socket to connect", required=1)
+parser.add_argument('--debug', dest="debug", help="activate debug log", action='store_true', required=0)
+subparsers = parser.add_subparsers(help='sub-command help')
+parser_backup = subparsers.add_parser('backup', help='backup')
+parser_backup.set_defaults(which='backup')
+parser_backup.add_argument('--level', choices=['full','inc'], type=str, help='backup level', required=True)
+parser_backup.add_argument('--target', type=str, help='backup target directory', required=True)
+parser_cleanup = subparsers.add_parser('cleanup', help='cleanup')
+parser_cleanup.set_defaults(which='cleanup')
+parser_cleanup.add_argument('--remove-bitmap', action='store_true', help='remove bitmap', required=True)
+parser_info = subparsers.add_parser('info', help='print info about VM')
+parser_info.set_defaults(which='info')
+parser_info.add_argument('--show', choices=['blockdev'], type=str, help='show block device information', required=True)
+
+argv = parser.parse_args()
+action = argv.which
+
+FORMAT = '%(asctime)-15s %(levelname)5s  %(message)s'
+if argv.debug:
+    loglevel=logging.DEBUG
+else:
+    loglevel=logging.INFO
+logging.basicConfig(format=FORMAT, level=loglevel)
+log = logging.getLogger('qmpbackup')
+
+srv = QEMUMonitorProtocol(argv.socket)
+try:
+    qmp_connection = srv.connect()
+    log.info('Connected')
+except qmp.QMPConnectError as e:
+    log.error("Unable to connect %s" % e)
+    sys.exit(1)
+except Exception as e:
+    log.error("Unable to connect: %s" % e)
+    sys.exit(1)
+
+''' common qmp functions '''
+qmp = QmpCommon(srv, log)
+
+''' VM objects '''
+vminfo = VMInfo()
+common = QmpBackup(qmp, log)
+
+''' Get all block devices for VM whih are format qcow '''
+try:
+    blockdev = vminfo.get_block_devices(
+        qmp.do_query_block()
+    )
+except Exception as e:
+    log.error('Unable to get block devices: "%s"' % e)
+    sys.exit(1)
+
+if action == "cleanup":
+    ''' Remove existing bitmaps for all block devices'''
+    if argv.remove_bitmap:
+        common.remove_bitmaps(blockdev)
+        log.info('Bitmaps for all devices have been removed')
+
+if action == "info":
+    ''' Dump all block deviced attatched to vm and print readable json '''
+    if argv.show == "blockdev":
+        reply = qmp.command('query-block')
+        log.info('VM Block Device Information:')
+        log.info('%s', json.dumps(reply, indent=4, sort_keys=True))
+        sys.exit(0)
+
+if action == "backup":
+    timestamp = int(time())
+    if os.path.isdir(argv.target):
+        log.info('Backup target directory: %s' %  argv.target)
+    else:
+        log.error('Backup target must be directory.')
+        sys.exit(1)
+
+    if blockdev == None:
+        log.error('No block device for backup found')
+        sys.exit(1)
+
+    ''' TODO: backup all block devs not only the first one '''
+    for device in blockdev:
+        if device.backing_image == True:
+            log.error('Error: Active backing image for disk "%s", please commit any snapshots before starting a new chain.' % device.node)
+            sys.exit(1)
+        if device.has_bitmap == False and argv.level == 'inc':
+            log.error('Incremental backup requested but no active bitmap has been found.')
+            sys.exit(1)
+
+    ''' TODO: error handling and much more '''
+    if argv.level == "full":
+        target='%s/FULL-%s' % (argv.target, timestamp)
+        log.info('FULL Backup operation: "%s"' % target)
+        print qmp.do_full_backup_with_bitmap(
+            device.has_bitmap,
+            device.bitmaps,
+            device="ide0-hd0",
+            target=target,
+            sync="full"
+        )
+
+    if argv.level == "inc":
+        target='%s/INC-%s' % (argv.target, timestamp)
+        log.info('INC Backup operation: "%s"' % target)
+        print qmp.do_qmp_backup(
+            device="ide0-hd0",
+            bitmap="qmpbackup",
+            target=target,
+            sync="incremental"
+        )
