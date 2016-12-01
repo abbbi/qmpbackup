@@ -29,8 +29,8 @@ In order to create a full backup use the following command:
 ```
 
 the command will create a new dirty bitmap and backup the virtual machines
-first disk to ```/tmp/backup/FULL-<timestamp>```. It ensures consistency by
-creating the bitmap and the backup within one QMP transaction.
+first disk to ```/tmp/backup/<disk-id>/FULL-<timestamp>```. It ensures
+consistency by creating the bitmap and backup within one QMP transaction.
 
 See the following discussion on the qmeu-block mailinglist regarding
 this topic:
@@ -45,15 +45,15 @@ qmpbackup create an incremental backup for you, this works by:
 ```
 
 the changed delta since your last full (or inc) backup will be dumped to
-```/tmp/backup/INC-<timestamp>```, the dirty-bitmap is automatically cleared
-after this and you can continue creating further incremental backups by
+```/tmp/backup/<disk-id>INC-<timestamp>```, the dirty-bitmap is automatically
+cleared after this and you can continue creating further incremental backups by
 re-issuing the command likewise.
 
 Restore
 -------
 
 Restoring your data is a matter of rebasing the created qcow images by
-using standard tools such as qemu-img.
+using standard tools such as qemu-img or ```qmprebase```.
 
 A image backup based on a backup folder containing the following backups:
 
@@ -71,8 +71,8 @@ consistency and does a rollback of your image file:
  qmprebase  rebase --dir /tmp/backup/ide0-hd0
 ```
 
-After rebasing and committing the saveset chain your FULL image is restored to
-the latest state and can be booted via qemu again.
+While rebasing the saveset chain is merged into your FULL image which then
+contains the latest state and can be booted via Qemu again.
 
 Misc commands
 -------------

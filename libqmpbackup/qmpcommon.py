@@ -155,7 +155,6 @@ class QmpCommon():
 
             directly copies the image to desired place
         '''
-        print device
         actions = []
         if has_bitmap == True:
             ''' for now use default bitmap '''
