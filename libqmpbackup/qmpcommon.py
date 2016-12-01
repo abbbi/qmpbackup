@@ -155,15 +155,17 @@ class QmpCommon():
 
             directly copies the image to desired place
         '''
+        print device
         actions = []
         if has_bitmap == True:
-            bitmap = bitmaps[0]['name']
             ''' for now use default bitmap '''
+            bitmap = bitmaps[0]['name']
+            ''' clear existing bitmap, start new chain '''
             actions.append(
                 self.transaction_bitmap_clear(device, bitmap)
             )
         else:
-            bitmap = "qmpbackup"
+            bitmap = "qmpbackup-%s" % device
             actions.append(
                 self.transaction_bitmap_add(device, bitmap)
             )
@@ -198,22 +200,20 @@ class QmpCommon():
     def do_query_block(self):
         return self.command('query-block')
 
-
     def remove_bitmaps(self, blockdev):
         ''' Loop through existing devices and bitmaps, remove them '''
         for dev in blockdev:
             if dev.has_bitmap:
                 try:
                     for bitmap in dev.bitmaps:
-                        if self.qmp.remove_bitmap(dev.node, bitmap['name']):
+                        if self.remove_bitmap(dev.node, bitmap['name']):
                             self._log.debug('Bitmap "%s" for device "%s" removed' % (
-                                dev.node,
-                                bitmap['name']
+                                bitmap['name'],
+                                dev.node
                             ))
-                    return True
                 except Exception as e:
                     raise
             else:
                 self._log.debug('No bitmap set for any device')
-        return False
+        return True
 

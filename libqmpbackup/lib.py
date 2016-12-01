@@ -1,5 +1,6 @@
 import os
 import sys
+from json import dumps as json_dumps
 import logging
 import subprocess
 
@@ -9,6 +10,7 @@ class QmpBackup:
         self._log = self.setup_log(debug)
 
     def setup_log(self, debug):
+        ''' setup logging '''
         FORMAT = '%(asctime)-15s %(levelname)5s  %(message)s'
         if debug:
             loglevel=logging.DEBUG
@@ -17,6 +19,12 @@ class QmpBackup:
         logging.basicConfig(format=FORMAT, level=loglevel)
         return logging.getLogger(sys.argv[0])
 
+    def json_pp(self, json):
+        ''' human readable json output '''
+        try:
+            return json_dumps(json, indent=4, sort_keys=True)
+        except Exception as e:
+            raise
 
     def rebase(self, directory):
         ''' Rebase and commit all images in a directory '''
@@ -77,6 +85,7 @@ class QmpBackup:
                 reb = subprocess.check_output(CMD_REBASE, shell=True)
                 self._log.info(CMD_REBASE)
                 CMD_COMMIT = 'qemu-img commit "%s"' % image
+                self._log.info(CMD_COMMIT)
                 com = subprocess.check_output(CMD_COMMIT, shell=True)
             except subprocess.CalledProcessError as e:
                 self._log.error('Error while rollback: %s' % e)

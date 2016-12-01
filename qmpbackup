@@ -11,7 +11,6 @@
 # the LICENSE file in the top-level directory.
 import os
 import sys
-import json
 import argparse
 import string
 import logging
@@ -78,7 +77,7 @@ if action == "info":
     if argv.show == "blockdev":
         reply = qmp.command('query-block')
         log.info('VM Block Device Information:')
-        log.info('%s', json.dumps(reply, indent=4, sort_keys=True))
+        log.info('%s', common.json_pp(reply))
         sys.exit(0)
 
 if action == "backup":
@@ -93,7 +92,7 @@ if action == "backup":
         log.error('No block device for backup found')
         sys.exit(1)
 
-    ''' TODO: backup all block devs not only the first one '''
+    ''' TODO: error handling and much more '''
     for device in blockdev:
         if device.backing_image == True:
             log.error('Error: Active backing image for disk "%s", please commit any snapshots before starting a new chain.' % device.node)
@@ -102,24 +101,27 @@ if action == "backup":
             log.error('Incremental backup requested but no active bitmap has been found.')
             sys.exit(1)
 
-    ''' TODO: error handling and much more '''
-    if argv.level == "full":
-        target='%s/FULL-%s' % (argv.target, timestamp)
-        log.info('FULL Backup operation: "%s"' % target)
-        print qmp.do_full_backup_with_bitmap(
-            device.has_bitmap,
-            device.bitmaps,
-            device="ide0-hd0",
-            target=target,
-            sync="full"
-        )
+        targetdir = '%s/%s/' %(argv.target, device.node)
+        if not os.path.exists(targetdir):
+            os.mkdir(targetdir)
 
-    if argv.level == "inc":
-        target='%s/INC-%s' % (argv.target, timestamp)
-        log.info('INC Backup operation: "%s"' % target)
-        print qmp.do_qmp_backup(
-            device="ide0-hd0",
-            bitmap="qmpbackup",
-            target=target,
-            sync="incremental"
-        )
+        if argv.level == "full":
+            target='%s/FULL-%s' % (targetdir, timestamp)
+            log.info('FULL Backup operation: "%s"' % target)
+            print common.json_pp(qmp.do_full_backup_with_bitmap(
+                device.has_bitmap,
+                device.bitmaps,
+                device=device.node,
+                target=target,
+                sync="full"
+            ))
+
+        if argv.level == "inc":
+            target='%s/INC-%s' % (targetdir, timestamp)
+            log.info('INC Backup operation: "%s"' % target)
+            print common.json_pp(qmp.do_qmp_backup(
+                device=device.node,
+                bitmap="qmpbackup-%s" % device.node,
+                target=target,
+                sync="incremental"
+            ))

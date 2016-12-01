@@ -58,7 +58,7 @@ using standard tools such as qemu-img.
 A image backup based on a backup folder containing the following backups:
 
 ```
- /tmp/backup/
+ /tmp/backup/ide0-hd0
  ├── FULL-1480542683
  ├── INC-1480542701
  └── INC-1480542712
@@ -68,7 +68,7 @@ can be rolled back by using ```qmprebase```, it uses common qemu tools to check
 consistency and does a rollback of your image file:
 
 ```
- qmprebase  rebase --dir /tmp/backup/
+ qmprebase  rebase --dir /tmp/backup/ide0-hd0
 ```
 
 After rebasing and committing the saveset chain your FULL image is restored to
@@ -94,18 +94,15 @@ for more information and commands.
 Limitations
 -----------
 
-1) Currently qmpbackup supports only vms with one disk, this should be changed
-so it handles multiple disks of the vm in a good way. 
-
-2) Dirty-bitmaps are not saved through vm shutdowns currently, qmpbackup will
+1) Dirty-bitmaps are not saved through vm shutdowns currently, qmpbackup will
 fail accordingly if no bitmap is existing and an incremental backup is
 attempted. Newer qemu versions might change that behavior and will make bitmaps
 persistent.
 
-3) qmpbackup does not talk to the qemu agent in order to thaw the filesystem or
+2) qmpbackup does not talk to the qemu agent in order to thaw the filesystem or
 make sure your backed up data is consistent up to a application level.
 
-4) Using the QMP protocol it cannot be used together with libvirt as libvirt
+3) Using the QMP protocol it cannot be used together with libvirt as libvirt
 exclusively uses the virtual machines monitor socket. Livirt however will make
 sure to provide a good implementation of the dirty-bitmap feature in the
 future. Any hints on this are appreciated.
