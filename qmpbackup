@@ -23,20 +23,48 @@ from libqmpbackup.vm import VMInfo
 
 ''' Argument parsing '''
 parser = argparse.ArgumentParser(prog=sys.argv[0])
-parser.add_argument('--socket', dest="socket", help="qmp socket to connect", required=1)
-parser.add_argument('--debug', dest="debug", help="activate debug log", action='store_true', required=0)
+parser.add_argument('--socket', 
+    dest="socket", 
+    help="qmp socket to connect", 
+    required=1
+)
+parser.add_argument('--debug',
+    dest="debug",
+    help="more verbose output",
+    action='store_true',
+    required=0
+)
 subparsers = parser.add_subparsers(help='sub-command help')
 parser_backup = subparsers.add_parser('backup', help='backup')
 parser_backup.set_defaults(which='backup')
-parser_backup.add_argument('--level', choices=['full','inc'], type=str, help='backup level', required=True)
-parser_backup.add_argument('--target', type=str, help='backup target directory', required=True)
-parser_cleanup = subparsers.add_parser('cleanup', help='cleanup')
+parser_backup.add_argument('--level',
+    choices=['full','inc'],
+    type=str,
+    help='backup level',
+    required=True
+)
+parser_backup.add_argument('--target',
+    type=str,
+    help='backup target directory',
+    required=True
+)
+parser_cleanup = subparsers.add_parser('cleanup',
+    help='cleanup functions'
+)
 parser_cleanup.set_defaults(which='cleanup')
-parser_cleanup.add_argument('--remove-bitmap', action='store_true', help='remove bitmap', required=True)
+parser_cleanup.add_argument('--remove-bitmap',
+    action='store_true',
+    help='remove existant bitmaps for all devices',
+    required=True
+)
 parser_info = subparsers.add_parser('info', help='print info about VM')
 parser_info.set_defaults(which='info')
-parser_info.add_argument('--show', choices=['blockdev'], type=str, help='show block device information', required=True)
-
+parser_info.add_argument('--show',
+    choices=['blockdev','bitmaps'],
+    type=str,
+    help='show block device information',
+    required=True
+)
 argv = parser.parse_args()
 action = argv.which
 
@@ -79,6 +107,14 @@ if action == "info":
         log.info('VM Block Device Information:')
         log.info('%s', common.json_pp(reply))
         sys.exit(0)
+    if argv.show == "bitmaps":
+        log.info('Bitmaps:')
+        for dev in blockdev:
+            if dev.bitmaps == None:
+                log.info('No bitmaps found for device: "%s"' % dev.node)
+                continue
+            log.info('%s:', dev.node)
+            log.info('%s', common.json_pp(dev.bitmaps))
 
 if action == "backup":
     timestamp = int(time())
@@ -95,11 +131,17 @@ if action == "backup":
     ''' TODO: error handling and much more '''
     for device in blockdev:
         if device.backing_image == True:
-            log.error('Error: Active backing image for disk "%s", please commit any snapshots before starting a new chain.' % device.node)
+            log.error('Active backing image for disk "%s", please commit any snapshots before starting a new chain.' % device.node)
             sys.exit(1)
         if device.has_bitmap == False and argv.level == 'inc':
             log.error('Incremental backup requested but no active bitmap has been found.')
             sys.exit(1)
+
+        if device.has_bitmap == True:
+            state = common.check_bitmap_state(device.node, device.bitmaps)
+            if state != True:
+                log.error('qmpbackup bitmap for device is in state "%s", another backup running?' % state)
+                sys.exit(1)
 
         targetdir = '%s/%s/' %(argv.target, device.node)
         if not os.path.exists(targetdir):

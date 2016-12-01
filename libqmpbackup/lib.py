@@ -92,3 +92,18 @@ class QmpBackup:
                 return False
 
         return True
+
+    def check_bitmap_state(self, node, bitmaps):
+        ''' Check if the bitmap state is ready for backup
+
+            active  -> Ready for backup
+            frozen  -> backup in progress
+            disabled-> migration might be going on
+        '''
+        for bitmap in bitmaps:
+            self._log.debug('Bitmap: %s' % self.json_pp(bitmap))
+            match = "%s-%s" % ('qmpbackup', node)
+            if bitmap['name'] == match and bitmap['status'] == "active":
+                return True
+
+        return bitmap['status']
