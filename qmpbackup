@@ -41,23 +41,15 @@ parser_info.add_argument('--show', choices=['blockdev'], type=str, help='show bl
 argv = parser.parse_args()
 action = argv.which
 
-FORMAT = '%(asctime)-15s %(levelname)5s  %(message)s'
-if argv.debug:
-    loglevel=logging.DEBUG
-else:
-    loglevel=logging.INFO
-logging.basicConfig(format=FORMAT, level=loglevel)
-log = logging.getLogger('qmpbackup')
+common = QmpBackup(argv.debug)
+log = common.setup_log(argv.debug)
 
 srv = QEMUMonitorProtocol(argv.socket)
 try:
     qmp_connection = srv.connect()
     log.info('Connected')
-except qmp.QMPConnectError as e:
-    log.error("Unable to connect %s" % e)
-    sys.exit(1)
 except Exception as e:
-    log.error("Unable to connect: %s" % e)
+    log.error('Unable to connect vm via specified socket "%s": %s' % (argv.socket, e))
     sys.exit(1)
 
 ''' common qmp functions '''
@@ -65,7 +57,6 @@ qmp = QmpCommon(srv, log)
 
 ''' VM objects '''
 vminfo = VMInfo()
-common = QmpBackup(qmp, log)
 
 ''' Get all block devices for VM whih are format qcow '''
 try:
@@ -79,7 +70,7 @@ except Exception as e:
 if action == "cleanup":
     ''' Remove existing bitmaps for all block devices'''
     if argv.remove_bitmap:
-        common.remove_bitmaps(blockdev)
+        qmp.remove_bitmaps(blockdev)
         log.info('Bitmaps for all devices have been removed')
 
 if action == "info":

@@ -13,7 +13,7 @@ The virtual machine must be reachable via QMP protocol on a unix socket,
 usually this happens by starting the virtual machine via:
 
 ```
-    qemu-system-<arch> <options> -qmp unix:/path/socket,server,nowait
+ qemu-system-<arch> <options> -qmp unix:/path/socket,server,nowait
 ```
 
 qmpbackup makes use of this socket to pass needed commands to the
@@ -64,13 +64,11 @@ A image backup based on a backup folder containing the following backups:
  └── INC-1480542712
 ```
 
-is restored by:
+can be rolled back by using ```qmprebase```, it uses common qemu tools to check
+consistency and does a rollback of your image file:
 
 ```
- qemu-img rebase -b INC-1480542701 INC-1480542712
- qemu-img commit INC-1480542712
- qemu-img rebase -b FULL-1480542683  INC-1480542701
- qemu-img commit  INC-1480542701
+ qmprebase  rebase --dir /tmp/backup/
 ```
 
 After rebasing and committing the saveset chain your FULL image is restored to

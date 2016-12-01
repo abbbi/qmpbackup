@@ -197,3 +197,23 @@ class QmpCommon():
 
     def do_query_block(self):
         return self.command('query-block')
+
+
+    def remove_bitmaps(self, blockdev):
+        ''' Loop through existing devices and bitmaps, remove them '''
+        for dev in blockdev:
+            if dev.has_bitmap:
+                try:
+                    for bitmap in dev.bitmaps:
+                        if self.qmp.remove_bitmap(dev.node, bitmap['name']):
+                            self._log.debug('Bitmap "%s" for device "%s" removed' % (
+                                dev.node,
+                                bitmap['name']
+                            ))
+                    return True
+                except Exception as e:
+                    raise
+            else:
+                self._log.debug('No bitmap set for any device')
+        return False
+

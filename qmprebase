@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+import sys
+import argparse
+from libqmpbackup.lib import QmpBackup
+
+parser = argparse.ArgumentParser(prog=sys.argv[0])
+subparsers = parser.add_subparsers(help='sub-command help')
+parser_rebase = subparsers.add_parser('rebase', help='rebase')
+parser_rebase.set_defaults(which='rebase')
+parser_rebase.add_argument('--dir', type=str, help='directory which contains images', required=True)
+argv = parser.parse_args()
+action = argv.which
+
+common = QmpBackup(False)
+log = common.setup_log(False)
+
+if action == "rebase":
+    ''' Rebase images in directory '''
+    if common.rebase(argv.dir):
+        log.info('Image files rollback succesful')
