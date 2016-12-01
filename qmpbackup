@@ -85,13 +85,17 @@ qmp = QmpCommon(srv, log)
 ''' VM objects '''
 vminfo = VMInfo()
 
-''' Get all block devices for VM whih are format qcow '''
+''' Get all block devices for VM which are format qcow '''
 try:
     blockdev = vminfo.get_block_devices(
         qmp.do_query_block()
     )
 except Exception as e:
     log.error('Unable to get block devices: "%s"' % e)
+    sys.exit(1)
+
+if blockdev == None:
+    log.error('VM does not have any devices suitable for backup')
     sys.exit(1)
 
 if action == "cleanup":
@@ -124,12 +128,10 @@ if action == "backup":
         log.error('Backup target must be directory.')
         sys.exit(1)
 
-    if blockdev == None:
-        log.error('No block device for backup found')
-        sys.exit(1)
-
     ''' TODO: error handling and much more '''
     for device in blockdev:
+        ''' default bitmap name '''
+        bitmap = 'qmpbackup-%s' % device.node
         if device.backing_image == True:
             log.error('Active backing image for disk "%s", please commit any snapshots before starting a new chain.' % device.node)
             sys.exit(1)
@@ -152,7 +154,7 @@ if action == "backup":
             log.info('FULL Backup operation: "%s"' % target)
             print common.json_pp(qmp.do_full_backup_with_bitmap(
                 device.has_bitmap,
-                device.bitmaps,
+                bitmap,
                 device=device.node,
                 target=target,
                 sync="full"
@@ -163,7 +165,7 @@ if action == "backup":
             log.info('INC Backup operation: "%s"' % target)
             print common.json_pp(qmp.do_qmp_backup(
                 device=device.node,
-                bitmap="qmpbackup-%s" % device.node,
+                bitmap=bitmap,
                 target=target,
                 sync="incremental"
             ))

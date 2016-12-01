@@ -117,7 +117,7 @@ class QmpCommon():
     def remove_bitmap(self, node="ide0-hd0", name="qmpbackup"):
         return self.check_qmp_return(
             self.qmp('block-dirty-bitmap-remove', node=node, name=name)
-            )
+        )
 
     def create_snapshot_and_bitmap(self, node="ide0-hd0", bitmap="bitmap0", snapshot_target="snapshot1"):
         ''' Live backup via snapshot, allows to backup the image file in place
@@ -132,20 +132,19 @@ class QmpCommon():
     def block_commit(self, node='ide0-hd0'):
         ''' commit back possible snapshots '''
         self.qmp('block-commit', device=node)
-        res =  self.event_wait(
+        reply =  self.event_wait(
             name='BLOCK_JOB_READY',
             match={'data': {'device': 'ide0-hd0'}}
         )
 
-        if res:
+        if reply:
             self.qmp('block-job-complete', device=node)
             return self.event_wait(
                 name='BLOCK_JOB_COMPLETED',
                 match={'data': {'device': node }}
             )
 
-    def do_full_backup_with_bitmap(self, has_bitmap=False, bitmaps=None, device="ide0-hd0",
-                                         target="/tmp/FULL", sync="full"):
+    def do_full_backup_with_bitmap(self, has_bitmap, bitmap, device, target, sync="full"):
         ''' Backup method for full backup
             "Live" method, (A):
                 - Create a bitmap
@@ -157,8 +156,6 @@ class QmpCommon():
         '''
         actions = []
         if has_bitmap == True:
-            ''' for now use default bitmap '''
-            bitmap = bitmaps[0]['name']
             ''' clear existing bitmap, start new chain '''
             actions.append(
                 self.transaction_bitmap_clear(device, bitmap)
@@ -184,8 +181,8 @@ class QmpCommon():
             return self.event_wait(
                 timeout="3200",
                 name="BLOCK_JOB_COMPLETED",
-                match={'data': {'device': device}})
-
+                match={'data': {'device': device}}
+            )
 
     def do_qmp_backup(self, **kwargs):
         ''' Issue backu pcommand via qmp protocol '''
@@ -194,7 +191,8 @@ class QmpCommon():
             return self.event_wait(
                 timeout="3200",
                 name="BLOCK_JOB_COMPLETED",
-                match={'data': {'device': kwargs['device']}})
+                match={'data': {'device': kwargs['device']}}
+            )
 
     def do_query_block(self):
         return self.command('query-block')
@@ -215,4 +213,3 @@ class QmpCommon():
             else:
                 self._log.debug('No bitmap set for any device')
         return True
-
