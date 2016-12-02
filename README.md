@@ -29,7 +29,7 @@ In order to create a full backup use the following command:
 ```
 
 the command will create a new dirty bitmap and backup the virtual machines
-first disk to ```/tmp/backup/<disk-id>/FULL-<timestamp>```. It ensures
+disks to ```/tmp/backup/<disk-id>/FULL-<timestamp>```. It ensures
 consistency by creating the bitmap and backup within one QMP transaction.
 
 See the following discussion on the qmeu-block mailinglist regarding
@@ -95,14 +95,17 @@ Limitations
 -----------
 
 1) Dirty-bitmaps are not saved through vm shutdowns currently, qmpbackup will
-fail accordingly if no bitmap is existing and an incremental backup is
-attempted. Newer qemu versions might change that behavior and will make bitmaps
-persistent.
+fail accordingly if no bitmap exists and an incremental backup is attempted.
+This feature is currently worked on in Qemu and future versions might change
+that behavior and will make bitmaps persistent.
 
 2) qmpbackup does not talk to the qemu agent in order to thaw the filesystem or
 make sure your backed up data is consistent up to a application level.
 
 3) Using the QMP protocol it cannot be used together with libvirt as libvirt
-exclusively uses the virtual machines monitor socket. Livirt however will make
-sure to provide a good implementation of the dirty-bitmap feature in the
-future. Any hints on this are appreciated.
+exclusively uses the virtual machines monitor socket. I think it will make sure
+to provide a good implementation of the dirty-bitmap feature in the future.
+
+4) Qemus ```drive-backup``` function does currently not support dumping
+data as a stream, it also cannot work with fifo pipes as the blockdriver
+expects functions as ftruncate and fseek to work on the target file.
