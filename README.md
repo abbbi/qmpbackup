@@ -49,6 +49,15 @@ the changed delta since your last full (or inc) backup will be dumped to
 cleared after this and you can continue creating further incremental backups by
 re-issuing the command likewise.
 
+Filesystem Quisce
+-----------------
+
+In case the virtual machine has an guest agent installed you can set the Qemu
+Guest Agent socket (``--agent-socket```)  and request filesytem quisce via
+```--quisce``` option:
+
+ ```qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce```
+
 Restore
 -------
 
@@ -99,13 +108,10 @@ fail accordingly if no bitmap exists and an incremental backup is attempted.
 This feature is currently worked on in Qemu and future versions might change
 that behavior and will make bitmaps persistent.
 
-2) qmpbackup does not talk to the qemu agent in order to thaw the filesystem or
-make sure your backed up data is consistent up to a application level.
-
-3) Using the QMP protocol it cannot be used together with libvirt as libvirt
+2) Using the QMP protocol it cannot be used together with libvirt as libvirt
 exclusively uses the virtual machines monitor socket. I think it will make sure
 to provide a good implementation of the dirty-bitmap feature in the future.
 
-4) Qemus ```drive-backup``` function does currently not support dumping
+3) Qemus ```drive-backup``` function does currently not support dumping
 data as a stream, it also cannot work with fifo pipes as the blockdriver
 expects functions as ftruncate and fseek to work on the target file.

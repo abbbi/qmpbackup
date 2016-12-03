@@ -1,11 +1,15 @@
 import string
+import qmp
 
 class QmpCommon():
     ''' QmpCommon class, based on qemu.py by the qemu
         project 
     '''
-    def __init__(self, qmp, log):
-        self._qmp = qmp
+    def __init__(self, log, socket, negotiate=True):
+        ''' regular QMP for all vm commands '''
+        self._qmp = qmp.QEMUMonitorProtocol(socket)
+        self._qmp.connect(negotiate=negotiate)
+
         self._log = log
         self._events = []
 

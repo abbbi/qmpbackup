@@ -16,8 +16,8 @@ import string
 import logging
 from time import sleep, time
 
-from libqmpbackup.qmp import QEMUMonitorProtocol
 from libqmpbackup.qmpcommon import QmpCommon
+from libqmpbackup.qaclient import QemuGuestAgentClient
 from libqmpbackup.lib import QmpBackup
 from libqmpbackup.vm import VMInfo
 
@@ -27,6 +27,11 @@ parser.add_argument('--socket',
     dest="socket", 
     help="qmp socket to connect", 
     required=1
+)
+parser.add_argument('--agent-socket', 
+    dest="agentsocket", 
+    help="socket to use for communication with qemu agent", 
+    required=0
 )
 parser.add_argument('--debug',
     dest="debug",
@@ -42,6 +47,11 @@ parser_backup.add_argument('--level',
     type=str,
     help='backup level',
     required=True
+)
+parser_backup.add_argument('--quisce',
+    action="store_true",
+    help='Use Qemu Agent to quisce filesystem',
+    required=False
 )
 parser_backup.add_argument('--target',
     type=str,
@@ -71,17 +81,30 @@ action = argv.which
 common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
 
-srv = QEMUMonitorProtocol(argv.socket)
-try:
-    qmp_connection = srv.connect()
-    log.info('Connected')
-except Exception as e:
-    log.error('Unable to connect vm via specified socket "%s": %s' % (argv.socket, e))
-    sys.exit(1)
-
 ''' common qmp functions '''
-qmp = QmpCommon(srv, log)
+qmp = QmpCommon(log, argv.socket)
 
+def qa_agent():
+    ''' todo: move to lib.py '''
+    from libqmpbackup.qaclient import QemuGuestAgentClient
+    try:
+        qga = QemuGuestAgentClient(argv.agentsocket)
+        log.info('Guest Agent socket connected')
+    except QemuGuestAgent.error as e:
+        log.warning('Unable to connect qemu guest agent socket: "%s"' % e)
+        return False
+    
+    if not qga.ping(5):
+        log.warning('Unable to reach Qemu Guest Agent')
+        return False
+    else:
+        qga_info = qga.info()
+        log.info('Qemu Guest Agent is reachable')
+        if not 'guest-fsfreeze-freeze' in qga_info:
+            log.warning('Guest agent does not support needed commands')
+            return False
+    return qga
+         
 ''' VM objects '''
 vminfo = VMInfo()
 
@@ -121,6 +144,22 @@ if action == "info":
             log.info('%s', common.json_pp(dev.bitmaps))
 
 if action == "backup":
+
+    if argv.agentsocket and argv.quisce:
+        freezed = None
+        qga = qa_agent()
+        if qga:
+            log.info('Try to quisce filesystem')
+            freezed = qga.fsfreeze('freeze') 
+            if freezed:
+                log.info('"%s" Filesystems frozen' % freezed)
+                freezed = True
+            else:
+                log.warning('Unable to freeze filesystem')
+                freezed = False
+        else:
+            log.warning('Filesystems not frozen')
+
     timestamp = int(time())
     if os.path.isdir(argv.target):
         log.info('Backup target directory: %s' %  argv.target)
@@ -169,3 +208,8 @@ if action == "backup":
                 target=target,
                 sync="incremental"
             ))
+
+        if argv.quisce and freezed:
+            thawed = qga.fsfreeze('thaw')
+            if thawed:
+                log.info('"%s" filesystems thawed' % thawed)
