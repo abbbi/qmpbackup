@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Qmpbackup by abbbi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Qmpbackup</h1>
+      <h2 class="project-tagline">Live Qemu Incremental backup using dirty-bitmaps</h2>
+      <a href="https://github.com/abbbi/qmpbackup" class="btn">View on GitHub</a>
+      <a href="https://github.com/abbbi/qmpbackup/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/abbbi/qmpbackup/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="qmpbackup" class="anchor" href="#qmpbackup" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>qmpbackup</h1>
+
+<p>qmpbackup is designed to create live full and incremental backups of running
+qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
+feature introduced in later qemu versions. It was mostly created for
+educational purposes and is by no means complete.</p>
+
+<h2>
+<a id="prerequisites" class="anchor" href="#prerequisites" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Prerequisites</h2>
+
+<p>The virtual machine must be reachable via QMP protocol on a unix socket,
+usually this happens by starting the virtual machine via:</p>
+
+<pre><code> qemu-system-&lt;arch&gt; &lt;options&gt; -qmp unix:/path/socket,server,nowait
+</code></pre>
+
+<p>qmpbackup makes use of this socket to pass needed commands to the
+virtual machine.</p>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>In order to create a full backup use the following command:</p>
+
+<pre><code> qmpbackup --socket /path/socket backup --level full --target /tmp/backup/
+</code></pre>
+
+<p>the command will create a new dirty bitmap and backup the virtual machines
+disks to <code>/tmp/backup/&lt;disk-id&gt;/FULL-&lt;timestamp&gt;</code>. It ensures
+consistency by creating the bitmap and backup within one QMP transaction.</p>
+
+<p>See the following discussion on the qmeu-block mailinglist regarding
+this topic:</p>
+
+<p><a href="https://lists.nongnu.org/archive/html/qemu-block/2016-11/msg00682.html">https://lists.nongnu.org/archive/html/qemu-block/2016-11/msg00682.html</a></p>
+
+<p>Second step is to change some data within your virtual machine and let
+qmpbackup create an incremental backup for you, this works by:</p>
+
+<pre><code> qmpbackup --socket /path/socket backup --level inc --target /tmp/backup/
+</code></pre>
+
+<p>the changed delta since your last full (or inc) backup will be dumped to
+<code>/tmp/backup/&lt;disk-id&gt;INC-&lt;timestamp&gt;</code>, the dirty-bitmap is automatically
+cleared after this and you can continue creating further incremental backups by
+re-issuing the command likewise.</p>
+
+<h2>
+<a id="filesystem-quisce" class="anchor" href="#filesystem-quisce" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Filesystem Quisce</h2>
+
+<p>In case the virtual machine has an guest agent installed you can set the Qemu
+Guest Agent socket (<code>--agent-socket</code>)  and request filesytem quisce via
+<code>--quisce</code> option:</p>
+
+<pre><code>  qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
+</code></pre>
+
+<h2>
+<a id="restore" class="anchor" href="#restore" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Restore</h2>
+
+<p>Restoring your data is a matter of rebasing the created qcow images by
+using standard tools such as qemu-img or <code>qmprebase</code>.</p>
+
+<p>A image backup based on a backup folder containing the following backups:</p>
+
+<pre><code> /tmp/backup/ide0-hd0
+ ├── FULL-1480542683
+ ├── INC-1480542701
+ └── INC-1480542712
+</code></pre>
+
+<p>can be rolled back by using <code>qmprebase</code>, it uses common qemu tools to check
+consistency and does a rollback of your image file:</p>
+
+<pre><code> qmprebase  rebase --dir /tmp/backup/ide0-hd0
+</code></pre>
+
+<p>While rebasing the saveset chain is merged into your FULL image which then
+contains the latest state and can be booted via Qemu again.</p>
+
+<h2>
+<a id="misc-commands" class="anchor" href="#misc-commands" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Misc commands</h2>
+
+<p>In order to remove existing dirty-bitmaps use:</p>
+
+<pre><code> qmpbackup --socket /tmp/vm cleanup --remove-bitmaps
+</code></pre>
+
+<p>see </p>
+
+<pre><code> qmpbackup --help 
+</code></pre>
+
+<p>for more information and commands.</p>
+
+<h2>
+<a id="limitations" class="anchor" href="#limitations" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Limitations</h2>
+
+<p>1) Dirty-bitmaps are not saved through vm shutdowns currently, qmpbackup will
+fail accordingly if no bitmap exists and an incremental backup is attempted.
+This feature is currently worked on in Qemu and future versions might change
+that behavior and will make bitmaps persistent.</p>
+
+<p>2) Using the QMP protocol it cannot be used together with libvirt as libvirt
+exclusively uses the virtual machines monitor socket. I think it will make sure
+to provide a good implementation of the dirty-bitmap feature in the future.</p>
+
+<p>3) Qemus <code>drive-backup</code> function does currently not support dumping
+data as a stream, it also cannot work with fifo pipes as the blockdriver
+expects functions as ftruncate and fseek to work on the target file.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/abbbi/qmpbackup">Qmpbackup</a> is maintained by <a href="https://github.com/abbbi">abbbi</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
