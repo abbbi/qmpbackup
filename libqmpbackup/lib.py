@@ -1,10 +1,11 @@
 import os
 import sys
 from json import dumps as json_dumps
+from qaclient import QemuGuestAgentClient
 import logging
 import subprocess
 
-class QmpBackup:
+class QmpBackup():
     ''' common functions '''
     def __init__(self, debug):
         self._log = self.setup_log(debug)
@@ -107,3 +108,45 @@ class QmpBackup:
                 return True
 
         return bitmap['status']
+
+    def connect_qaagent(self, socket):
+        ''' Setup Qemu Agent connection '''
+        try:
+            qga = QemuGuestAgentClient(socket)
+            self._log.info('Guest Agent socket connected')
+        except QemuGuestAgentClient.error as e:
+            self._log.warning('Unable to connect qemu guest agent socket: "%s"' % e)
+            return False
+
+        if not qga.ping(5):
+            self._log.warning('Unable to reach Qemu Guest Agent')
+            return False
+        else:
+            qga_info = qga.info()
+            self._log.info('Qemu Guest Agent is reachable')
+            if not 'guest-fsfreeze-freeze' in qga_info:
+                self._log.warning('Guest agent does not support needed commands')
+    
+        return qga
+
+    def quisce(self, qga):
+        ''' Quisce VM filesystem '''
+        try:
+            reply = qga.fsfreeze('freeze')
+            self._log.info('"%s" Filesystem(s) freezed' % reply)
+            return reply
+        except Exception as e:
+            self._log.warning('Unable to freeze: "%s"' % e)
+
+        return None
+
+    def thaw(self, qga):
+        ''' Thaw filesystems '''
+        try:
+            reply = qga.fsfreeze('thaw')
+            self._log.info('"%s" fileystem(s) thawed' % reply)
+            return reply
+        except Exception as e:
+            self.log_warnung('Unable to thaw filesystem: "%s"' % e)
+
+        return None

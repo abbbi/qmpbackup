@@ -13,7 +13,6 @@ import os
 import sys
 import argparse
 import string
-import logging
 from time import sleep, time
 
 from libqmpbackup.qmpcommon import QmpCommon
@@ -78,34 +77,10 @@ parser_info.add_argument('--show',
 argv = parser.parse_args()
 action = argv.which
 
+''' instances '''
 common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
-
-''' common qmp functions '''
 qmp = QmpCommon(log, argv.socket)
-
-def qa_agent():
-    ''' todo: move to lib.py '''
-    from libqmpbackup.qaclient import QemuGuestAgentClient
-    try:
-        qga = QemuGuestAgentClient(argv.agentsocket)
-        log.info('Guest Agent socket connected')
-    except QemuGuestAgent.error as e:
-        log.warning('Unable to connect qemu guest agent socket: "%s"' % e)
-        return False
-    
-    if not qga.ping(5):
-        log.warning('Unable to reach Qemu Guest Agent')
-        return False
-    else:
-        qga_info = qga.info()
-        log.info('Qemu Guest Agent is reachable')
-        if not 'guest-fsfreeze-freeze' in qga_info:
-            log.warning('Guest agent does not support needed commands')
-            return False
-    return qga
-         
-''' VM objects '''
 vminfo = VMInfo()
 
 ''' Get all block devices for VM which are format qcow '''
@@ -144,21 +119,11 @@ if action == "info":
             log.info('%s', common.json_pp(dev.bitmaps))
 
 if action == "backup":
-
     if argv.agentsocket and argv.quisce:
         freezed = None
-        qga = qa_agent()
+        qga = common.connect_qaagent(argv.agentsocket)
         if qga:
-            log.info('Try to quisce filesystem')
-            freezed = qga.fsfreeze('freeze') 
-            if freezed:
-                log.info('"%s" Filesystems frozen' % freezed)
-                freezed = True
-            else:
-                log.warning('Unable to freeze filesystem')
-                freezed = False
-        else:
-            log.warning('Filesystems not frozen')
+            freezed = common.quisce(qga)
 
     timestamp = int(time())
     if os.path.isdir(argv.target):
@@ -209,7 +174,6 @@ if action == "backup":
                 sync="incremental"
             ))
 
+        freezed = True
         if argv.quisce and freezed:
-            thawed = qga.fsfreeze('thaw')
-            if thawed:
-                log.info('"%s" filesystems thawed' % thawed)
+            common.thaw(qga)
