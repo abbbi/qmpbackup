@@ -131,6 +131,11 @@ class QmpBackup():
 
     def quisce(self, qga):
         ''' Quisce VM filesystem '''
+        fsstate = self.fsgetstate(qga)
+        if fsstate == "frozen":
+            self._log.warning('Filesystem is already frozen')
+            return True
+        
         try:
             reply = qga.fsfreeze('freeze')
             self._log.info('"%s" Filesystem(s) freezed' % reply)
@@ -142,11 +147,25 @@ class QmpBackup():
 
     def thaw(self, qga):
         ''' Thaw filesystems '''
+        fsstate = self.fsgetstate(qga)
+        if fsstate == "thawed":
+            self._log.info('Filesystem is already thawed, skipping.')
+            return True
         try:
             reply = qga.fsfreeze('thaw')
             self._log.info('"%s" fileystem(s) thawed' % reply)
             return reply
         except Exception as e:
-            self.log_warnung('Unable to thaw filesystem: "%s"' % e)
+            self.log_warning('Unable to thaw filesystem: "%s"' % e)
+
+        return None
+
+    def fsgetstate(self, qga):
+        ''' Return filesystem state '''
+        try:
+            reply = qga.fsfreeze('status')
+            return reply
+        except Exception as e:
+            self.log_warning('Unable to get Filesytem status')
 
         return None
