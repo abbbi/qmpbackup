@@ -85,6 +85,14 @@ vminfo = VMInfo()
 
 ''' Get all block devices for VM which are format qcow '''
 try:
+    version = qmp.command('query-version')
+    vm_name = qmp.command('query-name')
+
+    if vm_name.has_key('name'):
+        vm_name =  vm_name['name']
+    else:
+        vm_name = None
+
     blockdev = vminfo.get_block_devices(
         qmp.do_query_block()
     )
@@ -120,15 +128,22 @@ if action == "info":
 
 if action == "backup":
     if argv.quisce and not argv.agentsocket:
-        log.warning('Quisce option set but argent socket is missing, please set via --agent-socket')
+        log.warning('Quisce option set but agent socket is missing, please set via --agent-socket')
     if argv.agentsocket and argv.quisce:
         qga = common.connect_qaagent(argv.agentsocket)
         if qga:
             common.quisce(qga)
 
+    if vm_name:
+        backupdir = "%s/%s" % (argv.target, vm_name)
+        if not os.path.exists(backupdir):
+            os.mkdir(backupdir)
+    else:
+        backupdir = argv.target
+
     timestamp = int(time())
-    if os.path.isdir(argv.target):
-        log.info('Backup target directory: %s' %  argv.target)
+    if os.path.isdir(backupdir):
+        log.info('Backup target directory: %s' %  backupdir)
     else:
         log.error('Backup target must be directory.')
         sys.exit(1)
@@ -150,7 +165,7 @@ if action == "backup":
                 log.error('qmpbackup bitmap for device is in state "%s", another backup running?' % state)
                 sys.exit(1)
 
-        targetdir = '%s/%s/' %(argv.target, device.node)
+        targetdir = '%s/%s/' %(backupdir, device.node)
         if not os.path.exists(targetdir):
             os.mkdir(targetdir)
 
