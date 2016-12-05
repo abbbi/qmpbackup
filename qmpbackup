@@ -119,6 +119,8 @@ if action == "info":
             log.info('%s', common.json_pp(dev.bitmaps))
 
 if action == "backup":
+    if argv.quisce and not argv.agentsocket:
+        log.warning('Quisce option set but argent socket is missing, please set via --agent-socket')
     if argv.agentsocket and argv.quisce:
         qga = common.connect_qaagent(argv.agentsocket)
         if qga:
@@ -173,5 +175,6 @@ if action == "backup":
                 sync="incremental"
             ))
 
-        if argv.quisce:
+        if argv.agentsocket and argv.quisce:
             common.thaw(qga)
+

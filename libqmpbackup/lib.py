@@ -156,7 +156,7 @@ class QmpBackup():
             self._log.info('"%s" fileystem(s) thawed' % reply)
             return reply
         except Exception as e:
-            self.log_warning('Unable to thaw filesystem: "%s"' % e)
+            self._log.warning('Unable to thaw filesystem: "%s"' % e)
 
         return None
 
@@ -166,6 +166,6 @@ class QmpBackup():
             reply = qga.fsfreeze('status')
             return reply
         except Exception as e:
-            self.log_warning('Unable to get Filesytem status')
+            self._log.warning('Unable to get Filesytem status')
 
         return None
