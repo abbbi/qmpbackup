@@ -27,7 +27,7 @@ class QmpBackup():
         except Exception as e:
             raise
 
-    def rebase(self, directory):
+    def rebase(self, directory, dry_run):
         ''' Rebase and commit all images in a directory '''
         if not os.path.exists(directory):
             self._log.error('Unable to find target directory')
@@ -60,7 +60,8 @@ class QmpBackup():
         idx = len(images)-1
         for image in reversed(images):
             idx=idx-1
-            if images.index(image) == 0:
+            if images.index(image) == 0 or 'FULL-' in images[images.index(image)]:
+                self._log.info('Rollback of latest [FULL]<-[INC] chain complete, ignoring older chains')
                 break;
 
             self._log.debug('"%s" is based on "%s"' % (
@@ -72,7 +73,8 @@ class QmpBackup():
             CMD_CHECK = 'qemu-img check %s' % image
             try:
                 self._log.info(CMD_CHECK)
-                output = subprocess.check_output(CMD_CHECK, shell=True)
+                if not dry_run:
+                    output = subprocess.check_output(CMD_CHECK, shell=True)
             except subprocess.CalledProcessError as e:
                 self._log.error('Error while file check: %s' % e)
                 return False
@@ -83,11 +85,13 @@ class QmpBackup():
                     image,
                 )
 
-                reb = subprocess.check_output(CMD_REBASE, shell=True)
+                if not dry_run:
+                    reb = subprocess.check_output(CMD_REBASE, shell=True)
                 self._log.info(CMD_REBASE)
                 CMD_COMMIT = 'qemu-img commit "%s"' % image
                 self._log.info(CMD_COMMIT)
-                com = subprocess.check_output(CMD_COMMIT, shell=True)
+                if not dry_run:
+                    com = subprocess.check_output(CMD_COMMIT, shell=True)
             except subprocess.CalledProcessError as e:
                 self._log.error('Error while rollback: %s' % e)
                 return False
