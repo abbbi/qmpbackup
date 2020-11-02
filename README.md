@@ -1,3 +1,8 @@
+!NOTE!
+
+As qemu, libvirt and upstream projects such as ovirt have already introduced API calls for all the stuff in this repository, im going to archive it.
+
+
 qmpbackup
 =========
 
