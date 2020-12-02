@@ -1,7 +1,3 @@
-!NOTE!
-
-As qemu, libvirt and upstream projects such as ovirt have already introduced API calls for all the stuff in this repository, im going to archive it.
-
 
 qmpbackup
 =========
@@ -9,7 +5,11 @@ qmpbackup
 qmpbackup is designed to create live full and incremental backups of running
 qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
 feature introduced in later qemu versions. It was mostly created for
-educational purposes and is by no means complete.
+educational purposes and is by no means complete. It works with standalone 
+qemu processes, if you want to backup qemu virtual machines which are 
+managed via libvirt, see:
+
+ https://github.com/abbbi/virtnbdbackup
 
 Prerequisites
 -------------
