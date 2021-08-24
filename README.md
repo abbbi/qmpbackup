@@ -96,6 +96,9 @@ consistency and does a rollback of your image file:
 While rebasing the saveset chain is merged into your FULL image which then
 contains the latest state and can be booted via Qemu again.
 
+`Note:` It makes sense to copy the existing backup directory to a temporary
+folder before rebasing, to not alter your existing backups.
+
 Misc commands
 -------------
 
