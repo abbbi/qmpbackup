@@ -135,7 +135,13 @@ if action == "backup":
         backupdir = argv.target
 
     timestamp = int(time())
-    if os.path.isdir(backupdir):
+    if not os.path.isfile(backupdir):
+        if not os.path.exists(backupdir):
+            try:
+                os.mkdir(backupdir)
+            except Exception as e:
+                log.error("Unable to create target dir: %s", e)
+                sys.exit(1)
         log.info("Backup target directory: %s" % backupdir)
     else:
         log.error("Backup target must be directory.")
