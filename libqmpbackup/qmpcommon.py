@@ -8,7 +8,7 @@ class QmpCommon:
     """
 
     def __init__(self, log, socket, negotiate=True):
-        """ regular QMP for all vm commands """
+        """regular QMP for all vm commands"""
         self._qmp = qmp.QEMUMonitorProtocol(socket)
         self._qmp.connect(negotiate=negotiate)
 
@@ -100,19 +100,19 @@ class QmpCommon:
         }
 
     def transaction_bitmap_clear(self, node, name, **kwargs):
-        """ Return transaction action object for bitmap clear """
+        """Return transaction action object for bitmap clear"""
         return self.transaction_action(
             "block-dirty-bitmap-clear", node=node, name=name, **kwargs
         )
 
     def transaction_bitmap_add(self, node, name, **kwargs):
-        """ Return transaction action object for bitmap add """
+        """Return transaction action object for bitmap add"""
         return self.transaction_action(
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
     def transaction_snapshot_create(self, node, target, **kwargs):
-        """ Return transaction action object for snapshot create """
+        """Return transaction action object for snapshot create"""
         return self.transaction_action(
             "blockdev-snapshot-sync", device=node, snapshot_file="/tmp/test"
         )
@@ -138,7 +138,7 @@ class QmpCommon:
         return self.check_qmp_return(reply)
 
     def block_commit(self, node="ide0-hd0"):
-        """ commit back possible snapshots """
+        """commit back possible snapshots"""
         self.qmp("block-commit", device=node)
         reply = self.event_wait(
             name="BLOCK_JOB_READY", match={"data": {"device": "ide0-hd0"}}
@@ -164,7 +164,7 @@ class QmpCommon:
         """
         actions = []
         if has_bitmap == True:
-            """ clear existing bitmap, start new chain """
+            """clear existing bitmap, start new chain"""
             actions.append(self.transaction_bitmap_clear(device, bitmap))
         else:
             bitmap = "qmpbackup-%s" % device
@@ -186,7 +186,7 @@ class QmpCommon:
             )
 
     def do_qmp_backup(self, **kwargs):
-        """ Issue backup pcommand via qmp protocol """
+        """Issue backup pcommand via qmp protocol"""
         reply = self.qmp("drive-backup", **kwargs)
         if self.check_qmp_return(reply):
             return self.event_wait(
@@ -199,7 +199,7 @@ class QmpCommon:
         return self.command("query-block")
 
     def remove_bitmaps(self, blockdev):
-        """ Loop through existing devices and bitmaps, remove them """
+        """Loop through existing devices and bitmaps, remove them"""
         for dev in blockdev:
             if dev.has_bitmap:
                 try:

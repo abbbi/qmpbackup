@@ -93,13 +93,13 @@ if blockdev == None:
     sys.exit(1)
 
 if action == "cleanup":
-    """ Remove existing bitmaps for all block devices"""
+    """Remove existing bitmaps for all block devices"""
     if argv.remove_bitmap:
         qmp.remove_bitmaps(blockdev)
         log.info("Bitmaps for all devices have been removed")
 
 if action == "info":
-    """ Dump all block deviced attatched to vm and print readable json """
+    """Dump all block deviced attatched to vm and print readable json"""
     if argv.show == "blockdev":
         reply = qmp.command("query-block")
         log.info("VM Block Device Information:")
@@ -140,7 +140,7 @@ if action == "backup":
 
     """ TODO: error handling and much more """
     for device in blockdev:
-        """ default bitmap name """
+        """default bitmap name"""
         bitmap = "qmpbackup-%s" % device.node
         if device.backing_image == True:
             log.error(

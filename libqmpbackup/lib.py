@@ -7,13 +7,13 @@ import subprocess
 
 
 class QmpBackup:
-    """ common functions """
+    """common functions"""
 
     def __init__(self, debug):
         self._log = self.setup_log(debug)
 
     def setup_log(self, debug):
-        """ setup logging """
+        """setup logging"""
         FORMAT = "%(asctime)-15s %(levelname)5s  %(message)s"
         if debug:
             loglevel = logging.DEBUG
@@ -23,14 +23,14 @@ class QmpBackup:
         return logging.getLogger(sys.argv[0])
 
     def json_pp(self, json):
-        """ human readable json output """
+        """human readable json output"""
         try:
             return json_dumps(json, indent=4, sort_keys=True)
         except Exception as e:
             raise
 
     def rebase(self, directory, dry_run):
-        """ Rebase and commit all images in a directory """
+        """Rebase and commit all images in a directory"""
         if not os.path.exists(directory):
             self._log.error("Unable to find target directory")
             return False
@@ -109,7 +109,7 @@ class QmpBackup:
         return bitmap["status"]
 
     def connect_qaagent(self, socket):
-        """ Setup Qemu Agent connection """
+        """Setup Qemu Agent connection"""
         try:
             qga = QemuGuestAgentClient(socket)
             self._log.info("Guest Agent socket connected")
@@ -129,7 +129,7 @@ class QmpBackup:
         return qga
 
     def quisce(self, qga):
-        """ Quisce VM filesystem """
+        """Quisce VM filesystem"""
         fsstate = self.fsgetstate(qga)
         if fsstate == "frozen":
             self._log.warning("Filesystem is already frozen")
@@ -145,7 +145,7 @@ class QmpBackup:
         return None
 
     def thaw(self, qga):
-        """ Thaw filesystems """
+        """Thaw filesystems"""
         fsstate = self.fsgetstate(qga)
         if fsstate == "thawed":
             self._log.info("Filesystem is already thawed, skipping.")
@@ -160,7 +160,7 @@ class QmpBackup:
         return None
 
     def fsgetstate(self, qga):
-        """ Return filesystem state """
+        """Return filesystem state"""
         try:
             reply = qga.fsfreeze("status")
             return reply
