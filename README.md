@@ -1,3 +1,5 @@
+![ci](https://github.com/abbbi/qmpbackup/actions/workflows/ci-ubuntu-latest.yml/badge.svg)
+
 qmpbackup
 =========
 
