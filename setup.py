@@ -6,9 +6,11 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
+from libqmpbackup import version
+
 setup(
     name="qmpbackup",
-    version="0.3",
+    version=version._version_,
     author="Michael Ablassmeier",
     author_email="abi@grinser.de",
     description=("Qemu incremental backup via QMP"),

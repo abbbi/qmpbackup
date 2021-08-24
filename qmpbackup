@@ -19,6 +19,7 @@ from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup.qaclient import QemuGuestAgentClient
 from libqmpbackup.lib import QmpBackup
 from libqmpbackup.vm import VMInfo
+from libqmpbackup import version
 
 """ Argument parsing """
 parser = argparse.ArgumentParser(prog=sys.argv[0])
@@ -72,6 +73,8 @@ common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
 qmp = QmpCommon(log, argv.socket)
 vminfo = VMInfo()
+
+log.info("Version: %s", version._version_)
 
 """ Get all block devices for VM which are format qcow """
 try:
@@ -196,5 +199,5 @@ if action == "backup":
                 )
             )
 
-        if argv.agentsocket and argv.quisce:
+        if argv.agentsocket and argv.quisce and qga is not False:
             common.thaw(qga)

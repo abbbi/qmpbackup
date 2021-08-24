@@ -14,7 +14,7 @@ class QmpBackup:
 
     def setup_log(self, debug):
         """setup logging"""
-        FORMAT = "%(asctime)-15s %(levelname)5s  %(message)s"
+        FORMAT = "[%(asctime)-15s] %(levelname)7s  %(message)s"
         if debug:
             loglevel = logging.DEBUG
         else:
@@ -24,10 +24,7 @@ class QmpBackup:
 
     def json_pp(self, json):
         """human readable json output"""
-        try:
-            return json_dumps(json, indent=4, sort_keys=True)
-        except Exception as e:
-            raise
+        return json_dumps(json, indent=4, sort_keys=True)
 
     def rebase(self, directory, dry_run):
         """Rebase and commit all images in a directory"""
@@ -125,6 +122,7 @@ class QmpBackup:
             self._log.info("Qemu Guest Agent is reachable")
             if not "guest-fsfreeze-freeze" in qga_info:
                 self._log.warning("Guest agent does not support needed commands")
+                return False
 
         return qga
 

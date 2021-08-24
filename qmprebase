@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import argparse
+from libqmpbackup import version
 from libqmpbackup.lib import QmpBackup
 
 parser = argparse.ArgumentParser(prog=sys.argv[0])
@@ -28,6 +29,8 @@ except:
 
 common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
+
+log.info("Version: %s", version._version_)
 
 if action == "rebase":
     """Rebase images in directory"""
