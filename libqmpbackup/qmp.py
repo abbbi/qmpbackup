@@ -13,17 +13,22 @@ import errno
 import socket
 import sys
 
+
 class QMPError(Exception):
     pass
+
 
 class QMPConnectError(QMPError):
     pass
 
+
 class QMPCapabilitiesError(QMPError):
     pass
 
+
 class QMPTimeoutError(QMPError):
     pass
+
 
 class QEMUMonitorProtocol:
     def __init__(self, address, server=False, debug=False):
@@ -59,7 +64,7 @@ class QEMUMonitorProtocol:
         if greeting is None or not "QMP" in greeting:
             raise QMPConnectError
         # Greeting seems ok, negotiate capabilities
-        resp = self.cmd('qmp_capabilities')
+        resp = self.cmd("qmp_capabilities")
         if "return" in resp:
             return greeting
         raise QMPCapabilitiesError
@@ -70,7 +75,7 @@ class QEMUMonitorProtocol:
             if not data:
                 return
             resp = json.loads(data)
-            if 'event' in resp:
+            if "event" in resp:
                 if self._debug:
                     print >>sys.stderr, "QMP:<<< %s" % resp
                 self.__events.append(resp)
@@ -175,18 +180,18 @@ class QEMUMonitorProtocol:
         @param args: command arguments (dict)
         @param id: command id (dict, list, string or int)
         """
-        qmp_cmd = { 'execute': name }
+        qmp_cmd = {"execute": name}
         if args:
-            qmp_cmd['arguments'] = args
+            qmp_cmd["arguments"] = args
         if id:
-            qmp_cmd['id'] = id
+            qmp_cmd["id"] = id
         return self.cmd_obj(qmp_cmd)
 
     def command(self, cmd, **kwds):
         ret = self.cmd(cmd, kwds)
         if "error" in ret:
-            raise Exception(ret['error']['desc'])
-        return ret['return']
+            raise Exception(ret["error"]["desc"])
+        return ret["return"]
 
     def pull_event(self, wait=False):
         """

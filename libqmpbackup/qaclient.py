@@ -16,11 +16,14 @@
 import random
 import libqmpbackup.qmp as qmp
 
+
 class QemuGuestAgent(qmp.QEMUMonitorProtocol):
     def __getattr__(self, name):
         def wrapper(**kwds):
-            return self.command('guest-' + name.replace('_', '-'), **kwds)
+            return self.command("guest-" + name.replace("_", "-"), **kwds)
+
         return wrapper
+
 
 class QemuGuestAgentClient:
     error = QemuGuestAgent.error
@@ -32,7 +35,7 @@ class QemuGuestAgentClient:
     def sync(self, timeout=3):
         # Avoid being blocked forever
         if not self.ping(timeout):
-            raise EnvironmentError('Agent seems not alive')
+            raise EnvironmentError("Agent seems not alive")
         uid = random.randint(0, (1 << 32) - 1)
         while True:
             ret = self.qga.sync(id=uid)
@@ -41,7 +44,7 @@ class QemuGuestAgentClient:
 
     def info(self):
         info = self.qga.info()
-        return [c['name'] for c in info['supported_commands'] if c['enabled']]
+        return [c["name"] for c in info["supported_commands"] if c["enabled"]]
 
     def ping(self, timeout):
         self.qga.settimeout(timeout)
@@ -52,10 +55,10 @@ class QemuGuestAgentClient:
         return True
 
     def fsfreeze(self, cmd):
-        if cmd not in ['status', 'freeze', 'thaw']:
-            raise StandardError('Invalid command: ' + cmd)
+        if cmd not in ["status", "freeze", "thaw"]:
+            raise StandardError("Invalid command: " + cmd)
 
-        return getattr(self.qga, 'fsfreeze' + '_' + cmd)()
+        return getattr(self.qga, "fsfreeze" + "_" + cmd)()
 
     def fstrim(self, minimum=0):
-        return getattr(self.qga, 'fstrim')(minimum=minimum)
+        return getattr(self.qga, "fstrim")(minimum=minimum)
