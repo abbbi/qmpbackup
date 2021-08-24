@@ -118,9 +118,7 @@ Limitations
 exclusively uses the virtual machines monitor socket. See
 [virtnbdbackup](https://github.com/abbbi/virtnbdbackup).
 
-I think it will make sure
-to provide a good implementation of the dirty-bitmap feature in the future.
-
 2) Qemus ```drive-backup``` function does currently not support dumping
 data as a stream, it also cannot work with fifo pipes as the blockdriver
-expects functions as ftruncate and fseek to work on the target file.
+expects functions as ftruncate and fseek to work on the target file, so
+the backup target must be a directory.
