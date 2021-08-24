@@ -30,6 +30,6 @@ common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
 
 if action == "rebase":
-    """ Rebase images in directory """
+    """Rebase images in directory"""
     if common.rebase(argv.dir, argv.dry_run):
         log.info("Image files rollback successful.")
