@@ -1,0 +1,21 @@
+name: CI on ubuntu-latest
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Python code format test
+      run: |
+        sudo pip3 install black
+        black --check qmprebase
+        black --check qmpbackup
+        black --check .
+    - name: Install
+      run: sudo python3 setup.py install
+    - name: Execute
+      run: gmpbackup -h
