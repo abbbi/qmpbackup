@@ -18,4 +18,6 @@ jobs:
     - name: Install
       run: sudo python3 setup.py install
     - name: Execute
-      run: gmpbackup -h
+      run: |
+        qmpbackup -h
+        qmprebase -h
