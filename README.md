@@ -1,4 +1,3 @@
-
 qmpbackup
 =========
 
@@ -6,8 +5,10 @@ qmpbackup is designed to create live full and incremental backups of running
 qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
 feature introduced in later qemu versions. It was mostly created for
 educational purposes and is by no means complete. It works with standalone 
-qemu processes, if you want to backup qemu virtual machines which are 
-managed via libvirt, see:
+qemu processes.
+
+If you want to backup qemu virtual machines which are managed via `libvirt`,
+see this project:
 
  https://github.com/abbbi/virtnbdbackup
 
@@ -41,6 +42,9 @@ See the following discussion on the qmeu-block mailinglist regarding
 this topic:
 
  https://lists.nongnu.org/archive/html/qemu-block/2016-11/msg00682.html
+
+Bitmaps will be added with persistent option flag, which means they are stored
+permanently and are available between virtual machine shutdowns.
 
 Second step is to change some data within your virtual machine and let
 qmpbackup create an incremental backup for you, this works by:
@@ -110,15 +114,10 @@ for more information and commands.
 Limitations
 -----------
 
-1) Dirty-bitmaps are not saved through vm shutdowns currently, qmpbackup will
-fail accordingly if no bitmap exists and an incremental backup is attempted.
-This feature is currently worked on in Qemu and future versions might change
-that behavior and will make bitmaps persistent.
-
-2) Using the QMP protocol it cannot be used together with libvirt as libvirt
+1) Using the QMP protocol it cannot be used together with libvirt as libvirt
 exclusively uses the virtual machines monitor socket. I think it will make sure
 to provide a good implementation of the dirty-bitmap feature in the future.
 
-3) Qemus ```drive-backup``` function does currently not support dumping
+2) Qemus ```drive-backup``` function does currently not support dumping
 data as a stream, it also cannot work with fifo pipes as the blockdriver
 expects functions as ftruncate and fseek to work on the target file.

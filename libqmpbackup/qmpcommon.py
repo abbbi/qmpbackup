@@ -168,7 +168,7 @@ class QmpCommon:
             actions.append(self.transaction_bitmap_clear(device, bitmap))
         else:
             bitmap = "qmpbackup-%s" % device
-            actions.append(self.transaction_bitmap_add(device, bitmap))
+            actions.append(self.transaction_bitmap_add(device, bitmap, persistent=True))
 
         actions.append(self.transaction_bitmap_clear(device, bitmap))
         actions.append(
