@@ -14,7 +14,7 @@
 # # qemu [...] -chardev socket,path=/tmp/qga.sock,server,nowait,id=qga0 \
 #   -device virtio-serial -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0
 import random
-import qmp
+import libqmpbackup.qmp as qmp
 
 class QemuGuestAgent(qmp.QEMUMonitorProtocol):
     def __getattr__(self, name):

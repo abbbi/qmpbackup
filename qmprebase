@@ -1,35 +1,35 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import argparse
 from libqmpbackup.lib import QmpBackup
 
 parser = argparse.ArgumentParser(prog=sys.argv[0])
-parser.add_argument('--debug',
-    dest="debug",
-    help="activate debug log",
-    action='store_true',
-    required=0
+parser.add_argument(
+    "--debug", dest="debug", help="activate debug log", action="store_true", required=0
 )
-subparsers = parser.add_subparsers(help='sub-command help')
-parser_rebase = subparsers.add_parser('rebase', help='rebase')
-parser_rebase.set_defaults(which='rebase')
-parser_rebase.add_argument('--dir', 
-    type=str,
-    help='directory which contains images',
-    required=True
+subparsers = parser.add_subparsers(help="sub-command help")
+parser_rebase = subparsers.add_parser("rebase", help="rebase")
+parser_rebase.set_defaults(which="rebase")
+parser_rebase.add_argument(
+    "--dir", type=str, help="directory which contains images", required=True
 )
-parser_rebase.add_argument('--dry-run',
+parser_rebase.add_argument(
+    "--dry-run",
     action="store_true",
-    help='do not run commands, only show them',
-    required=False
+    help="do not run commands, only show them",
+    required=False,
 )
 argv = parser.parse_args()
-action = argv.which
+try:
+    action = argv.which
+except:
+    parser.print_help()
+    sys.exit(1)
 
 common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
 
 if action == "rebase":
-    ''' Rebase images in directory '''
+    """ Rebase images in directory """
     if common.rebase(argv.dir, argv.dry_run):
-        log.info('Image files rollback successful.')
+        log.info("Image files rollback successful.")

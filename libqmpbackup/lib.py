@@ -1,7 +1,7 @@
 import os
 import sys
 from json import dumps as json_dumps
-from qaclient import QemuGuestAgentClient
+from libqmpbackup.qaclient import QemuGuestAgentClient
 import logging
 import subprocess
 
@@ -130,7 +130,7 @@ class QmpBackup():
             self._log.info('Qemu Guest Agent is reachable')
             if not 'guest-fsfreeze-freeze' in qga_info:
                 self._log.warning('Guest agent does not support needed commands')
-    
+
         return qga
 
     def quisce(self, qga):
@@ -139,7 +139,7 @@ class QmpBackup():
         if fsstate == "frozen":
             self._log.warning('Filesystem is already frozen')
             return True
-        
+
         try:
             reply = qga.fsfreeze('freeze')
             self._log.info('"%s" Filesystem(s) freezed' % reply)

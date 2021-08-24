@@ -1,9 +1,9 @@
 import string
-import qmp
+import libqmpbackup.qmp as qmp
 
 class QmpCommon():
     ''' QmpCommon class, based on qemu.py by the qemu
-        project 
+        project
     '''
     def __init__(self, log, socket, negotiate=True):
         ''' regular QMP for all vm commands '''
@@ -28,7 +28,7 @@ class QmpCommon():
         return events
 
     def event_wait(self, name, timeout=60.0, match=None):
-        ''' wait for events 
+        ''' wait for events
             Test if 'match' is a recursive subset of 'event'
         '''
         def event_match(event, match=None):
@@ -60,7 +60,7 @@ class QmpCommon():
 
         return None
 
-    underscore_to_dash = string.maketrans('_', '-')
+    underscore_to_dash = str.maketrans('_', '-')
     def qmp(self, cmd, conv_keys=True, **args):
         '''Invoke a QMP command and return the result dict'''
         qmp_args = dict()
@@ -92,7 +92,7 @@ class QmpCommon():
     def transaction_action(self, action, **kwargs):
         return {
             'type': action,
-            'data': dict((k.replace('_', '-'), v) for k, v in kwargs.iteritems())
+            'data': dict((k.replace('_', '-'), v) for k, v in kwargs.items())
         }
 
     def transaction_bitmap_clear(self, node, name, **kwargs):
@@ -170,6 +170,7 @@ class QmpCommon():
                 self.transaction_bitmap_add(device, bitmap)
             )
 
+        actions.append(self.transaction_bitmap_clear(device, bitmap))
         actions.append(
             self.transaction_action('drive-backup',
                 device=device,
@@ -177,8 +178,6 @@ class QmpCommon():
                 sync=sync
             )
         )
-
-        actions.append(self.transaction_bitmap_clear(device, bitmap))
 
         reply = self.qmp('transaction', actions=actions)
         if self.check_qmp_return(reply):
@@ -189,7 +188,7 @@ class QmpCommon():
             )
 
     def do_qmp_backup(self, **kwargs):
-        ''' Issue backu pcommand via qmp protocol '''
+        ''' Issue backup pcommand via qmp protocol '''
         reply = self.qmp('drive-backup', **kwargs)
         if self.check_qmp_return(reply):
             return self.event_wait(

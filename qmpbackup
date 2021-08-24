@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # qmpbackup: Full an incremental backup using Qemus
 # dirty bitmap feature
 #
@@ -20,115 +20,105 @@ from libqmpbackup.qaclient import QemuGuestAgentClient
 from libqmpbackup.lib import QmpBackup
 from libqmpbackup.vm import VMInfo
 
-''' Argument parsing '''
+""" Argument parsing """
 parser = argparse.ArgumentParser(prog=sys.argv[0])
-parser.add_argument('--socket', 
-    dest="socket", 
-    help="qmp socket to connect", 
-    required=1
+parser.add_argument("--socket", dest="socket", help="qmp socket to connect", required=1)
+parser.add_argument(
+    "--agent-socket",
+    dest="agentsocket",
+    help="socket to use for communication with qemu agent",
+    required=0,
 )
-parser.add_argument('--agent-socket', 
-    dest="agentsocket", 
-    help="socket to use for communication with qemu agent", 
-    required=0
+parser.add_argument(
+    "--debug", dest="debug", help="more verbose output", action="store_true", required=0
 )
-parser.add_argument('--debug',
-    dest="debug",
-    help="more verbose output",
-    action='store_true',
-    required=0
+subparsers = parser.add_subparsers(help="sub-command help")
+parser_backup = subparsers.add_parser("backup", help="backup")
+parser_backup.set_defaults(which="backup")
+parser_backup.add_argument(
+    "--level", choices=["full", "inc"], type=str, help="backup level", required=True
 )
-subparsers = parser.add_subparsers(help='sub-command help')
-parser_backup = subparsers.add_parser('backup', help='backup')
-parser_backup.set_defaults(which='backup')
-parser_backup.add_argument('--level',
-    choices=['full','inc'],
-    type=str,
-    help='backup level',
-    required=True
-)
-parser_backup.add_argument('--quisce',
+parser_backup.add_argument(
+    "--quisce",
     action="store_true",
-    help='Use Qemu Agent to quisce filesystem',
-    required=False
+    help="Use Qemu Agent to quisce filesystem",
+    required=False,
 )
-parser_backup.add_argument('--target',
+parser_backup.add_argument(
+    "--target", type=str, help="backup target directory", required=True
+)
+parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
+parser_cleanup.set_defaults(which="cleanup")
+parser_cleanup.add_argument(
+    "--remove-bitmap",
+    action="store_true",
+    help="remove existant bitmaps for all devices",
+    required=True,
+)
+parser_info = subparsers.add_parser("info", help="print info about VM")
+parser_info.set_defaults(which="info")
+parser_info.add_argument(
+    "--show",
+    choices=["blockdev", "bitmaps"],
     type=str,
-    help='backup target directory',
-    required=True
-)
-parser_cleanup = subparsers.add_parser('cleanup',
-    help='cleanup functions'
-)
-parser_cleanup.set_defaults(which='cleanup')
-parser_cleanup.add_argument('--remove-bitmap',
-    action='store_true',
-    help='remove existant bitmaps for all devices',
-    required=True
-)
-parser_info = subparsers.add_parser('info', help='print info about VM')
-parser_info.set_defaults(which='info')
-parser_info.add_argument('--show',
-    choices=['blockdev','bitmaps'],
-    type=str,
-    help='show block device information',
-    required=True
+    help="show block device information",
+    required=True,
 )
 argv = parser.parse_args()
 action = argv.which
 
-''' instances '''
+""" instances """
 common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
 qmp = QmpCommon(log, argv.socket)
 vminfo = VMInfo()
 
-''' Get all block devices for VM which are format qcow '''
+""" Get all block devices for VM which are format qcow """
 try:
-    version = qmp.command('query-version')
-    vm_name = qmp.command('query-name')
+    version = qmp.command("query-version")
+    vm_name = qmp.command("query-name")
 
-    if vm_name.has_key('name'):
-        vm_name =  vm_name['name']
+    if "name" in vm_name:
+        vm_name = vm_name["name"]
     else:
         vm_name = None
 
-    blockdev = vminfo.get_block_devices(
-        qmp.do_query_block()
-    )
+    blockdev = vminfo.get_block_devices(qmp.do_query_block())
 except Exception as e:
     log.error('Unable to get block devices: "%s"' % e)
     sys.exit(1)
 
 if blockdev == None:
-    log.error('VM does not have any devices suitable for backup')
+    log.error("VM does not have any devices suitable for backup")
     sys.exit(1)
 
 if action == "cleanup":
-    ''' Remove existing bitmaps for all block devices'''
+    """ Remove existing bitmaps for all block devices"""
     if argv.remove_bitmap:
         qmp.remove_bitmaps(blockdev)
-        log.info('Bitmaps for all devices have been removed')
+        log.info("Bitmaps for all devices have been removed")
 
 if action == "info":
-    ''' Dump all block deviced attatched to vm and print readable json '''
+    """ Dump all block deviced attatched to vm and print readable json """
     if argv.show == "blockdev":
-        reply = qmp.command('query-block')
-        log.info('VM Block Device Information:')
-        log.info('%s', common.json_pp(reply))
+        reply = qmp.command("query-block")
+        log.info("VM Block Device Information:")
+        log.info("%s", common.json_pp(reply))
         sys.exit(0)
     if argv.show == "bitmaps":
-        log.info('Bitmaps:')
+        log.info("Bitmaps:")
         for dev in blockdev:
             if dev.bitmaps == None:
                 log.info('No bitmaps found for device: "%s"' % dev.node)
                 continue
-            log.info('%s:', dev.node)
-            log.info('%s', common.json_pp(dev.bitmaps))
+            log.info("%s:", dev.node)
+            log.info("%s", common.json_pp(dev.bitmaps))
 
 if action == "backup":
     if argv.quisce and not argv.agentsocket:
-        log.warning('Quisce option set but agent socket is missing, please set via --agent-socket')
+        log.warning(
+            "Quisce option set but agent socket is missing, please set via --agent-socket"
+        )
     if argv.agentsocket and argv.quisce:
         qga = common.connect_qaagent(argv.agentsocket)
         if qga:
@@ -143,53 +133,68 @@ if action == "backup":
 
     timestamp = int(time())
     if os.path.isdir(backupdir):
-        log.info('Backup target directory: %s' %  backupdir)
+        log.info("Backup target directory: %s" % backupdir)
     else:
-        log.error('Backup target must be directory.')
+        log.error("Backup target must be directory.")
         sys.exit(1)
 
-    ''' TODO: error handling and much more '''
+    """ TODO: error handling and much more """
     for device in blockdev:
-        ''' default bitmap name '''
-        bitmap = 'qmpbackup-%s' % device.node
+        """ default bitmap name """
+        bitmap = "qmpbackup-%s" % device.node
         if device.backing_image == True:
-            log.error('Active backing image for disk "%s", please commit any snapshots before starting a new chain.' % device.node)
+            log.error(
+                'Active backing image for disk "%s", please commit any snapshots before starting a new chain.'
+                % device.node
+            )
             sys.exit(1)
-        if device.has_bitmap == False and argv.level == 'inc':
-            log.error('Incremental backup requested but no active bitmap has been found.')
+        if device.has_bitmap == False and argv.level == "inc":
+            log.error(
+                "Incremental backup requested but no active bitmap has been found."
+            )
             sys.exit(1)
 
         if device.has_bitmap == True:
             state = common.check_bitmap_state(device.node, device.bitmaps)
             if state != True:
-                log.error('qmpbackup bitmap for device is in state "%s", another backup running?' % state)
+                log.error(
+                    'qmpbackup bitmap for device is in state "%s", another backup running?'
+                    % state
+                )
                 sys.exit(1)
 
-        targetdir = '%s/%s/' %(backupdir, device.node)
+        targetdir = "%s/%s/" % (backupdir, device.node)
         if not os.path.exists(targetdir):
             os.mkdir(targetdir)
 
         if argv.level == "full":
-            target='%s/FULL-%s' % (targetdir, timestamp)
+            target = "%s/FULL-%s" % (targetdir, timestamp)
             log.info('FULL Backup operation: "%s"' % target)
-            print common.json_pp(qmp.do_full_backup_with_bitmap(
-                device.has_bitmap,
-                bitmap,
-                device=device.node,
-                target=target,
-                sync="full"
-            ))
+            print(
+                common.json_pp(
+                    qmp.do_full_backup_with_bitmap(
+                        device.has_bitmap,
+                        bitmap,
+                        device=device.node,
+                        target=target,
+                        sync="full",
+                    )
+                )
+            )
 
         if argv.level == "inc":
-            target='%s/INC-%s' % (targetdir, timestamp)
+            target = "%s/INC-%s" % (targetdir, timestamp)
             log.info('INC Backup operation: "%s"' % target)
-            print common.json_pp(qmp.do_qmp_backup(
-                device=device.node,
-                bitmap=bitmap,
-                target=target,
-                sync="incremental"
-            ))
+            print(
+                common.json_pp(
+                    qmp.do_qmp_backup(
+                        device=device.node,
+                        bitmap=bitmap,
+                        target=target,
+                        sync="incremental",
+                    )
+                )
+            )
 
         if argv.agentsocket and argv.quisce:
             common.thaw(qga)
-
