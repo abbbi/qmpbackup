@@ -6,9 +6,9 @@ def read(fname):
 
 setup(
     name = "qmpbackup",
-    version = "0.1",
+    version = "0.3",
     author = "Michael Ablassmeier",
-    author_email = "abi@",
+    author_email = "abi@grinser.de",
     description = ("Qemu incremental backup via QMP"),
     license = "GPL",
     keywords = "qemu incremental backup",
