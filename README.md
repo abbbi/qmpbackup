@@ -115,7 +115,10 @@ Limitations
 -----------
 
 1) Using the QMP protocol it cannot be used together with libvirt as libvirt
-exclusively uses the virtual machines monitor socket. I think it will make sure
+exclusively uses the virtual machines monitor socket. See
+[virtnbdbackup](https://github.com/abbbi/virtnbdbackup).
+
+I think it will make sure
 to provide a good implementation of the dirty-bitmap feature in the future.
 
 2) Qemus ```drive-backup``` function does currently not support dumping
