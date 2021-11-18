@@ -103,7 +103,7 @@ try:
 
     blockdev = vminfo.get_block_devices(qmp.do_query_block())
 except Exception as e:
-    log.error('Unable to get block devices: "%s"' % e)
+    log.error('Unable to get block devices: "%s"', e)
     sys.exit(1)
 
 if blockdev == None:
@@ -161,7 +161,7 @@ if action == "backup":
             if argv.monthly:
                 log.info("New monthly directory created")
                 newmonthlybackup = True
-        log.info("Backup target directory: %s" % backupdir)
+        log.info("Backup target directory: %s", backupdir)
     else:
         log.error("Backup target must be directory.")
         sys.exit(1)
@@ -172,8 +172,8 @@ if action == "backup":
         bitmap = "qmpbackup-%s" % device.node
         if device.backing_image == True:
             log.error(
-                'Active backing image for disk "%s", please commit any snapshots before starting a new chain.'
-                % device.node
+                'Active backing image for disk "%s", please commit any snapshots before starting a new chain.',
+                device.node,
             )
             sys.exit(1)
         if device.has_bitmap == False and argv.level == "inc":
@@ -186,8 +186,8 @@ if action == "backup":
             state = common.check_bitmap_state(device.node, device.bitmaps)
             if state != True:
                 log.error(
-                    'qmpbackup bitmap for device is in state "%s", another backup running?'
-                    % state
+                    'qmpbackup bitmap for device is in state "%s", another backup running?',
+                    state,
                 )
                 sys.exit(1)
 
@@ -197,7 +197,7 @@ if action == "backup":
 
         if argv.level == "full":
             target = "%s/FULL-%s" % (targetdir, timestamp)
-            log.info('FULL Backup operation: "%s"' % target)
+            log.info('FULL Backup operation: "%s"', target)
             print(
                 common.json_pp(
                     qmp.do_full_backup_with_bitmap(
@@ -212,7 +212,7 @@ if action == "backup":
 
         if argv.level == "inc":
             target = "%s/INC-%s" % (targetdir, timestamp)
-            log.info('INC Backup operation: "%s"' % target)
+            log.info('INC Backup operation: "%s"', target)
             print(
                 common.json_pp(
                     qmp.do_qmp_backup(
@@ -229,7 +229,7 @@ if action == "backup":
                 device.has_bitmap == False or newmonthlybackup == True
             ):  # Check if there's a FULL backup in the folder instead?
                 target = "%s/FULL-%s" % (targetdir, timestamp)
-                log.info('FULL Backup operation: "%s"' % target)
+                log.info('FULL Backup operation: "%s"', target)
                 print(
                     common.json_pp(
                         qmp.do_full_backup_with_bitmap(
@@ -243,7 +243,7 @@ if action == "backup":
                 )
             else:
                 target = "%s/INC-%s" % (targetdir, timestamp)
-                log.info('INC Backup operation: "%s"' % target)
+                log.info('INC Backup operation: "%s"', target)
                 print(
                     common.json_pp(
                         qmp.do_qmp_backup(
