@@ -14,6 +14,7 @@ import sys
 import argparse
 import string
 from time import sleep, time
+from datetime import datetime
 
 from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup.qaclient import QemuGuestAgentClient
@@ -37,7 +38,10 @@ subparsers = parser.add_subparsers(help="sub-command help")
 parser_backup = subparsers.add_parser("backup", help="backup")
 parser_backup.set_defaults(which="backup")
 parser_backup.add_argument(
-    "--level", choices=["full", "inc"], type=str, help="backup level", required=True
+    "--level", choices=["full", "inc", "auto"], type=str, help="backup level", required=True
+)
+parser_backup.add_argument(
+    "--monthly", action="store_true", help="monthly backup directories (in format YYYY-MM). If combined with backup level 'auto' this will create monthly backup chains.", required=False
 )
 parser_backup.add_argument(
     "--quisce",
@@ -75,6 +79,10 @@ qmp = QmpCommon(log, argv.socket)
 vminfo = VMInfo()
 
 log.info("Version: %s", version._version_)
+
+""" flags """
+newmonthlybackup = False
+bitmapjustcleaned = False
 
 """ Get all block devices for VM which are format qcow """
 try:
@@ -129,19 +137,23 @@ if action == "backup":
 
     if vm_name:
         backupdir = "%s/%s" % (argv.target, vm_name)
-        if not os.path.exists(backupdir):
-            os.mkdir(backupdir)
     else:
         backupdir = argv.target
+
+    if argv.monthly:
+        backupdir += "/%s" % (datetime.today().strftime('%Y-%m'))
 
     timestamp = int(time())
     if not os.path.isfile(backupdir):
         if not os.path.exists(backupdir):
             try:
-                os.mkdir(backupdir)
+                os.makedirs(backupdir, exist_ok=True)
             except Exception as e:
                 log.error("Unable to create target dir: %s", e)
                 sys.exit(1)
+            if argv.monthly:
+                log.info("New monthly directory created")
+                newmonthlybackup = True
         log.info("Backup target directory: %s" % backupdir)
     else:
         log.error("Backup target must be directory.")
@@ -172,7 +184,7 @@ if action == "backup":
                 )
                 sys.exit(1)
 
-        targetdir = "%s/%s/" % (backupdir, device.node)
+        targetdir = "%s/%s" % (backupdir, device.node)
         if not os.path.exists(targetdir):
             os.mkdir(targetdir)
 
@@ -204,6 +216,36 @@ if action == "backup":
                     )
                 )
             )
+
+        if argv.level == "auto":
+            if device.has_bitmap == False or newmonthlybackup == True: # Check if there's a FULL backup in the folder instead?
+                target = "%s/FULL-%s" % (targetdir, timestamp)
+                log.info('FULL Backup operation: "%s"' % target)
+                print(
+                    common.json_pp(
+                        qmp.do_full_backup_with_bitmap(
+                            device.has_bitmap,
+                            bitmap,
+                            device=device.node,
+                            target=target,
+                            sync="full",
+                        )
+                    )
+                )
+            else:
+                target = "%s/INC-%s" % (targetdir, timestamp)
+                log.info('INC Backup operation: "%s"' % target)
+                print(
+                    common.json_pp(
+                        qmp.do_qmp_backup(
+                            device=device.node,
+                            bitmap=bitmap,
+                            target=target,
+                            sync="incremental",
+                        )
+                    )
+                )
+
 
         if argv.agentsocket and argv.quisce and qga is not False:
             common.thaw(qga)
