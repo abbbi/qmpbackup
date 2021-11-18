@@ -12,12 +12,10 @@
 import os
 import sys
 import argparse
-import string
-from time import sleep, time
+from time import time
 from datetime import datetime
 
 from libqmpbackup.qmpcommon import QmpCommon
-from libqmpbackup.qaclient import QemuGuestAgentClient
 from libqmpbackup.lib import QmpBackup
 from libqmpbackup.vm import VMInfo
 from libqmpbackup import version
@@ -106,7 +104,7 @@ except Exception as e:
     log.error('Unable to get block devices: "%s"', e)
     sys.exit(1)
 
-if blockdev == None:
+if blockdev is None:
     log.error("VM does not have any devices suitable for backup")
     sys.exit(1)
 
@@ -126,8 +124,8 @@ if action == "info":
     if argv.show == "bitmaps":
         log.info("Bitmaps:")
         for dev in blockdev:
-            if dev.bitmaps == None:
-                log.info('No bitmaps found for device: "%s"' % dev.node)
+            if dev.bitmaps is None:
+                log.info('No bitmaps found for device: "%s"', dev.node)
                 continue
             log.info("%s:", dev.node)
             log.info("%s", common.json_pp(dev.bitmaps))
@@ -170,21 +168,21 @@ if action == "backup":
     for device in blockdev:
         """default bitmap name"""
         bitmap = "qmpbackup-%s" % device.node
-        if device.backing_image == True:
+        if device.backing_image is True:
             log.error(
                 'Active backing image for disk "%s", please commit any snapshots before starting a new chain.',
                 device.node,
             )
             sys.exit(1)
-        if device.has_bitmap == False and argv.level == "inc":
+        if device.has_bitmap is False and argv.level == "inc":
             log.error(
                 "Incremental backup requested but no active bitmap has been found."
             )
             sys.exit(1)
 
-        if device.has_bitmap == True:
+        if device.has_bitmap is True:
             state = common.check_bitmap_state(device.node, device.bitmaps)
-            if state != True:
+            if state is not True:
                 log.error(
                     'qmpbackup bitmap for device is in state "%s", another backup running?',
                     state,
@@ -226,12 +224,14 @@ if action == "backup":
 
         if argv.level == "auto":
             if device.has_bitmap and not common.has_full(targetdir):
-                # exit gracefully with untawhing FS if freezed
-                log.warning(
+                log.error(
                     "Bitmap exists, but target directory does not contain full backup."
                 )
+                if argv.agentsocket and argv.quisce and qga is not False:
+                    common.thaw(qga)
+                sys.exit(1)
 
-            if device.has_bitmap == False or newmonthlybackup == True:
+            if device.has_bitmap is False or newmonthlybackup is True:
                 target = "%s/FULL-%s" % (targetdir, timestamp)
                 log.info('FULL Backup operation: "%s"', target)
                 print(
