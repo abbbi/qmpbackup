@@ -41,7 +41,7 @@ parser_backup.add_argument(
     "--level", choices=["full", "inc", "auto"], type=str, help="backup level", required=True
 )
 parser_backup.add_argument(
-    "--monthly", action="store_true", help="monthly backup directories (in format YYYY-MM) and monthly chains. Note that this will clean existent bitmaps every month.", required=False
+    "--monthly", action="store_true", help="monthly backup directories (in format YYYY-MM). If combined with backup level 'auto' this will create monthly backup chains.", required=False
 )
 parser_backup.add_argument(
     "--quisce",
