@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-# qmpbackup: Full an incremental backup using Qemus
-# dirty bitmap feature
-#
-# Copyright (C) 2016  Michael Ablassmeier
-#
-# Authors:
-#  Michael Ablassmeier <abi@grinser.de>
-#
-# This work is licensed under the terms of the GNU GPL, version 3.  See
-# the LICENSE file in the top-level directory.
+"""
+ qmpbackup: Full an incremental backup using Qemus
+ dirty bitmap feature
+
+ Copyright (C) 2016  Michael Ablassmeier
+
+ Authors:
+  Michael Ablassmeier <abi@grinser.de>
+
+ This work is licensed under the terms of the GNU GPL, version 3.  See
+ the LICENSE file in the top-level directory.
+"""
 import os
 import sys
 import argparse
@@ -20,7 +22,6 @@ from libqmpbackup.lib import QmpBackup
 from libqmpbackup.vm import VMInfo
 from libqmpbackup import version
 
-""" Argument parsing """
 parser = argparse.ArgumentParser(prog=sys.argv[0])
 parser.add_argument("--socket", dest="socket", help="qmp socket to connect", required=1)
 parser.add_argument(
@@ -77,7 +78,7 @@ parser_info.add_argument(
 argv = parser.parse_args()
 action = argv.which
 
-""" instances """
+# instances
 common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
 qmp = QmpCommon(log, argv.socket)
@@ -85,19 +86,19 @@ vminfo = VMInfo()
 
 log.info("Version: %s", version._version_)
 
-""" flags """
-newmonthlybackup = False
-bitmapjustcleaned = False
+# flags
+NEWMONTHLYBACKUP = False
+BITMAPJUSTCLEANED = False
 
-""" Get all block devices for VM which are format qcow """
+# Get all block devices for VM which are format qcow
 try:
     version = qmp.command("query-version")
-    vm_name = qmp.command("query-name")
+    VM_NAME = qmp.command("query-name")
 
-    if "name" in vm_name:
-        vm_name = vm_name["name"]
+    if "name" in VM_NAME:
+        VM_NAME = VM_NAME["name"]
     else:
-        vm_name = None
+        VM_NAME = None
 
     blockdev = vminfo.get_block_devices(qmp.do_query_block())
 except Exception as e:
@@ -109,13 +110,13 @@ if blockdev is None:
     sys.exit(1)
 
 if action == "cleanup":
-    """Remove existing bitmaps for all block devices"""
+    # Remove existing bitmaps for all block devices
     if argv.remove_bitmap:
         qmp.remove_bitmaps(blockdev)
         log.info("Bitmaps for all devices have been removed")
 
 if action == "info":
-    """Dump all block deviced attatched to vm and print readable json"""
+    # Dump all block deviced attatched to vm and print readable json
     if argv.show == "blockdev":
         reply = qmp.command("query-block")
         log.info("VM Block Device Information:")
@@ -140,8 +141,8 @@ if action == "backup":
         if qga:
             common.quisce(qga)
 
-    if vm_name:
-        backupdir = "%s/%s" % (argv.target, vm_name)
+    if VM_NAME:
+        backupdir = "%s/%s" % (argv.target, VM_NAME)
     else:
         backupdir = argv.target
 
@@ -158,15 +159,15 @@ if action == "backup":
                 sys.exit(1)
             if argv.monthly:
                 log.info("New monthly directory created")
-                newmonthlybackup = True
+                NEWMONTHLYBACKUP = True
         log.info("Backup target directory: %s", backupdir)
     else:
         log.error("Backup target must be directory.")
         sys.exit(1)
 
-    """ TODO: error handling and much more """
+    # TODO: error handling and much more
     for device in blockdev:
-        """default bitmap name"""
+        # default bitmap name
         bitmap = "qmpbackup-%s" % device.node
         if device.backing_image is True:
             log.error(
@@ -231,7 +232,7 @@ if action == "backup":
                     common.thaw(qga)
                 sys.exit(1)
 
-            if device.has_bitmap is False or newmonthlybackup is True:
+            if device.has_bitmap is False or NEWMONTHLYBACKUP is True:
                 target = "%s/FULL-%s" % (targetdir, timestamp)
                 log.info('FULL Backup operation: "%s"', target)
                 print(
