@@ -38,10 +38,17 @@ subparsers = parser.add_subparsers(help="sub-command help")
 parser_backup = subparsers.add_parser("backup", help="backup")
 parser_backup.set_defaults(which="backup")
 parser_backup.add_argument(
-    "--level", choices=["full", "inc", "auto"], type=str, help="backup level", required=True
+    "--level",
+    choices=["full", "inc", "auto"],
+    type=str,
+    help="backup level",
+    required=True,
 )
 parser_backup.add_argument(
-    "--monthly", action="store_true", help="monthly backup directories (in format YYYY-MM). If combined with backup level 'auto' this will create monthly backup chains.", required=False
+    "--monthly",
+    action="store_true",
+    help="monthly backup directories (in format YYYY-MM). If combined with backup level 'auto' this will create monthly backup chains.",
+    required=False,
 )
 parser_backup.add_argument(
     "--quisce",
@@ -141,7 +148,7 @@ if action == "backup":
         backupdir = argv.target
 
     if argv.monthly:
-        backupdir += "/%s" % (datetime.today().strftime('%Y-%m'))
+        backupdir += "/%s" % (datetime.today().strftime("%Y-%m"))
 
     timestamp = int(time())
     if not os.path.isfile(backupdir):
@@ -218,7 +225,9 @@ if action == "backup":
             )
 
         if argv.level == "auto":
-            if device.has_bitmap == False or newmonthlybackup == True: # Check if there's a FULL backup in the folder instead?
+            if (
+                device.has_bitmap == False or newmonthlybackup == True
+            ):  # Check if there's a FULL backup in the folder instead?
                 target = "%s/FULL-%s" % (targetdir, timestamp)
                 log.info('FULL Backup operation: "%s"' % target)
                 print(
@@ -245,7 +254,6 @@ if action == "backup":
                         )
                     )
                 )
-
 
         if argv.agentsocket and argv.quisce and qga is not False:
             common.thaw(qga)
