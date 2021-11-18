@@ -225,9 +225,13 @@ if action == "backup":
             )
 
         if argv.level == "auto":
-            if (
-                device.has_bitmap == False or newmonthlybackup == True
-            ):  # Check if there's a FULL backup in the folder instead?
+            if device.has_bitmap and not common.has_full(targetdir):
+                # exit gracefully with untawhing FS if freezed
+                log.warning(
+                    "Bitmap exists, but target directory does not contain full backup."
+                )
+
+            if device.has_bitmap == False or newmonthlybackup == True:
                 target = "%s/FULL-%s" % (targetdir, timestamp)
                 log.info('FULL Backup operation: "%s"', target)
                 print(

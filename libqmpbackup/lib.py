@@ -2,6 +2,7 @@ import os
 import sys
 from json import dumps as json_dumps
 from libqmpbackup.qaclient import QemuGuestAgentClient
+from glob import glob
 import logging
 import subprocess
 
@@ -11,6 +12,13 @@ class QmpBackup:
 
     def __init__(self, debug):
         self._log = self.setup_log(debug)
+
+    def has_full(self, directory):
+        """Check if directory contains full backup"""
+        if len(glob(f"{directory}/FULL*")) == 0:
+            return False
+
+        return True
 
     def setup_log(self, debug):
         """setup logging"""
