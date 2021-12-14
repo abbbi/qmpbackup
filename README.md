@@ -60,7 +60,9 @@ the changed delta since your last full (or inc) backup will be dumped to
 cleared after this and you can continue creating further incremental backups by
 re-issuing the command likewise.
 
-There is also the `auto` backup level which combines the `full` and `inc` backup levels. If there's no existing bitmap for the VM, `full` will run. If a bitmap exists, `inc` will be used.
+There is also the `auto` backup level which combines the `full` and `inc`
+backup levels. If there's no existing bitmap for the VM, `full` will run. If a
+bitmap exists, `inc` will be used.
 
 Monthly Backups
 -----------------
@@ -69,11 +71,12 @@ The above combined with the `auto` backup level, backups will be created in mont
 
 With a VM named *myfirstvm* and the date being 2021-11, the following command: 
 
-```/qmpbackup --socket /path/socket backup --level auto --monthly --target /tmp/backup``` 
+```qmpbackup --socket /path/socket backup --level auto --monthly --target /tmp/backup```
 
 will place backups in the following backup path: `/tmp/backup/myfirstvm/2021-11/`
 
-When the date changes to 2021-12 and qmpbackup is run, backups will be placed in `/tmp/backup/myfirstvm/2021-12/` and a new full backup will be created.
+When the date changes to 2021-12 and qmpbackup is run, backups will be placed
+in `/tmp/backup/myfirstvm/2021-12/` and a new full backup will be created.
 
 
 Filesystem Quisce
