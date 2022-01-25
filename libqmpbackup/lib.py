@@ -108,7 +108,12 @@ class QmpBackup:
         for bitmap in bitmaps:
             self._log.debug("Bitmap: %s" % self.json_pp(bitmap))
             match = "%s-%s" % ("qmpbackup", node)
-            if bitmap["name"] == match and bitmap["status"] == "active":
+            try:
+                status = "active" in bitmap["status"]
+            except KeyError:
+                status = bitmap["recording"]
+
+            if bitmap["name"] == match and status is True:
                 return True
 
         return bitmap["status"]

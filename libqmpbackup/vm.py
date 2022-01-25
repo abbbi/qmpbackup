@@ -21,11 +21,13 @@ class VMInfo:
                     continue
 
                 try:
+                    if len(inserted["dirty-bitmaps"]) > 0:
+                        has_bitmap = True
+                        bitmaps = inserted["dirty-bitmaps"]
+                except KeyError:
                     if len(device["dirty-bitmaps"]) > 0:
                         has_bitmap = True
                         bitmaps = device["dirty-bitmaps"]
-                except KeyError:
-                    pass
 
                 try:
                     bi = inserted["image"]["backing-image"]
