@@ -236,7 +236,11 @@ if action == "backup":
             )
 
         if argv.level == "auto":
-            if device.has_bitmap and not common.has_full(targetdir):
+            if (
+                device.has_bitmap
+                and not common.has_full(targetdir)
+                and NEWMONTHLYBACKUP is False
+            ):
                 log.error(
                     "Bitmap exists, but target directory does not contain full backup."
                 )
