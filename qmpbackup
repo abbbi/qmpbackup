@@ -97,14 +97,22 @@ BITMAPJUSTCLEANED = False
 # Get all block devices for VM which are format qcow
 try:
     version = qmp.command("query-version")
-    log.info(common.json_pp(version))
+    log.info("Qemu version: %s", common.json_pp(version))
+except Exception as e:
+    log.warning("Unable to get qemu version: %s", e)
+
+try:
     VM_NAME = qmp.command("query-name")
 
     if "name" in VM_NAME:
         VM_NAME = VM_NAME["name"]
+        log.info("VM: %s", VM_NAME)
     else:
         VM_NAME = None
+except Exception as e:
+    log.warning("Unable to get qemu process name: %s", e)
 
+try:
     blockdev = vminfo.get_block_devices(qmp.do_query_block())
 except Exception as e:
     log.error('Unable to get block devices: "%s"', e)
