@@ -43,7 +43,7 @@ class VMInfo:
             except KeyError:
                 pass
 
-            logging.debug("Adding device to device list: %s", device)
+            log.debug("Adding device to device list: %s", device)
             blockdevs.append(
                 BlockDev(
                     device["device"],
