@@ -209,30 +209,22 @@ if action == "backup":
         if argv.level == "full":
             target = "%s/FULL-%s" % (targetdir, timestamp)
             log.info('FULL Backup operation: "%s"', target)
-            print(
-                common.json_pp(
-                    qmp.do_full_backup_with_bitmap(
-                        device.has_bitmap,
-                        bitmap,
-                        device=device.node,
-                        target=target,
-                        sync="full",
-                    )
-                )
+            qmp.do_full_backup_with_bitmap(
+                device.has_bitmap,
+                bitmap,
+                device=device.node,
+                target=target,
+                sync="full",
             )
 
         if argv.level == "inc":
             target = "%s/INC-%s" % (targetdir, timestamp)
             log.info('INC Backup operation: "%s"', target)
-            print(
-                common.json_pp(
-                    qmp.do_qmp_backup(
-                        device=device.node,
-                        bitmap=bitmap,
-                        target=target,
-                        sync="incremental",
-                    )
-                )
+            qmp.do_qmp_backup(
+                device=device.node,
+                bitmap=bitmap,
+                target=target,
+                sync="incremental",
             )
 
         if argv.level == "auto":
@@ -251,30 +243,25 @@ if action == "backup":
             if device.has_bitmap is False or NEWMONTHLYBACKUP is True:
                 target = "%s/FULL-%s" % (targetdir, timestamp)
                 log.info('FULL Backup operation: "%s"', target)
-                print(
-                    common.json_pp(
-                        qmp.do_full_backup_with_bitmap(
-                            device.has_bitmap,
-                            bitmap,
-                            device=device.node,
-                            target=target,
-                            sync="full",
-                        )
-                    )
+                qmp.do_full_backup_with_bitmap(
+                    device.has_bitmap,
+                    bitmap,
+                    device=device.node,
+                    target=target,
+                    sync="full",
                 )
             else:
                 target = "%s/INC-%s" % (targetdir, timestamp)
                 log.info('INC Backup operation: "%s"', target)
-                print(
-                    common.json_pp(
-                        qmp.do_qmp_backup(
-                            device=device.node,
-                            bitmap=bitmap,
-                            target=target,
-                            sync="incremental",
-                        )
-                    )
+                qmp.do_qmp_backup(
+                    device=device.node,
+                    bitmap=bitmap,
+                    target=target,
+                    sync="incremental",
                 )
 
         if argv.agentsocket and argv.quisce and qga is not False:
             common.thaw(qga)
+
+        log.info("Finished")
+        sys.exit(0)

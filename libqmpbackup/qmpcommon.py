@@ -1,6 +1,7 @@
 import string
 import logging
 import libqmpbackup.qmp as qmp
+from time import sleep
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ class QmpCommon:
         if reply is None:
             raise Exception("Monitor is closed")
         if "error" in reply:
-            raise Exception(reply["error"]["desc"])
+            raise RuntimeError("Error during qmp command: %s", reply["error"]["desc"])
 
         return True
 
@@ -181,21 +182,31 @@ class QmpCommon:
 
         reply = self.qmp("transaction", actions=actions)
         if self.check_qmp_return(reply):
-            return self.event_wait(
-                timeout="3200",
-                name="BLOCK_JOB_COMPLETED",
-                match={"data": {"device": device}},
-            )
+            return self.qmp_progress(device)
+
+    def qmp_progress(self, device):
+        """Show progress of current block job status"""
+        while True:
+            status = self.qmp("query-block-jobs")
+            if not status["return"]:
+                return self.check_qmp_return(
+                    self.event_wait(
+                        timeout="3200",
+                        name="BLOCK_JOB_COMPLETED",
+                        match={"data": {"device": device}},
+                    )
+                )
+            else:
+                for job in status["return"]:
+                    if job["device"] == device:
+                        log.info("Wrote Offset: %s of %s", job["offset"], job["len"])
+            sleep(1)
 
     def do_qmp_backup(self, **kwargs):
         """Issue backup pcommand via qmp protocol"""
         reply = self.qmp("drive-backup", **kwargs)
         if self.check_qmp_return(reply):
-            return self.event_wait(
-                timeout="3200",
-                name="BLOCK_JOB_COMPLETED",
-                match={"data": {"device": kwargs["device"]}},
-            )
+            return self.qmp_progress(kwargs["device"])
 
     def do_query_block(self):
         return self.command("query-block")
