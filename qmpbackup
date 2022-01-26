@@ -96,7 +96,14 @@ NEWMONTHLYBACKUP = False
 # Get all block devices for VM which are format qcow
 try:
     version = qmp.command("query-version")
-    log.info("Qemu version: %s", common.json_pp(version))
+    qemu = version["qemu"]
+    log.info(
+        "Qemu version: [%s.%s.%s] [%s]",
+        qemu["major"],
+        qemu["micro"],
+        qemu["minor"],
+        version["package"],
+    )
 except Exception as e:
     log.warning("Unable to get qemu version: %s", e)
 
