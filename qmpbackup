@@ -92,7 +92,6 @@ log.info("Version: %s", version._version_)
 
 # flags
 NEWMONTHLYBACKUP = False
-BITMAPJUSTCLEANED = False
 
 # Get all block devices for VM which are format qcow
 try:
