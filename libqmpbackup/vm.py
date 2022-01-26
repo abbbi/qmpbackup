@@ -15,38 +15,39 @@ class VMInfo:
         has_bitmap = False
         bitmaps = None
         for device in blockinfo:
-            try:
-                inserted = device["inserted"]
-                if inserted["drv"] == "raw":
-                    continue
-
-                try:
-                    if len(inserted["dirty-bitmaps"]) > 0:
-                        has_bitmap = True
-                        bitmaps = inserted["dirty-bitmaps"]
-                except KeyError:
-                    if len(device["dirty-bitmaps"]) > 0:
-                        has_bitmap = True
-                        bitmaps = device["dirty-bitmaps"]
-
-                try:
-                    bi = inserted["image"]["backing-image"]
-                    backing_image = True
-                except KeyError:
-                    pass
-
-                blockdevs.append(
-                    BlockDev(
-                        device["device"],
-                        inserted["image"]["format"],
-                        inserted["image"]["filename"],
-                        backing_image,
-                        has_bitmap,
-                        bitmaps,
-                    )
-                )
-            except KeyError:
+            if not "inserted" in device:
                 continue
+
+            inserted = device["inserted"]
+            if inserted["drv"] == "raw":
+                continue
+
+            bitmaps = []
+            if "dirty-bitmaps" in inserted:
+                bitmaps = inserted["dirty-bitmaps"]
+
+            if "dirty-bitmaps" in device:
+                bitmaps = device["dirty-bitmaps"]
+
+            if len(bitmaps) > 0:
+                has_bitmap = True
+
+            try:
+                bi = inserted["image"]["backing-image"]
+                backing_image = True
+            except KeyError:
+                pass
+
+            blockdevs.append(
+                BlockDev(
+                    device["device"],
+                    inserted["image"]["format"],
+                    inserted["image"]["filename"],
+                    backing_image,
+                    has_bitmap,
+                    bitmaps,
+                )
+            )
 
         if len(blockdevs) == 0:
             return None

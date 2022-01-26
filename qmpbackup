@@ -93,6 +93,7 @@ BITMAPJUSTCLEANED = False
 # Get all block devices for VM which are format qcow
 try:
     version = qmp.command("query-version")
+    log.info(common.json_pp(version))
     VM_NAME = qmp.command("query-name")
 
     if "name" in VM_NAME:
