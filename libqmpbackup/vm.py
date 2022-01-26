@@ -1,4 +1,7 @@
+import logging
 from collections import namedtuple
+
+log = logging.getLogger(__name__)
 
 
 class VMInfo:
@@ -16,10 +19,12 @@ class VMInfo:
         bitmaps = None
         for device in blockinfo:
             if not "inserted" in device:
+                log.debug("Ignoring device: %s", device)
                 continue
 
             inserted = device["inserted"]
             if inserted["drv"] == "raw":
+                log.debug("Ignoring RAW device: %s", device)
                 continue
 
             bitmaps = []
@@ -38,6 +43,7 @@ class VMInfo:
             except KeyError:
                 pass
 
+            logging.debug("Adding device to device list: %s", device)
             blockdevs.append(
                 BlockDev(
                     device["device"],
