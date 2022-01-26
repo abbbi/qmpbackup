@@ -85,7 +85,7 @@ except AttributeError:
 # instances
 common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
-qmp = QmpCommon(log, argv.socket)
+qmp = QmpCommon(argv.socket)
 vminfo = VMInfo()
 
 log.info("Version: %s", version._version_)

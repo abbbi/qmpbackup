@@ -1,5 +1,8 @@
 import string
+import logging
 import libqmpbackup.qmp as qmp
+
+log = logging.getLogger(__name__)
 
 
 class QmpCommon:
@@ -7,12 +10,11 @@ class QmpCommon:
     project
     """
 
-    def __init__(self, log, socket, negotiate=True):
+    def __init__(self, socket, negotiate=True):
         """regular QMP for all vm commands"""
         self._qmp = qmp.QEMUMonitorProtocol(socket)
         self._qmp.connect(negotiate=negotiate)
 
-        self._log = log
         self._events = []
 
     def get_qmp_event(self, wait=False):
@@ -205,12 +207,12 @@ class QmpCommon:
                 try:
                     for bitmap in dev.bitmaps:
                         if self.remove_bitmap(dev.node, bitmap["name"]):
-                            self._log.debug(
+                            log.debug(
                                 'Bitmap "%s" for device "%s" removed'
                                 % (bitmap["name"], dev.node)
                             )
                 except Exception as e:
                     raise
             else:
-                self._log.debug("No bitmap set for any device")
+                log.debug("No bitmap set for any device")
         return True
