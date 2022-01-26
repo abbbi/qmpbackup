@@ -116,7 +116,7 @@ class QmpBackup:
             if bitmap["name"] == match and status is True:
                 return True
 
-        return bitmap["status"]
+        return status
 
     def connect_qaagent(self, socket):
         """Setup Qemu Agent connection"""
