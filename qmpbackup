@@ -76,7 +76,11 @@ parser_info.add_argument(
     required=True,
 )
 argv = parser.parse_args()
-action = argv.which
+try:
+    action = argv.which
+except AttributeError:
+    parser.print_help()
+    sys.exit(1)
 
 # instances
 common = QmpBackup(argv.debug)
