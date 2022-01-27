@@ -88,7 +88,7 @@ class QmpBackup:
                 )
                 break
 
-            self._log.debug('"%s" is based on "%s"' % (images[idx], image))
+            self._log.debug('"%s" is based on "%s"', images[idx], image)
 
             # befor rebase we check consistency of all files
             CMD_CHECK = "qemu-img check %s" % image
@@ -97,11 +97,11 @@ class QmpBackup:
                 if not dry_run:
                     output = subprocess.check_output(CMD_CHECK, shell=True)
             except subprocess.CalledProcessError as e:
-                self._log.error("Error while file check: %s" % e)
+                self._log.error("Error while file check: %s", e)
                 return False
 
             try:
-                CMD_REBASE = 'qemu-img rebase -b "%s" "%s" -u' % (
+                CMD_REBASE = 'qemu-img rebase -f qcow2 -F qcow2 -b "%s" "%s" -u' % (
                     images[idx],
                     image,
                 )
@@ -114,7 +114,7 @@ class QmpBackup:
                 if not dry_run:
                     com = subprocess.check_output(CMD_COMMIT, shell=True)
             except subprocess.CalledProcessError as e:
-                self._log.error("Error while rollback: %s" % e)
+                self._log.error("Error while rollback: %s", e)
                 return False
 
         return True
@@ -127,7 +127,7 @@ class QmpBackup:
         disabled-> migration might be going on
         """
         for bitmap in bitmaps:
-            self._log.debug("Existing Bitmaps and states: %s" % self.json_pp(bitmap))
+            self._log.debug("Existing Bitmaps and states: %s", self.json_pp(bitmap))
             match = "%s-%s" % ("qmpbackup", node)
             try:
                 status = "active" in bitmap["status"]
@@ -145,7 +145,7 @@ class QmpBackup:
             qga = QemuGuestAgentClient(socket)
             self._log.info("Guest Agent socket connected")
         except QemuGuestAgentClient.error as e:
-            self._log.warning('Unable to connect guest agent socket: "%s"' % e)
+            self._log.warning('Unable to connect guest agent socket: "%s"', e)
             return False
 
         self._log.info("Trying to ping guest agent")
@@ -170,10 +170,10 @@ class QmpBackup:
 
         try:
             reply = qga.fsfreeze("freeze")
-            self._log.info('"%s" Filesystem(s) freezed' % reply)
+            self._log.info('"%s" Filesystem(s) freezed', reply)
             return reply
         except Exception as e:
-            self._log.warning('Unable to freeze: "%s"' % e)
+            self._log.warning('Unable to freeze: "%s"', e)
 
         return None
 
@@ -185,10 +185,10 @@ class QmpBackup:
             return True
         try:
             reply = qga.fsfreeze("thaw")
-            self._log.info('"%s" fileystem(s) thawed' % reply)
+            self._log.info('"%s" fileystem(s) thawed', reply)
             return reply
         except Exception as e:
-            self._log.warning('Unable to thaw filesystem: "%s"' % e)
+            self._log.warning('Unable to thaw filesystem: "%s"', e)
 
         return None
 
