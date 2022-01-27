@@ -24,7 +24,9 @@ class VMInfo:
 
             inserted = device["inserted"]
             if inserted["drv"] == "raw":
-                log.debug("Ignoring RAW device: %s", device)
+                log.warning(
+                    "Excluding device with raw format from backup: %s", device["device"]
+                )
                 continue
 
             bitmaps = []
