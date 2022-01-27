@@ -200,8 +200,17 @@ class QmpCommon:
             else:
                 for job in status["return"]:
                     if job["device"] == device:
-                        pr = [round(job["offset"]/job["len"]*100) if job["offset"] != 0 else 0]
-                        log.info("Wrote Offset: %s%% (%s of %s)", pr[0], job["offset"], job["len"])
+                        pr = [
+                            round(job["offset"] / job["len"] * 100)
+                            if job["offset"] != 0
+                            else 0
+                        ]
+                        log.info(
+                            "Wrote Offset: %s%% (%s of %s)",
+                            pr[0],
+                            job["offset"],
+                            job["len"],
+                        )
             sleep(1)
 
     def do_qmp_backup(self, **kwargs):
