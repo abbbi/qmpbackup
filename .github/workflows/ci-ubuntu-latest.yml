@@ -19,7 +19,7 @@ jobs:
     - name: Install QEMU
       run: |
         sudo apt-get update
-        sudo apt-get install -y qemu-system-x86
+        sudo apt-get install -y qemu-system-x86 libguestfs-tools
     - name: Execute testscript
       run: cd t && sh runtest
     - name: Install qmpbackup

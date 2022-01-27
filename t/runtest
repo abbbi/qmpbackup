@@ -54,5 +54,16 @@ cp -a /tmp/backup/ /tmp/restore
 ../qmprebase rebase --dir /tmp/restore/ide0-hd0/ --dry-run
 ../qmprebase rebase --dir /tmp/restore/ide0-hd0/
 
+echo "------------------------------------------------"
+echo "Mounting rebased image"
+echo "------------------------------------------------"
+mkdir -p /tmp/empty
+FILE=$(echo /tmp/restore/ide0-hd0/FULL*)
+# for debugging
+#export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+sudo -E guestmount -a $FILE /tmp/empty -i
+sudo stat /tmp/empty/etc/fstab >/dev/null
+sudo -E guestunmount /tmp/empty
+
 echo "killing qemu process"
 kill -9 "$(cat /tmp/qemu.pid)"

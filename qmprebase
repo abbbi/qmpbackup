@@ -36,7 +36,7 @@ except:
 common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
 
-log.info("Version: %s", version._version_)
+log.info("Version: %s Arguments: %s", version._version_, " ".join(sys.argv))
 
 if action == "rebase":
     """Rebase images in directory"""
