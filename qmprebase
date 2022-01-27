@@ -20,6 +20,12 @@ parser_rebase.add_argument(
     help="do not run commands, only show them",
     required=False,
 )
+parser_rebase.add_argument(
+    "--until",
+    type=str,
+    help="point in time restore until specified backup file",
+    required=False,
+)
 argv = parser.parse_args()
 try:
     action = argv.which
@@ -34,5 +40,5 @@ log.info("Version: %s", version._version_)
 
 if action == "rebase":
     """Rebase images in directory"""
-    if common.rebase(argv.dir, argv.dry_run):
+    if common.rebase(argv.dir, argv.dry_run, argv.until):
         log.info("Image files rollback successful.")

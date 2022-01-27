@@ -127,6 +127,13 @@ contains the latest state and can be booted via Qemu again.
 `Note:` It makes sense to copy the existing backup directory to a temporary
 folder before rebasing, to not alter your existing backups.
 
+Using the `--until` option rollback to a specific incremental point in 
+time is possible:
+
+```
+ qmprebase  rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
+```
+
 Misc commands
 -------------
 

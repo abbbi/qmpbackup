@@ -34,17 +34,26 @@ class QmpBackup:
         """human readable json output"""
         return json_dumps(json, indent=4, sort_keys=True)
 
-    def rebase(self, directory, dry_run):
+    def rebase(self, directory, dry_run, until):
         """Rebase and commit all images in a directory"""
         if not os.path.exists(directory):
             self._log.error("Unable to find target directory")
             return False
 
         os.chdir(directory)
-        images = filter(os.path.isfile, os.listdir(directory))
-        images = [os.path.join(directory, f) for f in images]
+        image_files = filter(os.path.isfile, os.listdir(directory))
+        images = [os.path.join(directory, f) for f in image_files]
+        images_flat = [os.path.basename(f) for f in images]
+        if until is not None and until not in images_flat:
+            self._log.error(
+                "Image file specified by --until option [%s] does not exist in backup directory",
+                until,
+            )
+            return False
+
         # sort files by creation date
         images.sort(key=lambda x: os.path.getmtime(x))
+        images_flat.sort(key=lambda x: os.path.getmtime(x))
 
         if dry_run:
             self._log.info("Dry run activated, not applying any changes")
@@ -62,8 +71,17 @@ class QmpBackup:
             return False
 
         idx = len(images) - 1
+
+        if until is not None:
+            sidx = images_flat.index(until)
         for image in reversed(images):
             idx = idx - 1
+            if until is not None and idx >= sidx:
+                self._log.info(
+                    "Skipping checkpoint: %s as requested with --until option", image
+                )
+                continue
+
             if images.index(image) == 0 or "FULL-" in images[images.index(image)]:
                 self._log.info(
                     "Rollback of latest [FULL]<-[INC] chain complete, ignoring older chains"
