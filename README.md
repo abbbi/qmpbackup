@@ -90,6 +90,15 @@ Guest Agent socket (```--agent-socket```)  and request filesytem quisce via
   qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
 ```
 
+Use the following options to qemu for initating an guest agent socket:
+
+```
+   -chardev socket,path=$AGENT_SOCKET,server,nowait,id=qga0 \
+   -device virtio-serial \
+   -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
+```
+
+
 Restore
 -------
 
