@@ -106,7 +106,7 @@ class QmpBackup:
         disabled-> migration might be going on
         """
         for bitmap in bitmaps:
-            self._log.debug("Bitmap: %s" % self.json_pp(bitmap))
+            self._log.debug("Existing Bitmaps and states: %s" % self.json_pp(bitmap))
             match = "%s-%s" % ("qmpbackup", node)
             try:
                 status = "active" in bitmap["status"]

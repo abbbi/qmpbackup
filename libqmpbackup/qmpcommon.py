@@ -168,9 +168,10 @@ class QmpCommon:
         actions = []
         if has_bitmap == True:
             """clear existing bitmap, start new chain"""
+            log.debug("Removing existing bitmaps for new backup chain")
             actions.append(self.transaction_bitmap_clear(device, bitmap))
         else:
-            bitmap = "qmpbackup-%s" % device
+            log.debug("Create new bitmap: %s", bitmap)
             actions.append(self.transaction_bitmap_add(device, bitmap, persistent=True))
 
         actions.append(self.transaction_bitmap_clear(device, bitmap))
@@ -214,16 +215,22 @@ class QmpCommon:
     def remove_bitmaps(self, blockdev):
         """Loop through existing devices and bitmaps, remove them"""
         for dev in blockdev:
-            if dev.has_bitmap:
-                try:
-                    for bitmap in dev.bitmaps:
-                        if self.remove_bitmap(dev.node, bitmap["name"]):
-                            log.debug(
-                                'Bitmap "%s" for device "%s" removed'
-                                % (bitmap["name"], dev.node)
-                            )
-                except Exception as e:
-                    raise
-            else:
-                log.debug("No bitmap set for any device")
+            if not dev.has_bitmap:
+                log.debug("No bitmap set for device %s", dev.node)
+                continue
+
+            try:
+                for bitmap in dev.bitmaps:
+                    bitmap_name = bitmap["name"]
+                    if not "qmpbackup" in bitmap_name:
+                        log.info("Ignoring bitmap: %s", bitmap_name)
+                        continue
+                    if self.remove_bitmap(dev.node, bitmap_name):
+                        log.debug(
+                            'Bitmap "%s" for device "%s" removed', bitmap_name, dev.node
+                        )
+            except Exception as e:
+                raise
+        else:
+            log.debug("No bitmap set for any device")
         return True

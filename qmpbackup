@@ -270,5 +270,6 @@ if action == "backup":
         if argv.agentsocket and argv.quisce and qga is not False:
             common.thaw(qga)
 
-        log.info("Finished")
-        sys.exit(0)
+        log.info("Saved disk: [%s]", device.node)
+    log.info("Finished")
+    sys.exit(0)
