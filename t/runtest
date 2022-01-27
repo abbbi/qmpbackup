@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+IMAGE="https://chuangtzu.ftp.acc.umu.se/images/cloud/bullseye/latest/debian-11-genericcloud-amd64.qcow2"
+
+exist_files() {
+    if ! ls ${1} 1> /dev/null 2>&1; then
+        echo "backup files do not exist"
+        exit 1
+    fi
+}
+
+
+echo "Downloading image"
+[ ! -e /tmp/disk1.qcow2 ] && curl -s $IMAGE > /tmp/disk1.qcow2
+[ ! -e /tmp/disk2.qcow2 ] && cp -f /tmp/disk1.qcow2 /tmp/disk2.qcow2
+
+echo "Starting qemu process"
+qemu-system-x86_64 -daemonize -display none -hda /tmp/disk1.qcow2 -hdb /tmp/disk2.qcow2 -qmp unix:/tmp/socket,server,nowait
+
+echo "give vm some time to spin up"
+sleep 10
+
+echo "------------------------------------------------"
+echo "Executing qmpbackup tests"
+echo "------------------------------------------------"
+rm -rf /tmp/backup
+../qmpbackup --socket /tmp/socket backup --level full --target /tmp/backup/
+
+exist_files /tmp/backup//ide0-hd0/FULL* 
+exist_files /tmp/backup//ide0-hd1/FULL* 
+
+../qmpbackup --socket /tmp/socket backup --level inc --target /tmp/backup/
+exist_files /tmp/backup//ide0-hd0/INC* 
+exist_files /tmp/backup//ide0-hd1/INC* 

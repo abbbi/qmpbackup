@@ -9,13 +9,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: abbbi/github-actions-tune@v1
     - name: Python code format test
       run: |
         sudo pip3 install black
         black --check qmprebase
         black --check qmpbackup
         black --check .
-    - name: Install
+    - name: Install QEMU
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qemu-system-x86
+    - name: Execute testscript
+      run: cd t && sh runtest
+    - name: Install qmpbackup
       run: sudo python3 setup.py install
     - name: Execute
       run: |
