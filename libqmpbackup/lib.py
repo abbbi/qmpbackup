@@ -46,6 +46,9 @@ class QmpBackup:
         # sort files by creation date
         images.sort(key=lambda x: os.path.getmtime(x))
 
+        if dry_run:
+            self._log.info("Dry run activated, not applying any changes")
+
         if len(images) == 0:
             self._log.error("No image files found in specified directory")
             return False

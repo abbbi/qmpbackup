@@ -24,6 +24,7 @@ qemu-system-x86_64 -daemonize -display none -m 1024 \
     -chardev socket,path=$AGENT_SOCKET,server,nowait,id=qga0 \
     -device virtio-serial \
     -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
+    -pidfile /tmp/qemu.pid
 
 
 echo "give vm some time to spin up"
@@ -38,6 +39,20 @@ rm -rf /tmp/backup
 exist_files /tmp/backup//ide0-hd0/FULL* 
 exist_files /tmp/backup//ide0-hd1/FULL* 
 
+echo "wait some time between incremental and full backup"
+sleep 10
+
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket /tmp/socket backup --level inc --target /tmp/backup/ --quisce
 exist_files /tmp/backup//ide0-hd0/INC* 
 exist_files /tmp/backup//ide0-hd1/INC* 
+
+echo "------------------------------------------------"
+echo "Executing qmprebase tests"
+echo "------------------------------------------------"
+rm -rf /tmp/restore
+cp -a /tmp/backup/ /tmp/restore
+../qmprebase rebase --dir /tmp/restore/ide0-hd0/ --dry-run
+../qmprebase rebase --dir /tmp/restore/ide0-hd0/
+
+echo "killing qemu process"
+kill -9 "$(cat /tmp/qemu.pid)"
