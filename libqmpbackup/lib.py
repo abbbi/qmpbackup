@@ -124,17 +124,18 @@ class QmpBackup:
             qga = QemuGuestAgentClient(socket)
             self._log.info("Guest Agent socket connected")
         except QemuGuestAgentClient.error as e:
-            self._log.warning('Unable to connect qemu guest agent socket: "%s"' % e)
+            self._log.warning('Unable to connect guest agent socket: "%s"' % e)
             return False
 
+        self._log.info("Trying to ping guest agent")
         if not qga.ping(5):
-            self._log.warning("Unable to reach Qemu Guest Agent")
+            self._log.warning("Unable to reach Guest Agent: cant freeze file systems.")
             return False
         else:
             qga_info = qga.info()
-            self._log.info("Qemu Guest Agent is reachable")
+            self._log.info("Guest Agent is reachable")
             if not "guest-fsfreeze-freeze" in qga_info:
-                self._log.warning("Guest agent does not support needed commands")
+                self._log.warning("Guest agent does not support required commands")
                 return False
 
         return qga

@@ -12,11 +12,19 @@ exist_files() {
 
 
 echo "Downloading image"
-[ ! -e /tmp/disk1.qcow2 ] && curl -s $IMAGE > /tmp/disk1.qcow2
+[ ! -e /tmp/disk1.qcow2 ] && curl -L -s $IMAGE > /tmp/disk1.qcow2
 [ ! -e /tmp/disk2.qcow2 ] && cp -f /tmp/disk1.qcow2 /tmp/disk2.qcow2
 
+AGENT_SOCKET=/tmp/qga.sock
 echo "Starting qemu process"
-qemu-system-x86_64 -daemonize -display none -hda /tmp/disk1.qcow2 -hdb /tmp/disk2.qcow2 -qmp unix:/tmp/socket,server,nowait
+qemu-system-x86_64 -daemonize -display none -m 1024 \
+    -hda /tmp/disk1.qcow2 \
+    -hdb /tmp/disk2.qcow2 \
+    -qmp unix:/tmp/socket,server,nowait \
+    -chardev socket,path=$AGENT_SOCKET,server,nowait,id=qga0 \
+    -device virtio-serial \
+    -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
+
 
 echo "give vm some time to spin up"
 sleep 10
@@ -25,11 +33,11 @@ echo "------------------------------------------------"
 echo "Executing qmpbackup tests"
 echo "------------------------------------------------"
 rm -rf /tmp/backup
-../qmpbackup --socket /tmp/socket backup --level full --target /tmp/backup/
+../qmpbackup --agent-socket $AGENT_SOCKET --socket /tmp/socket backup --level full --target /tmp/backup/ --quisce
 
 exist_files /tmp/backup//ide0-hd0/FULL* 
 exist_files /tmp/backup//ide0-hd1/FULL* 
 
-../qmpbackup --socket /tmp/socket backup --level inc --target /tmp/backup/
+../qmpbackup --agent-socket $AGENT_SOCKET --socket /tmp/socket backup --level inc --target /tmp/backup/ --quisce
 exist_files /tmp/backup//ide0-hd0/INC* 
 exist_files /tmp/backup//ide0-hd1/INC* 
