@@ -171,11 +171,11 @@ class QmpBackup:
         try:
             reply = qga.fsfreeze("freeze")
             self._log.info('"%s" Filesystem(s) freezed', reply)
-            return reply
+            return True
         except Exception as e:
             self._log.warning('Unable to freeze: "%s"', e)
 
-        return None
+        return False
 
     def thaw(self, qga):
         """Thaw filesystems"""
@@ -186,11 +186,11 @@ class QmpBackup:
         try:
             reply = qga.fsfreeze("thaw")
             self._log.info('"%s" fileystem(s) thawed', reply)
-            return reply
+            return True
         except Exception as e:
             self._log.warning('Unable to thaw filesystem: "%s"', e)
 
-        return None
+        return False
 
     def fsgetstate(self, qga):
         """Return filesystem state"""

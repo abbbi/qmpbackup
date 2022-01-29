@@ -90,13 +90,15 @@ class QmpCommon:
 
         return actions
 
-    async def backup(self, devices, level, backupdir):
+    async def backup(self, devices, level, backupdir, qga, common):
         """Start backup transaction, while backup is active,
         watch for block status"""
         actions = self.prepare_transaction(devices, level, backupdir)
         listener = EventListener()
         with self.qmp.listen(listener):
             await self.qmp.execute("transaction", arguments={"actions": actions})
+            if qga is not False:
+                common.thaw(qga)
             async for event in listener:
                 if event["event"] == "BLOCK_JOB_COMPLETED":
                     self.log.info("Saved all disks")

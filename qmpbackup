@@ -196,20 +196,18 @@ async def main():
 
         log.info("Backup target directory: %s", backupdir)
 
+        qga = False
         if argv.agentsocket and argv.quisce:
             qga = common.connect_qaagent(argv.agentsocket)
             if qga:
                 common.quisce(qga)
 
         try:
-            await qemu_client.backup(blockdev, argv.level, backupdir)
+            await qemu_client.backup(blockdev, argv.level, backupdir, qga, common)
         except Exception as e:
             log.fatal("Error executing backup: %s", e)
-
-        if argv.agentsocket and argv.quisce and qga is not False:
-            common.thaw(qga)
-
-        sys.exit(0)
+            if qga is not False:
+                common.thaw(qga)
 
 
 if __name__ == "__main__":
