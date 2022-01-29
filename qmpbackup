@@ -100,8 +100,23 @@ async def main():
 
     NEWMONTHLYBACKUP = False
     qmp = QMPClient()
-    await qmp.connect(argv.socket)
+    try:
+        await qmp.connect(argv.socket)
+    except Exception as errmsg:
+        log.fatal("Cant connect QMP socket [%s]: %s", argv.socket, errmsg)
+        sys.exit(1)
+
     qemu_client = QmpCommon(qmp, log)
+
+    hv_version = qmp._greeting._raw["QMP"]
+    qemu = hv_version["version"]["qemu"]
+    log.info(
+        "Qemu version: [%s.%s.%s] [%s]",
+        qemu["major"],
+        qemu["micro"],
+        qemu["minor"],
+        hv_version["version"]["package"],
+    )
 
     blockdev = vminfo.get_block_devices(await qemu_client.do_query_block())
 
