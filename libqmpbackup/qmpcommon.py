@@ -1,100 +1,24 @@
-import string
-import logging
-import libqmpbackup.qmp as qmp
-from time import sleep
+#!/usr/bin/env python3
+"""
+ Copyright (C) 2022  Michael Ablassmeier
 
-log = logging.getLogger(__name__)
+ Authors:
+  Michael Ablassmeier <abi@grinser.de>
+
+ This work is licensed under the terms of the GNU GPL, version 3.  See
+ the LICENSE file in the top-level directory.
+"""
+import os
+import sys
+from qemu.qmp import QMPClient, EventListener
+from time import sleep, time
+from datetime import datetime
 
 
 class QmpCommon:
-    """QmpCommon class, based on qemu.py by the qemu
-    project
-    """
-
-    def __init__(self, socket, negotiate=True):
-        """regular QMP for all vm commands"""
-        self._qmp = qmp.QEMUMonitorProtocol(socket)
-        self._qmp.connect(negotiate=negotiate)
-
-        self._events = []
-
-    def get_qmp_event(self, wait=False):
-        """Poll for one queued QMP events and return it"""
-        if len(self._events) > 0:
-            return self._events.pop(0)
-        return self._qmp.pull_event(wait=wait)
-
-    def get_qmp_events(self, wait=False):
-        """Poll for queued QMP events and return a list of dicts"""
-        events = self._qmp.get_events(wait=wait)
-        events.extend(self._events)
-        del self._events[:]
-        self._qmp.clear_events()
-        return events
-
-    def event_wait(self, name, timeout=60.0, match=None):
-        """wait for events
-        Test if 'match' is a recursive subset of 'event'
-        """
-
-        def event_match(event, match=None):
-            if match is None:
-                return True
-
-            for key in match:
-                if key in event:
-                    if isinstance(event[key], dict):
-                        if not event_match(event[key], match[key]):
-                            return False
-                    elif event[key] != match[key]:
-                        return False
-                else:
-                    return False
-
-            return True
-
-        for event in self._events:
-            if (event["event"] == name) and event_match(event, match):
-                self._events.remove(event)
-                return event
-
-        while True:
-            event = self._qmp.pull_event(wait=timeout)
-            if (event["event"] == name) and event_match(event, match):
-                return event
-            self._events.append(event)
-
-        return None
-
-    underscore_to_dash = str.maketrans("_", "-")
-
-    def qmp(self, cmd, conv_keys=True, **args):
-        """Invoke a QMP command and return the result dict"""
-        qmp_args = dict()
-        for k in args.keys():
-            if conv_keys:
-                qmp_args[k.translate(self.underscore_to_dash)] = args[k]
-            else:
-                qmp_args[k] = args[k]
-
-        return self._qmp.cmd(cmd, args=qmp_args)
-
-    def command(self, cmd, conv_keys=True, **args):
-        reply = self.qmp(cmd, conv_keys, **args)
-        if self.check_qmp_return(reply):
-            # on empty return {} we assume True
-            if reply["return"] == None:
-                return True
-            else:
-                return reply["return"]
-
-    def check_qmp_return(self, reply):
-        if reply is None:
-            raise Exception("Monitor is closed")
-        if "error" in reply:
-            raise RuntimeError("Error during qmp command: %s", reply["error"]["desc"])
-
-        return True
+    def __init__(self, qmp, log):
+        self.qmp = qmp
+        self.log = log
 
     def transaction_action(self, action, **kwargs):
         return {
@@ -114,133 +38,116 @@ class QmpCommon:
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
-    def transaction_snapshot_create(self, node, target, **kwargs):
-        """Return transaction action object for snapshot create"""
-        return self.transaction_action(
-            "blockdev-snapshot-sync", device=node, snapshot_file="/tmp/test"
-        )
+    def prepare_transaction(self, devices, level, backupdir):
+        """Prepare transaction steps"""
+        prefix = "FULL"
+        sync = "full"
+        if level == "inc":
+            prefix = "INC"
+            sync = "incremental"
 
-    def remove_bitmap(self, node="ide0-hd0", name="qmpbackup"):
-        return self.check_qmp_return(
-            self.qmp("block-dirty-bitmap-remove", node=node, name=name)
-        )
-
-    def create_snapshot_and_bitmap(
-        self, node="ide0-hd0", bitmap="bitmap0", snapshot_target="snapshot1"
-    ):
-        """Live backup via snapshot, allows to backup the image file in place
-        without having it to dump somwhere else
-        """
-        reply = self.qmp(
-            "transaction",
-            actions=[
-                self.transaction_bitmap_add(node, bitmap),
-                self.transaction_snapshot_create(node, snapshot_target),
-            ],
-        )
-        return self.check_qmp_return(reply)
-
-    def block_commit(self, node="ide0-hd0"):
-        """commit back possible snapshots"""
-        self.qmp("block-commit", device=node)
-        reply = self.event_wait(
-            name="BLOCK_JOB_READY", match={"data": {"device": "ide0-hd0"}}
-        )
-
-        if reply:
-            self.qmp("block-job-complete", device=node)
-            return self.event_wait(
-                name="BLOCK_JOB_COMPLETED", match={"data": {"device": node}}
-            )
-
-    def do_full_backup_with_bitmap(
-        self, has_bitmap, bitmap, device, target, sync="full"
-    ):
-        """Backup method for full backup
-        "Live" method, (A):
-            - Create a bitmap
-            - Use a single transaction to:
-            - Create a full backup using drive-backup sync=full
-            - Reset the bitmap
-
-        directly copies the image to desired place
-        """
         actions = []
-        if has_bitmap == True:
-            """clear existing bitmap, start new chain"""
-            log.debug("Removing existing bitmaps for new backup chain")
-            actions.append(self.transaction_bitmap_clear(device, bitmap))
-        else:
-            log.debug("Create new bitmap: %s", bitmap)
-            actions.append(self.transaction_bitmap_add(device, bitmap, persistent=True))
+        for device in devices:
+            timestamp = int(time())
+            os.makedirs(f"{backupdir}/{device.node}/", exist_ok=True)
+            target = "%s/%s/%s-%s" % (backupdir, device.node, prefix, timestamp)
 
-        actions.append(self.transaction_bitmap_clear(device, bitmap))
-        actions.append(
-            self.transaction_action(
-                "drive-backup", device=device, target=target, sync=sync
-            )
-        )
+            bitmap = f"qmpbackup-{device.node}"
+            job_id = f"{device.node}"
+            if not device.has_bitmap and level == "full":
+                self.log.debug("Creating new bitmap")
+                actions.append(
+                    self.transaction_bitmap_add(device.node, bitmap, persistent=True)
+                )
 
-        reply = self.qmp("transaction", actions=actions)
-        if self.check_qmp_return(reply):
-            return self.qmp_progress(device)
+            if device.has_bitmap and level == "full":
+                self.log.debug("Clearing existing bitmap")
+                actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
-    def qmp_progress(self, device):
-        """Show progress of current block job status"""
-        while True:
-            status = self.qmp("query-block-jobs")
-            if not status["return"]:
-                return self.check_qmp_return(
-                    self.event_wait(
-                        timeout="3200",
-                        name="BLOCK_JOB_COMPLETED",
-                        match={"data": {"device": device}},
+            if level == "full":
+                actions.append(
+                    self.transaction_action(
+                        "drive-backup",
+                        device=device.node,
+                        target=target,
+                        sync=sync,
+                        job_id=job_id,
                     )
                 )
             else:
-                for job in status["return"]:
-                    if job["device"] == device:
-                        pr = [
-                            round(job["offset"] / job["len"] * 100)
-                            if job["offset"] != 0
-                            else 0
-                        ]
-                        log.info(
-                            "Wrote Offset: %s%% (%s of %s)",
-                            pr[0],
-                            job["offset"],
-                            job["len"],
-                        )
-            sleep(1)
+                actions.append(
+                    self.transaction_action(
+                        "drive-backup",
+                        bitmap=bitmap,
+                        device=device.node,
+                        target=target,
+                        sync=sync,
+                        job_id=job_id,
+                    )
+                )
 
-    def do_qmp_backup(self, **kwargs):
-        """Issue backup pcommand via qmp protocol"""
-        reply = self.qmp("drive-backup", **kwargs)
-        if self.check_qmp_return(reply):
-            return self.qmp_progress(kwargs["device"])
+        self.log.debug("Created transaction: %s", actions)
 
-    def do_query_block(self):
-        return self.command("query-block")
+        return actions
 
-    def remove_bitmaps(self, blockdev):
-        """Loop through existing devices and bitmaps, remove them"""
+    async def backup(self, devices, level, backupdir):
+        """Start backup transaction, while backup is active,
+        watch for block status"""
+        actions = self.prepare_transaction(devices, level, backupdir)
+        listener = EventListener()
+        with self.qmp.listen(listener):
+            await self.qmp.execute("transaction", arguments={"actions": actions})
+            async for event in listener:
+                if event["event"] == "BLOCK_JOB_COMPLETED":
+                    self.log.info("Saved all disks")
+                    break
+                if event["event"] in ("BLOCK_JOB_ERROR", "BLOCK_JOB_CANCELLED"):
+                    raise RuntimeError(
+                        f"Error during backup operation: {event['event']}"
+                    )
+
+                while True:
+                    jobs = await self.qmp.execute("query-block-jobs")
+                    if not jobs:
+                        break
+                    self.progress(jobs, devices)
+                    sleep(1)
+
+    async def do_query_block(self):
+        devices = await self.qmp.execute("query-block")
+        return devices
+
+    async def remove_bitmaps(self, blockdev):
         for dev in blockdev:
             if not dev.has_bitmap:
-                log.debug("No bitmap set for device %s", dev.node)
+                self.log.info("No bitmap set for device %s", dev.node)
                 continue
 
-            try:
-                for bitmap in dev.bitmaps:
-                    bitmap_name = bitmap["name"]
-                    if not "qmpbackup" in bitmap_name:
-                        log.info("Ignoring bitmap: %s", bitmap_name)
-                        continue
-                    if self.remove_bitmap(dev.node, bitmap_name):
-                        log.debug(
-                            'Bitmap "%s" for device "%s" removed', bitmap_name, dev.node
-                        )
-            except Exception as e:
-                raise
-        else:
-            log.debug("No bitmap set for any device")
-        return True
+            for bitmap in dev.bitmaps:
+                bitmap_name = bitmap["name"]
+                self.log.info("Bitmap name: %s", bitmap_name)
+                if not "qmpbackup" in bitmap_name:
+                    self.log.info("Ignoring bitmap: %s", bitmap_name)
+                    continue
+                self.log.info("Removing bitmap: %s", f"qmpbackup-{dev.node}")
+                await self.qmp.execute(
+                    "block-dirty-bitmap-remove",
+                    arguments={"node": dev.node, "name": f"qmpbackup-{dev.node}"},
+                )
+
+    def progress(self, jobs, devices):
+        for device in devices:
+            for job in jobs:
+                if job["device"] == device.node:
+                    pr = [
+                        round(job["offset"] / job["len"] * 100)
+                        if job["offset"] != 0
+                        else 0
+                    ]
+                    self.log.info(
+                        "[%s] Wrote Offset: %s%% (%s of %s)",
+                        job["device"],
+                        pr[0],
+                        job["offset"],
+                        job["len"],
+                    )

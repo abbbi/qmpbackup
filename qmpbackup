@@ -3,7 +3,7 @@
  qmpbackup: Full an incremental backup using Qemus
  dirty bitmap feature
 
- Copyright (C) 2016  Michael Ablassmeier
+ Copyright (C) 2022  Michael Ablassmeier
 
  Authors:
   Michael Ablassmeier <abi@grinser.de>
@@ -13,263 +13,189 @@
 """
 import os
 import sys
+import asyncio
 import argparse
-from time import time
+import pprint
 from datetime import datetime
+from qemu.qmp import QMPClient, EventListener
 
 from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup.lib import QmpBackup
 from libqmpbackup.vm import VMInfo
 from libqmpbackup import version
 
-parser = argparse.ArgumentParser(prog=sys.argv[0])
-parser.add_argument("--socket", dest="socket", help="qmp socket to connect", required=1)
-parser.add_argument(
-    "--agent-socket",
-    dest="agentsocket",
-    help="socket to use for communication with qemu agent",
-    required=0,
-)
-parser.add_argument(
-    "--debug", dest="debug", help="more verbose output", action="store_true", required=0
-)
-subparsers = parser.add_subparsers(help="sub-command help")
-parser_backup = subparsers.add_parser("backup", help="backup")
-parser_backup.set_defaults(which="backup")
-parser_backup.add_argument(
-    "--level",
-    choices=["full", "inc", "auto"],
-    type=str,
-    help="backup level",
-    required=True,
-)
-parser_backup.add_argument(
-    "--monthly",
-    action="store_true",
-    help="monthly backup directories (in format YYYY-MM). If combined with backup level 'auto' this will create monthly backup chains.",
-    required=False,
-)
-parser_backup.add_argument(
-    "--quisce",
-    action="store_true",
-    help="Use Qemu Agent to quisce filesystem",
-    required=False,
-)
-parser_backup.add_argument(
-    "--target", type=str, help="backup target directory", required=True
-)
-parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
-parser_cleanup.set_defaults(which="cleanup")
-parser_cleanup.add_argument(
-    "--remove-bitmap",
-    action="store_true",
-    help="remove existant bitmaps for all devices",
-    required=True,
-)
-parser_info = subparsers.add_parser("info", help="print info about VM")
-parser_info.set_defaults(which="info")
-parser_info.add_argument(
-    "--show",
-    choices=["blockdev", "bitmaps"],
-    type=str,
-    help="show block device information",
-    required=True,
-)
-argv = parser.parse_args()
-try:
-    action = argv.which
-except AttributeError:
-    parser.print_help()
-    sys.exit(1)
 
-common = QmpBackup(argv.debug)
-log = common.setup_log(argv.debug)
-log.info("Version: %s Arguments: %s", version._version_, " ".join(sys.argv))
-
-# instances
-qmp = QmpCommon(argv.socket)
-vminfo = VMInfo()
-
-# flags
-NEWMONTHLYBACKUP = False
-
-# Get all block devices for VM which are format qcow
-try:
-    version = qmp.command("query-version")
-    qemu = version["qemu"]
-    log.info(
-        "Qemu version: [%s.%s.%s] [%s]",
-        qemu["major"],
-        qemu["micro"],
-        qemu["minor"],
-        version["package"],
+async def main():
+    parser = argparse.ArgumentParser(prog=sys.argv[0])
+    parser.add_argument(
+        "--socket", dest="socket", help="qmp socket to connect", required=1
     )
-except Exception as e:
-    log.warning("Unable to get qemu version: %s", e)
-
-try:
-    VM_NAME = qmp.command("query-name")
-
-    if "name" in VM_NAME:
-        VM_NAME = VM_NAME["name"]
-        log.info("VM: %s", VM_NAME)
-    else:
-        VM_NAME = None
-except Exception as e:
-    log.warning("Unable to get qemu process name: %s", e)
-
-try:
-    blockdev = vminfo.get_block_devices(qmp.do_query_block())
-except Exception as e:
-    log.error('Unable to get block devices: "%s"', e)
-    sys.exit(1)
-
-if blockdev is None:
-    log.error("VM does not have any devices suitable for backup")
-    sys.exit(1)
-
-if action == "cleanup":
-    # Remove existing bitmaps for all block devices
-    if argv.remove_bitmap:
-        qmp.remove_bitmaps(blockdev)
-        log.info("Bitmaps for all devices have been removed")
-
-if action == "info":
-    # Dump all block deviced attatched to vm and print readable json
-    if argv.show == "blockdev":
-        reply = qmp.command("query-block")
-        log.info("VM Block Device Information:")
-        log.info("%s", common.json_pp(reply))
-        sys.exit(0)
-    if argv.show == "bitmaps":
-        log.info("Bitmaps:")
-        for dev in blockdev:
-            if dev.bitmaps is None:
-                log.info('No bitmaps found for device: "%s"', dev.node)
-                continue
-            log.info("%s:", dev.node)
-            log.info("%s", common.json_pp(dev.bitmaps))
-
-if action == "backup":
-    if argv.quisce and not argv.agentsocket:
-        log.warning(
-            "Quisce option set but agent socket is missing, please set via --agent-socket"
-        )
-    if argv.agentsocket and argv.quisce:
-        qga = common.connect_qaagent(argv.agentsocket)
-        if qga:
-            common.quisce(qga)
-
-    if VM_NAME:
-        backupdir = "%s/%s" % (argv.target, VM_NAME)
-    else:
-        backupdir = argv.target
-
-    if argv.monthly:
-        backupdir += "/%s" % (datetime.today().strftime("%Y-%m"))
-
-    timestamp = int(time())
-    if not os.path.isfile(backupdir):
-        if not os.path.exists(backupdir):
-            try:
-                os.makedirs(backupdir, exist_ok=True)
-            except Exception as e:
-                log.error("Unable to create target dir: %s", e)
-                sys.exit(1)
-            if argv.monthly:
-                log.info("New monthly directory created")
-                NEWMONTHLYBACKUP = True
-        log.info("Backup target directory: %s", backupdir)
-    else:
-        log.error("Backup target must be directory.")
+    parser.add_argument(
+        "--agent-socket",
+        dest="agentsocket",
+        help="socket to use for communication with qemu agent",
+        required=0,
+    )
+    parser.add_argument(
+        "--debug",
+        dest="debug",
+        help="more verbose output",
+        action="store_true",
+        required=0,
+    )
+    subparsers = parser.add_subparsers(help="sub-command help")
+    parser_backup = subparsers.add_parser("backup", help="backup")
+    parser_backup.set_defaults(which="backup")
+    parser_backup.add_argument(
+        "--level",
+        choices=["full", "inc", "auto"],
+        type=str,
+        help="backup level",
+        required=True,
+    )
+    parser_backup.add_argument(
+        "--monthly",
+        action="store_true",
+        help="monthly backup directories (in format YYYY-MM). If combined with backup level 'auto' this will create monthly backup chains.",
+        required=False,
+    )
+    parser_backup.add_argument(
+        "--quisce",
+        action="store_true",
+        help="Use Qemu Agent to quisce filesystem",
+        required=False,
+    )
+    parser_backup.add_argument(
+        "--target", type=str, help="backup target directory", required=True
+    )
+    parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
+    parser_cleanup.set_defaults(which="cleanup")
+    parser_cleanup.add_argument(
+        "--remove-bitmap",
+        action="store_true",
+        help="remove existant bitmaps for all devices",
+        required=True,
+    )
+    parser_info = subparsers.add_parser("info", help="print info about VM")
+    parser_info.set_defaults(which="info")
+    parser_info.add_argument(
+        "--show",
+        choices=["blockdev", "bitmaps"],
+        type=str,
+        help="show block device information",
+        required=True,
+    )
+    argv = parser.parse_args()
+    try:
+        action = argv.which
+    except AttributeError:
+        parser.print_help()
         sys.exit(1)
 
-    # TODO: error handling and much more
-    for device in blockdev:
-        # default bitmap name
-        bitmap = "qmpbackup-%s" % device.node
-        if device.backing_image is True:
-            log.error(
-                'Active backing image for disk "%s", please commit any snapshots before starting a new chain.',
-                device.node,
+    common = QmpBackup(argv.debug)
+    log = common.setup_log(argv.debug)
+    log.info("Version: %s Arguments: %s", version._version_, " ".join(sys.argv))
+
+    vminfo = VMInfo()
+
+    NEWMONTHLYBACKUP = False
+    qmp = QMPClient()
+    await qmp.connect(argv.socket)
+    qemu_client = QmpCommon(qmp, log)
+
+    blockdev = vminfo.get_block_devices(await qemu_client.do_query_block())
+
+    if blockdev is None:
+        log.error("VM does not have any devices suitable for backup")
+        sys.exit(1)
+
+    if action == "info":
+        if argv.show == "blockdev":
+            pprint.pprint(blockdev)
+            sys.exit(0)
+        if argv.show == "bitmaps":
+            for dev in blockdev:
+                if dev.bitmaps is None:
+                    log.info('No bitmaps found for device: "%s"', dev.node)
+                    continue
+                log.info("%s:", dev.node)
+                log.info("%s", common.json_pp(dev.bitmaps))
+
+    if action == "cleanup":
+        await qemu_client.remove_bitmaps(blockdev)
+        log.info("Bitmaps for all devices have been removed")
+
+    if action == "backup":
+        if argv.quisce and not argv.agentsocket:
+            log.warning(
+                "Quisce option set but agent socket is missing, please set via --agent-socket"
             )
-            sys.exit(1)
-        if device.has_bitmap is False and argv.level == "inc":
-            log.error(
-                "Incremental backup requested but no active bitmap has been found."
-            )
+
+        backupdir = argv.target
+        if argv.monthly:
+            backupdir += "/%s" % (datetime.today().strftime("%Y-%m"))
+            if not os.path.exists(backupdir):
+                log.info("New monthly directory will be created: %s", backupdir)
+                NEWMONTHLYBACKUP = True
+
+        if os.path.isfile(backupdir):
+            log.fatal("Backup target must be directory.")
             sys.exit(1)
 
-        if device.has_bitmap is True:
-            state = common.check_bitmap_state(device.node, device.bitmaps)
-            if state is not True:
+        try:
+            os.makedirs(backupdir, exist_ok=True)
+        except OSError as e:
+            log.error("Unable to create target dir: %s", e)
+            sys.exit(1)
+
+        for device in blockdev:
+            if device.backing_image is True:
                 log.error(
-                    'qmpbackup bitmap for device is in state "%s", another backup running?',
-                    state,
+                    'Active backing image for disk "%s", please commit any snapshots before starting a new chain.',
+                    device.node,
+                )
+                sys.exit(1)
+            if device.has_bitmap is False and argv.level == "inc":
+                log.error(
+                    "Incremental backup requested but no active bitmap has been found."
                 )
                 sys.exit(1)
 
-        targetdir = "%s/%s" % (backupdir, device.node)
-        if not os.path.exists(targetdir):
-            os.mkdir(targetdir)
+            if argv.level == "auto":
+                if (
+                    device.has_bitmap
+                    and not common.has_full(f"{backupdir}/{device.node}")
+                    and NEWMONTHLYBACKUP is False
+                ):
+                    log.error(
+                        "Bitmap exists, but target directory does not contain full backup."
+                    )
+                    sys.exit(1)
 
-        if argv.level == "full":
-            target = "%s/FULL-%s" % (targetdir, timestamp)
-            log.info('FULL Backup operation: "%s"', target)
-            qmp.do_full_backup_with_bitmap(
-                device.has_bitmap,
-                bitmap,
-                device=device.node,
-                target=target,
-                sync="full",
-            )
+                if device.has_bitmap is False or NEWMONTHLYBACKUP is True:
+                    argv.level = "full"
+                else:
+                    argv.level = "inc"
 
-        if argv.level == "inc":
-            target = "%s/INC-%s" % (targetdir, timestamp)
-            log.info('INC Backup operation: "%s"', target)
-            qmp.do_qmp_backup(
-                device=device.node,
-                bitmap=bitmap,
-                target=target,
-                sync="incremental",
-            )
+                log.info("Auto backup mode set to: %s", argv.level)
 
-        if argv.level == "auto":
-            if (
-                device.has_bitmap
-                and not common.has_full(targetdir)
-                and NEWMONTHLYBACKUP is False
-            ):
-                log.error(
-                    "Bitmap exists, but target directory does not contain full backup."
-                )
-                if argv.agentsocket and argv.quisce and qga is not False:
-                    common.thaw(qga)
-                sys.exit(1)
+        log.info("Backup target directory: %s", backupdir)
 
-            if device.has_bitmap is False or NEWMONTHLYBACKUP is True:
-                target = "%s/FULL-%s" % (targetdir, timestamp)
-                log.info('FULL Backup operation: "%s"', target)
-                qmp.do_full_backup_with_bitmap(
-                    device.has_bitmap,
-                    bitmap,
-                    device=device.node,
-                    target=target,
-                    sync="full",
-                )
-            else:
-                target = "%s/INC-%s" % (targetdir, timestamp)
-                log.info('INC Backup operation: "%s"', target)
-                qmp.do_qmp_backup(
-                    device=device.node,
-                    bitmap=bitmap,
-                    target=target,
-                    sync="incremental",
-                )
+        if argv.agentsocket and argv.quisce:
+            qga = common.connect_qaagent(argv.agentsocket)
+            if qga:
+                common.quisce(qga)
+
+        try:
+            await qemu_client.backup(blockdev, argv.level, backupdir)
+        except Exception as e:
+            log.fatal("Error executing backup: %s", e)
 
         if argv.agentsocket and argv.quisce and qga is not False:
             common.thaw(qga)
 
-        log.info("Saved disk: [%s]", device.node)
-    log.info("Finished")
-    sys.exit(0)
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

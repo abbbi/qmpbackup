@@ -13,6 +13,18 @@ If you want to backup qemu virtual machines which are managed via `libvirt`,
 see this project:
 
  https://github.com/abbbi/virtnbdbackup
+ 
+Installation
+-------------
+
+`qmpbackup` makes use of [qemu.qmp](https://gitlab.com/jsnow/qemu.qmp)
+
+```
+ python3 -m venv venv
+ source venv/bin/activate
+ pip3 install -r requirements.txt
+ python3 setup.py install
+```
 
 Prerequisites
 -------------
