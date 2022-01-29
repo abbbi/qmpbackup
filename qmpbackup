@@ -208,6 +208,7 @@ async def main():
             log.fatal("Error executing backup: %s", e)
             if qga is not False:
                 common.thaw(qga)
+            sys.exit(1)
 
 
 if __name__ == "__main__":
