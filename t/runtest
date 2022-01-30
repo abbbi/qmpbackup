@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-IMAGE="https://chuangtzu.ftp.acc.umu.se/images/cloud/bullseye/latest/debian-11-genericcloud-amd64.qcow2"
+IMAGE="https://app.vagrantup.com/generic/boxes/alpine38/versions/3.6.6/providers/libvirt.box"
 
 exist_files() {
     if ! ls ${1} 1> /dev/null 2>&1; then
@@ -10,11 +10,15 @@ exist_files() {
     fi
 }
 
+rm -f /tmp/disk1.qcow2
+rm -f /tmp/disk2.qcow2
+rm -f /tmp/disk3.qcow2
 
 echo "Downloading image"
-[ ! -e /tmp/disk1.qcow2 ] && curl -L -s $IMAGE > /tmp/disk1.qcow2
+[ ! -e /tmp/libvirt.box ] && curl -L -s $IMAGE > /tmp/libvirt.box
+[ ! -e /tmp/box.img ] && tar -zxvf /tmp/libvirt.box box.img
+mv -f box.img /tmp/disk1.qcow2
 [ ! -e /tmp/disk2.qcow2 ] && cp -f /tmp/disk1.qcow2 /tmp/disk2.qcow2
-
 [ ! -e /tmp/disk3.raw ] && qemu-img create -f raw /tmp/disk3.raw 10M
 
 AGENT_SOCKET=/tmp/qga.sock
@@ -30,9 +34,9 @@ qemu-system-x86_64 -daemonize -display none -m 1024 \
     -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
     -pidfile /tmp/qemu.pid
 
-
-echo "give vm some time to spin up"
-sleep 10
+# wait until qemu agent is reachable within booted Vm, then continue
+# with the tests
+python3 agent.py
 
 echo "------------------------------------------------"
 echo "Executing qmpbackup tests"
@@ -43,8 +47,11 @@ rm -rf /tmp/backup
 exist_files /tmp/backup//ide0-hd0/FULL* 
 exist_files /tmp/backup//ide0-hd1/FULL* 
 
-echo "wait some time between incremental and full backup"
-sleep 10
+# create /tmp/incdata1 within the guest, execute further
+# incremental backups
+echo "------------------------------------------------"
+python3 agent.py incdata1
+echo "------------------------------------------------"
 
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level inc --target /tmp/backup/ --quisce
 exist_files /tmp/backup//ide0-hd0/INC* 
@@ -76,7 +83,10 @@ FILE=$(echo /tmp/restore/ide0-hd0/FULL*)
 # for debugging
 #export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
 sudo -E guestmount -a $FILE /tmp/empty -i
-sudo stat /tmp/empty/etc/fstab >/dev/null
+exit 0
+# files created during incremental backup must exist after
+# rebase
+sudo stat /tmp/empty/tmp/incdata1/fstab >/dev/null
 sudo -E guestunmount /tmp/empty
 
 echo "killing qemu process"

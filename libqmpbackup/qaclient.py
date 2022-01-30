@@ -62,3 +62,9 @@ class QemuGuestAgentClient:
 
     def fstrim(self, minimum=0):
         return getattr(self.qga, "fstrim")(minimum=minimum)
+
+    def _create_dir_for_inc(self, target):
+        """Used for testsuite, executes command within VM to
+        create some changed files"""
+        self.qga.exec(path="/bin/cp", arg=["-r", "/etc", target])
+        self.qga.exec(path="/bin/sync")
