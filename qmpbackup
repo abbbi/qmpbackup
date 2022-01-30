@@ -101,7 +101,7 @@ async def main():
 
     common = QmpBackup(argv.debug)
     log = common.setup_log(argv.debug)
-    log.info("Version: %s Arguments: %s", version._version_, " ".join(sys.argv))
+    log.info("Version: %s Arguments: %s", version._VERSION_, " ".join(sys.argv))
 
     vminfo = VMInfo()
 

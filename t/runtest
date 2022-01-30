@@ -64,8 +64,15 @@ exist_files /tmp/monthly/*/*/FULL*
 ../qmpbackup --socket $QMP_SOCKET backup --level auto --monthly --target /tmp/monthly/
 exist_files /tmp/monthly/*/*/INC*
 
-../qmpbackup --socket $QMP_SOCKET info --show bitmaps
-../qmpbackup --socket $QMP_SOCKET cleanup --remove-bitmap
+echo "------------------------------------------------"
+echo "Executing common functionality  tests"
+echo "------------------------------------------------"
+# at this point, block devices must show bitmaps
+../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "has_bitmap=True"
+# bitmaps must be active
+../qmpbackup --socket $QMP_SOCKET info --show bitmaps 2>&1 | grep "active"
+# at least one bitmap must be removed at this point
+../qmpbackup --socket $QMP_SOCKET cleanup --remove-bitmap 2>&1 | grep "Removing bitmap: qmpbackup-ide0-hd0"
 
 echo "------------------------------------------------"
 echo "Executing qmprebase tests"

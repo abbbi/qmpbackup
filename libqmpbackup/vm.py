@@ -1,3 +1,15 @@
+"""
+ qmpbackup: Full an incremental backup using Qemus
+ dirty bitmap feature
+
+ Copyright (C) 2022  Michael Ablassmeier
+
+ Authors:
+  Michael Ablassmeier <abi@grinser.de>
+
+ This work is licensed under the terms of the GNU GPL, version 3.  See
+ the LICENSE file in the top-level directory.
+"""
 import logging
 from collections import namedtuple
 
@@ -5,6 +17,8 @@ log = logging.getLogger(__name__)
 
 
 class VMInfo:
+    """Get information about Vm blockdev"""
+
     def get_block_devices(self, blockinfo, excluded_disks):
         """Get a list of block devices that we can create a bitmap for,
         currently we only get inserted qcow based images
@@ -14,10 +28,10 @@ class VMInfo:
             ["node", "format", "filename", "backing_image", "has_bitmap", "bitmaps"],
         )
         blockdevs = []
-        backing_image = False
-        has_bitmap = False
-        bitmaps = None
         for device in blockinfo:
+            bitmaps = None
+            has_bitmap = False
+            backing_image = False
             if not "inserted" in device:
                 log.debug("Ignoring device: %s", device)
                 continue
@@ -40,7 +54,7 @@ class VMInfo:
                 has_bitmap = True
 
             try:
-                bi = inserted["image"]["backing-image"]
+                backing_image = inserted["image"]["backing-image"]
                 backing_image = True
             except KeyError:
                 pass
