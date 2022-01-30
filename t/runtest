@@ -18,7 +18,7 @@ echo "Downloading image"
 [ ! -e /tmp/libvirt.box ] && curl -L -s $IMAGE > /tmp/libvirt.box
 [ ! -e /tmp/box.img ] && tar -zxvf /tmp/libvirt.box box.img
 mv -f box.img /tmp/disk1.qcow2
-[ ! -e /tmp/disk2.qcow2 ] && cp -f /tmp/disk1.qcow2 /tmp/disk2.qcow2
+[ ! -e /tmp/disk2.qcow2 ] &&  qemu-img create -f qcow2 /tmp/disk2.qcow2 10M
 [ ! -e /tmp/disk3.raw ] && qemu-img create -f raw /tmp/disk3.raw 10M
 
 AGENT_SOCKET=/tmp/qga.sock
