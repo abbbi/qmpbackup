@@ -75,6 +75,8 @@ cp -a /tmp/backup/ /tmp/restore
 ../qmprebase rebase --dir /tmp/restore/ide0-hd0/ --dry-run
 ../qmprebase rebase --dir /tmp/restore/ide0-hd0/
 
+echo "rollback OK"
+
 echo "------------------------------------------------"
 echo "Mounting rebased image"
 echo "------------------------------------------------"
@@ -86,6 +88,7 @@ sudo -E guestmount -a $FILE /tmp/empty -i
 # files created during incremental backup must exist after
 # rebase
 sudo stat /tmp/empty/tmp/incdata1/fstab >/dev/null
+echo "Directory from incremental backup exists"
 sudo -E guestunmount /tmp/empty
 
 echo "killing qemu process"
