@@ -36,7 +36,7 @@ qemu-system-x86_64 -daemonize -display none -m 1024 \
 
 # wait until qemu agent is reachable within booted Vm, then continue
 # with the tests
-python3 agent.py
+python3 -u agent.py
 
 echo "------------------------------------------------"
 echo "Executing qmpbackup tests"
@@ -83,7 +83,6 @@ FILE=$(echo /tmp/restore/ide0-hd0/FULL*)
 # for debugging
 #export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
 sudo -E guestmount -a $FILE /tmp/empty -i
-exit 0
 # files created during incremental backup must exist after
 # rebase
 sudo stat /tmp/empty/tmp/incdata1/fstab >/dev/null
