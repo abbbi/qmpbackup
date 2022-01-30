@@ -5,9 +5,8 @@ qmpbackup
 
 qmpbackup is designed to create live full and incremental backups of running
 qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
-feature introduced in later qemu versions. It was mostly created for
-educational purposes and is by no means complete. It works with standalone 
-qemu processes.
+feature introduced in later qemu versions.  It works with standalone qemu
+processes.
 
 If you want to backup qemu virtual machines which are managed via `libvirt`,
 see this project:
@@ -36,8 +35,7 @@ usually this happens by starting the virtual machine via:
  qemu-system-<arch> <options> -qmp unix:/path/socket,server,nowait
 ```
 
-qmpbackup makes use of this socket to pass needed commands to the
-virtual machine.
+*qmpbackup* uses this socket to pass required commands to the virtual machine.
 
 Usage
 -----
@@ -52,10 +50,7 @@ the command will create a new dirty bitmap and backup the virtual machines
 disks to ```/tmp/backup/<disk-id>/FULL-<timestamp>```. It ensures
 consistency by creating the bitmap and backup within one QMP transaction.
 
-See the following discussion on the qemu-block mailinglist regarding
-this topic:
-
- https://lists.nongnu.org/archive/html/qemu-block/2016-11/msg00682.html
+Multiple disks attached to the virtual machine are backed up concurrently.
 
 Bitmaps will be added with persistent option flag, which means they are stored
 permanently and are available between virtual machine shutdowns.
@@ -67,8 +62,8 @@ qmpbackup create an incremental backup for you, this works by:
  qmpbackup --socket /path/socket backup --level inc --target /tmp/backup/
 ```
 
-the changed delta since your last full (or inc) backup will be dumped to
-```/tmp/backup/<disk-id>INC-<timestamp>```, the dirty-bitmap is automatically
+The changed delta since your last full (or inc) backup will be dumped to
+`/tmp/backup/<disk-id>INC-<timestamp>`, the dirty-bitmap is automatically
 cleared after this and you can continue creating further incremental backups by
 re-issuing the command likewise.
 
@@ -83,26 +78,26 @@ The above combined with the `auto` backup level, backups will be created in mont
 
 With a VM named *myfirstvm* and the date being 2021-11, the following command: 
 
-```qmpbackup --socket /path/socket backup --level auto --monthly --target /tmp/backup```
+`qmpbackup --socket /path/socket backup --level auto --monthly --target /tmp/backup`
 
-will place backups in the following backup path: `/tmp/backup/myfirstvm/2021-11/`
+will place backups in the following backup path: `/tmp/backup/2021-11/`
 
 When the date changes to 2021-12 and qmpbackup is run, backups will be placed
-in `/tmp/backup/myfirstvm/2021-12/` and a new full backup will be created.
+in `/tmp/backup/2021-12/` and a new full backup will be created.
 
 Excluding disks from backup
 -----------------
 
-Disks can be excluded from the backup by using the ```--exclude``` option, the
-name must be matched by the devices "node" name as reported by the ```info
---show blockdev``` operation.
+Disks can be excluded from the backup by using the *--exclude* option, the name
+must match the devices "node" name (use the *info --show blockdev* option to
+get a list of attached block devices considered for backup)
 
 Filesystem Quisce
 -----------------
 
 In case the virtual machine has an guest agent installed you can set the Qemu
-Guest Agent socket (```--agent-socket```)  and request filesytem quisce via
-```--quisce``` option:
+Guest Agent socket (*--agent-socket*)  and request filesytem quisce via
+*--quisce* option:
 
 ```
   qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
