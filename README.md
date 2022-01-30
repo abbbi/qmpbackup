@@ -56,7 +56,7 @@ Bitmaps will be added with persistent option flag, which means they are stored
 permanently and are available between virtual machine shutdowns.
 
 Second step is to change some data within your virtual machine and let
-qmpbackup create an incremental backup for you, this works by:
+*qmpbackup* create an incremental backup for you, this works by:
 
 ```
  qmpbackup --socket /path/socket backup --level inc --target /tmp/backup/
