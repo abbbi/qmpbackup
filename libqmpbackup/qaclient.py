@@ -14,7 +14,7 @@
 # # qemu [...] -chardev socket,path=/tmp/qga.sock,server,nowait,id=qga0 \
 #   -device virtio-serial -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0
 import random
-import libqmpbackup.qmp as qmp
+import libqmpbackup.qa as qmp
 
 
 class QemuGuestAgent(qmp.QEMUMonitorProtocol):
@@ -56,7 +56,7 @@ class QemuGuestAgentClient:
 
     def fsfreeze(self, cmd):
         if cmd not in ["status", "freeze", "thaw"]:
-            raise StandardError("Invalid command: " + cmd)
+            raise Exception("Invalid command: " + cmd)
 
         return getattr(self.qga, "fsfreeze" + "_" + cmd)()
 

@@ -31,7 +31,7 @@ class QMPTimeoutError(QMPError):
 
 
 class QEMUMonitorProtocol:
-    def __init__(self, address, server=False, debug=False):
+    def __init__(self, address, debug=False):
         """
         Create a QEMUMonitorProtocol class.
 
@@ -47,10 +47,6 @@ class QEMUMonitorProtocol:
         self.__address = address
         self._debug = debug
         self.__sock = self.__get_sock()
-        if server:
-            self.__sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.__sock.bind(self.__address)
-            self.__sock.listen(1)
 
     def __get_sock(self):
         if isinstance(self.__address, tuple):
@@ -136,20 +132,6 @@ class QEMUMonitorProtocol:
         self.__sockfile = self.__sock.makefile()
         if negotiate:
             return self.__negotiate_capabilities()
-
-    def accept(self):
-        """
-        Await connection from QMP Monitor and perform capabilities negotiation.
-
-        @return QMP greeting dict
-        @raise socket.error on socket connection errors
-        @raise QMPConnectError if the greeting is not received
-        @raise QMPCapabilitiesError if fails to negotiate capabilities
-        """
-        self.__sock.settimeout(15)
-        self.__sock, _ = self.__sock.accept()
-        self.__sockfile = self.__sock.makefile()
-        return self.__negotiate_capabilities()
 
     def cmd_obj(self, qmp_cmd):
         """
@@ -244,9 +226,3 @@ class QEMUMonitorProtocol:
 
     def settimeout(self, timeout):
         self.__sock.settimeout(timeout)
-
-    def get_sock_fd(self):
-        return self.__sock.fileno()
-
-    def is_scm_available(self):
-        return self.__sock.family == socket.AF_UNIX
