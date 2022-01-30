@@ -17,7 +17,7 @@ import asyncio
 import argparse
 import pprint
 from datetime import datetime
-from qemu.qmp import QMPClient, EventListener
+from qemu.qmp import QMPClient
 
 from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup.lib import QmpBackup
