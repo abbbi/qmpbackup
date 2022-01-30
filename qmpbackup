@@ -26,6 +26,7 @@ from libqmpbackup import version
 
 
 async def main():
+    """qmpbackup"""
     parser = argparse.ArgumentParser(prog=sys.argv[0])
     parser.add_argument(
         "--socket", dest="socket", help="qmp socket to connect", required=1
@@ -105,7 +106,7 @@ async def main():
 
     vminfo = VMInfo()
 
-    NEWMONTHLYBACKUP = False
+    new_monthly = False
     qmp = QMPClient()
     try:
         await qmp.connect(argv.socket)
@@ -167,7 +168,7 @@ async def main():
             backupdir += "/%s" % (datetime.today().strftime("%Y-%m"))
             if not os.path.exists(backupdir):
                 log.info("New monthly directory will be created: %s", backupdir)
-                NEWMONTHLYBACKUP = True
+                new_monthly = True
 
         if os.path.isfile(backupdir):
             log.fatal("Backup target must be directory.")
@@ -175,8 +176,8 @@ async def main():
 
         try:
             os.makedirs(backupdir, exist_ok=True)
-        except OSError as e:
-            log.error("Unable to create target dir: %s", e)
+        except OSError as errmsg:
+            log.error("Unable to create target dir: %s", errmsg)
             sys.exit(1)
 
         for device in blockdev:
@@ -196,14 +197,14 @@ async def main():
                 if (
                     device.has_bitmap
                     and not common.has_full(f"{backupdir}/{device.node}")
-                    and NEWMONTHLYBACKUP is False
+                    and new_monthly is False
                 ):
                     log.error(
                         "Bitmap exists, but target directory does not contain full backup."
                     )
                     sys.exit(1)
 
-                if device.has_bitmap is False or NEWMONTHLYBACKUP is True:
+                if device.has_bitmap is False or new_monthly is True:
                     argv.level = "full"
                 else:
                     argv.level = "inc"
@@ -220,8 +221,8 @@ async def main():
 
         try:
             await qemu_client.backup(blockdev, argv.level, backupdir, qga, common)
-        except Exception as e:
-            log.fatal("Error executing backup: %s", e)
+        except Exception as errmsg:
+            log.fatal("Error executing backup: %s", errmsg)
             if qga is not False:
                 common.thaw(qga)
             sys.exit(1)
