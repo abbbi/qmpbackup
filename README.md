@@ -90,6 +90,12 @@ will place backups in the following backup path: `/tmp/backup/myfirstvm/2021-11/
 When the date changes to 2021-12 and qmpbackup is run, backups will be placed
 in `/tmp/backup/myfirstvm/2021-12/` and a new full backup will be created.
 
+Excluding disks from backup
+-----------------
+
+Disks can be excluded from the backup by using the ```--exclude``` option, the
+name must be matched by the devices "node" name as reported by the ```info
+--show blockdev``` operation.
 
 Filesystem Quisce
 -----------------

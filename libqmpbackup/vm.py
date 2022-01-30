@@ -5,7 +5,7 @@ log = logging.getLogger(__name__)
 
 
 class VMInfo:
-    def get_block_devices(self, blockinfo):
+    def get_block_devices(self, blockinfo, excluded_disks):
         """Get a list of block devices that we can create a bitmap for,
         currently we only get inserted qcow based images
         """
@@ -44,6 +44,10 @@ class VMInfo:
                 backing_image = True
             except KeyError:
                 pass
+
+            if excluded_disks and device["device"] in excluded_disks:
+                logging.info("Excluding device from backup: %s", device["device"])
+                continue
 
             log.debug("Adding device to device list: %s", device)
             blockdevs.append(

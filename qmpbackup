@@ -54,6 +54,13 @@ async def main():
         required=True,
     )
     parser_backup.add_argument(
+        "--exclude",
+        type=str,
+        default=None,
+        help="exclude block device from backup",
+        required=False,
+    )
+    parser_backup.add_argument(
         "--monthly",
         action="store_true",
         help="monthly backup directories (in format YYYY-MM). If combined with backup level 'auto' this will create monthly backup chains.",
@@ -118,7 +125,16 @@ async def main():
         hv_version["version"]["package"],
     )
 
-    blockdev = vminfo.get_block_devices(await qemu_client.do_query_block())
+    excluded_disks = None
+    if action == "backup":
+        excluded_disks = None
+        if argv.exclude is not None:
+            excluded_disks = argv.exclude.split(",")
+            log.debug("Excluded disks: %s", excluded_disks)
+
+    blockdev = vminfo.get_block_devices(
+        await qemu_client.do_query_block(), excluded_disks
+    )
 
     if blockdev is None:
         log.error("VM does not have any devices suitable for backup")
