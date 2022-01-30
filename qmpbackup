@@ -113,6 +113,11 @@ async def main():
     except Exception as errmsg:
         log.fatal("Cant connect QMP socket [%s]: %s", argv.socket, errmsg)
         sys.exit(1)
+    else:
+        status = await qmp.execute("query-status")
+        if status["running"] is False:
+            log.fatal("VM not in running state, status: %s", status)
+            sys.exit(1)
 
     qemu_client = QmpCommon(qmp, log)
 
