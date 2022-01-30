@@ -16,7 +16,7 @@ see this project:
 Installation
 -------------
 
-`qmpbackup` makes use of [qemu.qmp](https://gitlab.com/jsnow/qemu.qmp)
+*qmpbackup* makes use of [qemu.qmp](https://gitlab.com/jsnow/qemu.qmp)
 
 ```
  python3 -m venv venv
@@ -76,14 +76,14 @@ Monthly Backups
 Using the `--monthly` flag with the `backup` command, backups will be placed in monthly folders in a YYYY-MM format.
 The above combined with the `auto` backup level, backups will be created in monthly backup chains.
 
-With a VM named *myfirstvm* and the date being 2021-11, the following command: 
+Executing the backup and the date being 2021-11, the following command: 
 
 `qmpbackup --socket /path/socket backup --level auto --monthly --target /tmp/backup`
 
 will place backups in the following backup path: `/tmp/backup/2021-11/`
 
-When the date changes to 2021-12 and qmpbackup is run, backups will be placed
-in `/tmp/backup/2021-12/` and a new full backup will be created.
+When the date changes to 2021-12 and *qmpbackup* is executed, backups will be
+placed in `/tmp/backup/2021-12/` and a new full backup will be created.
 
 Excluding disks from backup
 -----------------
