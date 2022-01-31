@@ -8,7 +8,7 @@ qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
 feature introduced in later qemu versions.  It works with standalone qemu
 processes.
 
-If you want to backup qemu virtual machines which are managed via `libvirt`,
+If you want to backup qemu virtual machines managed by `libvirt`,
 see this project:
 
  https://github.com/abbbi/virtnbdbackup
@@ -56,7 +56,7 @@ Bitmaps will be added with persistent option flag, which means they are stored
 permanently and are available between virtual machine shutdowns.
 
 Second step is to change some data within your virtual machine and let
-qmpbackup create an incremental backup for you, this works by:
+*qmpbackup* create an incremental backup for you, this works by:
 
 ```
  qmpbackup --socket /path/socket backup --level inc --target /tmp/backup/
