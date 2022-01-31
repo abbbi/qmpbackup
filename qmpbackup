@@ -17,6 +17,7 @@ import asyncio
 import signal
 import argparse
 import pprint
+from glob import glob
 from datetime import datetime
 from qemu.qmp import QMPClient
 
@@ -232,6 +233,16 @@ async def main():
                 )
                 sys.exit(1)
 
+            if argv.level == "inc":
+                targetdir = f"{backupdir}/{device.node}"
+                if os.path.exists(targetdir):
+                    if len(glob(f"{targetdir}/*.partial")) > 0:
+                        log.error(
+                            "Partial backup found in [%s], possible broken backup chain. Exectue new full backup",
+                            targetdir,
+                        )
+                        sys.exit(1)
+
             if argv.level == "auto":
                 if (
                     device.has_bitmap
@@ -259,7 +270,9 @@ async def main():
                 common.quisce(qga)
 
         try:
-            await qemu_client.backup(blockdev, argv.level, backupdir, qga, common)
+            files = await qemu_client.backup(
+                blockdev, argv.level, backupdir, qga, common
+            )
         except Exception as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
             if qga is not False:
@@ -269,6 +282,15 @@ async def main():
         if signal_catched is True:
             log.error("Backup aborted by signal.")
             sys.exit(1)
+
+        log.info("Renaming partial files")
+        for saveset in files:
+            new_filename = saveset.replace(".partial", "")
+            try:
+                os.rename(saveset, new_filename)
+            except OSError as errmsg:
+                log.error("Unable to rename files: %s", errmsg)
+                sys.exit(1)
 
 
 if __name__ == "__main__":

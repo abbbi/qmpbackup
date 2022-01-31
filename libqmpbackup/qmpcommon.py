@@ -47,10 +47,14 @@ class QmpCommon:
             sync = "incremental"
 
         actions = []
+        files = []
         for device in devices:
             timestamp = int(time())
-            os.makedirs(f"{backupdir}/{device.node}/", exist_ok=True)
-            target = "%s/%s/%s-%s" % (backupdir, device.node, prefix, timestamp)
+            targetdir = f"{backupdir}/{device.node}/"
+            os.makedirs(targetdir, exist_ok=True)
+            filename = f"{prefix}-{timestamp}.partial"
+            target = f"{targetdir}/{filename}"
+            files.append(target)
 
             bitmap = f"qmpbackup-{device.node}"
             job_id = f"{device.node}"
@@ -88,12 +92,12 @@ class QmpCommon:
 
         self.log.debug("Created transaction: %s", actions)
 
-        return actions
+        return actions, files
 
     async def backup(self, devices, level, backupdir, qga, common):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        actions = self.prepare_transaction(devices, level, backupdir)
+        actions, files = self.prepare_transaction(devices, level, backupdir)
         listener = EventListener(
             (
                 "BLOCK_JOB_COMPLETED",
@@ -123,6 +127,8 @@ class QmpCommon:
                         break
                     self.progress(jobs, devices)
                     sleep(1)
+
+        return files
 
     async def do_query_block(self):
         devices = await self.qmp.execute("query-block")
