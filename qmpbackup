@@ -14,6 +14,7 @@
 import os
 import sys
 import asyncio
+import signal
 import argparse
 import pprint
 from datetime import datetime
@@ -23,6 +24,30 @@ from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup.lib import QmpBackup
 from libqmpbackup.vm import VMInfo
 from libqmpbackup import version
+
+signal_catched = False
+
+
+async def stop_jobs(blockdev, loop, log, qmp, signal):
+    """Catch signal: for some reason, cancelling the
+    running block jobs with block-job-cancel issues
+    a regular BLOCK_JOB_COMPLETED in the event loop,
+    for some reason. Thus exit with different exit code
+    by using global variable :/
+    """
+    global signal_catched
+    log.error("Caught signal: %s", signal)
+    log.error("Stopping backup jobs")
+    signal_catched = True
+    jobs = await qmp.execute("query-block-jobs")
+    if not jobs:
+        log.info("No running jobs found")
+    for job in jobs:
+        for dev in blockdev:
+            if job["device"] == dev.node and job["type"] == "backup":
+                await qmp.execute(
+                    "block-job-cancel", arguments={"device": dev.node, "force": True}
+                )
 
 
 async def main():
@@ -142,6 +167,15 @@ async def main():
         await qemu_client.do_query_block(), excluded_disks
     )
 
+    loop = asyncio.get_event_loop()
+    for signame in ("SIGINT", "SIGTERM"):
+        loop.add_signal_handler(
+            getattr(signal, signame),
+            lambda signame=signame: asyncio.create_task(
+                stop_jobs(blockdev, loop, log, qmp, signame)
+            ),
+        )
+
     if blockdev is None:
         log.error("VM does not have any devices suitable for backup")
         sys.exit(1)
@@ -230,6 +264,10 @@ async def main():
             log.fatal("Error executing backup: %s", errmsg)
             if qga is not False:
                 common.thaw(qga)
+            sys.exit(1)
+
+        if signal_catched is True:
+            log.error("Backup aborted by signal.")
             sys.exit(1)
 
 

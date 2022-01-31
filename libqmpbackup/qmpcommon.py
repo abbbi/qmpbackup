@@ -94,7 +94,16 @@ class QmpCommon:
         """Start backup transaction, while backup is active,
         watch for block status"""
         actions = self.prepare_transaction(devices, level, backupdir)
-        listener = EventListener()
+        listener = EventListener(
+            (
+                "BLOCK_JOB_COMPLETED",
+                "BLOCK_JOB_CANCELLED",
+                "BLOCK_JOB_ERROR",
+                "BLOCK_JOB_READY",
+                "BLOCK_JOB_PENDING",
+                "JOB_STATUS_CHANGE",
+            )
+        )
         with self.qmp.listen(listener):
             await self.qmp.execute("transaction", arguments={"actions": actions})
             if qga is not False:
