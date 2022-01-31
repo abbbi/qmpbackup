@@ -233,16 +233,6 @@ async def main():
                 )
                 sys.exit(1)
 
-            if argv.level == "inc":
-                targetdir = f"{backupdir}/{device.node}"
-                if os.path.exists(targetdir):
-                    if len(glob(f"{targetdir}/*.partial")) > 0:
-                        log.error(
-                            "Partial backup found in [%s], possible broken backup chain. Exectue new full backup",
-                            targetdir,
-                        )
-                        sys.exit(1)
-
             if argv.level == "auto":
                 if (
                     device.has_bitmap
@@ -260,6 +250,16 @@ async def main():
                     argv.level = "inc"
 
                 log.info("Auto backup mode set to: %s", argv.level)
+
+            if argv.level == "inc":
+                targetdir = f"{backupdir}/{device.node}"
+                if os.path.exists(targetdir):
+                    if len(glob(f"{targetdir}/*.partial")) > 0:
+                        log.error(
+                            "Partial backup found in [%s], possible broken backup chain. Exectue new full backup",
+                            targetdir,
+                        )
+                        sys.exit(1)
 
         log.info("Backup target directory: %s", backupdir)
 
