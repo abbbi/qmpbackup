@@ -92,6 +92,8 @@ Disks can be excluded from the backup by using the *--exclude* option, the name
 must match the devices "node" name (use the *info --show blockdev* option to
 get a list of attached block devices considered for backup)
 
+If only specific disks should be saved, use option *--include*.
+
 Filesystem Quisce
 -----------------
 
