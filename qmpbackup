@@ -88,6 +88,13 @@ async def main():
         required=False,
     )
     parser_backup.add_argument(
+        "--include",
+        type=str,
+        default=None,
+        help="backup only specific block device",
+        required=False,
+    )
+    parser_backup.add_argument(
         "--monthly",
         action="store_true",
         help="monthly backup directories (in format YYYY-MM). If combined with backup level 'auto' this will create monthly backup chains.",
@@ -130,6 +137,10 @@ async def main():
     log = common.setup_log(argv.debug)
     log.info("Version: %s Arguments: %s", version._VERSION_, " ".join(sys.argv))
 
+    if action == "backup" and argv.exclude and argv.include:
+        log.error("Specify either included or excluded devices")
+        sys.exit(1)
+
     vminfo = VMInfo()
 
     new_monthly = False
@@ -164,8 +175,15 @@ async def main():
             excluded_disks = argv.exclude.split(",")
             log.debug("Excluded disks: %s", excluded_disks)
 
+    included_disks = None
+    if action == "backup":
+        included_disks = None
+        if argv.include is not None:
+            included_disks = argv.include.split(",")
+            log.debug("Backing up only specified disks: %s", included_disks)
+
     blockdev = vminfo.get_block_devices(
-        await qemu_client.do_query_block(), excluded_disks
+        await qemu_client.do_query_block(), excluded_disks, included_disks
     )
 
     loop = asyncio.get_event_loop()

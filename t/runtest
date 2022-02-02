@@ -24,7 +24,9 @@ mv -f box.img /tmp/disk1.qcow2
 AGENT_SOCKET=/tmp/qga.sock
 QMP_SOCKET=/tmp/socket
 echo "Starting qemu process"
-qemu-system-x86_64 -daemonize -display none -m 1024 \
+KVMOPT=""
+[ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
+qemu-system-x86_64 $KVMOPT -smp $(nproc) -daemonize -display none -m 1024 \
     -hda /tmp/disk1.qcow2 \
     -hdb /tmp/disk2.qcow2 \
     -hdc /tmp/disk3.raw \
@@ -67,6 +69,14 @@ exist_files /tmp/monthly/*/*/INC*
 echo "------------------------------------------------"
 echo "Executing common functionality  tests"
 echo "------------------------------------------------"
+# exclude/include
+rm -rf /tmp/exclude
+rm -rf /tmp/include
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --exclude ide0-hd0 --target /tmp/exclude/ --quisce
+[ -e /tmp/exclude/ide0-hd0 ] && echo "backed up excluded disk" && exit 1
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --include ide0-hd1 --target /tmp/include/ --quisce
+[ -e /tmp/exclude/ide0-hd0 ] && echo "backed up non included disks" && exit 1
+
 # at this point, block devices must show bitmaps
 ../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "has_bitmap=True"
 # bitmaps must be active

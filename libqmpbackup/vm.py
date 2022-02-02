@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 class VMInfo:
     """Get information about Vm blockdev"""
 
-    def get_block_devices(self, blockinfo, excluded_disks):
+    def get_block_devices(self, blockinfo, excluded_disks, included_disks):
         """Get a list of block devices that we can create a bitmap for,
         currently we only get inserted qcow based images
         """
@@ -58,6 +58,12 @@ class VMInfo:
                 backing_image = True
             except KeyError:
                 pass
+
+            if included_disks and not device["device"] in included_disks:
+                log.info(
+                    "Device not in included disk list, ignoring: %s", device["device"]
+                )
+                continue
 
             if excluded_disks and device["device"] in excluded_disks:
                 logging.info("Excluding device from backup: %s", device["device"])
