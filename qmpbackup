@@ -279,6 +279,8 @@ async def main():
                 common.thaw(qga)
             sys.exit(1)
 
+        await qmp.disconnect()
+
         if signal_catched is True:
             log.error("Backup aborted by signal.")
             sys.exit(1)
