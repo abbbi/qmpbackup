@@ -10,7 +10,7 @@ from libqmpbackup import version
 
 setup(
     name="qmpbackup",
-    version=version._VERSION_,
+    version=version.VERSION,
     author="Michael Ablassmeier",
     author_email="abi@grinser.de",
     description=("Qemu incremental backup via QMP"),
