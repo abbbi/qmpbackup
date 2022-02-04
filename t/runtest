@@ -43,6 +43,9 @@ python3 -u agent.py
 echo "------------------------------------------------"
 echo "Executing qmpbackup tests"
 echo "------------------------------------------------"
+rm -rf /tmp/backup_no_agent
+../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET backup --level full --target /tmp/backup_no_agent/ --quisce
+
 rm -rf /tmp/backup
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/backup/ --quisce
 
