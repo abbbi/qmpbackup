@@ -5,10 +5,10 @@ qmpbackup
 
 qmpbackup is designed to create live full and incremental backups of running
 qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
-feature introduced in later qemu versions.  It works with standalone qemu
+feature introduced in later Qemu versions.  It works with standalone Qemu
 processes.
 
-If you want to backup qemu virtual machines managed by `libvirt`,
+If you want to backup Qemu virtual machines managed by `libvirt`,
 see this project:
 
  https://github.com/abbbi/virtnbdbackup
@@ -73,8 +73,9 @@ bitmap exists, `inc` will be used.
 
 Monthly Backups
 -----------------
-Using the `--monthly` flag with the `backup` command, backups will be placed in monthly folders in a YYYY-MM format.
-The above combined with the `auto` backup level, backups will be created in monthly backup chains.
+Using the `--monthly` flag with the `backup` command, backups will be placed in
+monthly folders in a YYYY-MM format.  The above combined with the `auto` backup
+level, backups will be created in monthly backup chains.
 
 Executing the backup and the date being 2021-11, the following command: 
 
@@ -92,7 +93,7 @@ Disks can be excluded from the backup by using the *--exclude* option, the name
 must match the devices "node" name (use the *info --show blockdev* option to
 get a list of attached block devices considered for backup)
 
-If only specific disks should be saved, use option *--include*.
+If only specific disks should be saved, use the *--include* option.
 
 Filesystem Quisce
 -----------------
@@ -105,10 +106,10 @@ Guest Agent socket (*--agent-socket*)  and request filesytem quisce via
   qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
 ```
 
-Use the following options to qemu for initating an guest agent socket:
+Use the following options to Qemu for initating an guest agent socket:
 
 ```
-   -chardev socket,path=$AGENT_SOCKET,server,nowait,id=qga0 \
+   -chardev socket,path=/tmp/qga.sock,server,nowait,id=qga0 \
    -device virtio-serial \
    -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
 ```
@@ -118,7 +119,7 @@ Restore
 -------
 
 Restoring your data is a matter of rebasing the created qcow images by
-using standard tools such as qemu-img or ```qmprebase```.
+using standard tools such as *qemu-img* or *qmprebase*.
 
 A image backup based on a backup folder containing the following backups:
 
@@ -129,14 +130,14 @@ A image backup based on a backup folder containing the following backups:
  └── INC-1480542712
 ```
 
-can be rolled back by using ```qmprebase```, it uses common qemu tools to check
+can be rolled back by using *qmprebase*, it uses common Qemu tools to check
 consistency and does a rollback of your image file:
 
 ```
  qmprebase  rebase --dir /tmp/backup/ide0-hd0
 ```
 
-While rebasing the saveset chain is merged into your FULL image which then
+During rebase, the saveset chain is merged into your FULL image which then
 contains the latest state and can be booted via Qemu again.
 
 `Note:` It makes sense to copy the existing backup directory to a temporary
@@ -164,7 +165,7 @@ see
  qmpbackup --help 
 ```
 
-for more information and commands.
+for more information and possible functions.
 
 Limitations
 -----------
