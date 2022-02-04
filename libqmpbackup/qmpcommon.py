@@ -15,6 +15,7 @@ from qemu.qmp import EventListener
 
 class QmpCommon:
     """Common functions"""
+
     def __init__(self, qmp, log):
         self.qmp = qmp
         self.log = log
