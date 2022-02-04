@@ -4,9 +4,16 @@ from time import sleep
 sys.path.append("..")
 from libqmpbackup.qaclient import QemuGuestAgentClient
 
+
+class TestCaseAgent(QemuGuestAgentClient):
+    def create_dir_for_inc(self, target):
+        self.qga.exec(path="/bin/cp", arg=["-r", "/etc", target])
+        self.qga.exec(path="/bin/sync")
+
+
 while True:
     try:
-        qga = QemuGuestAgentClient("/tmp/qga.sock")
+        qga = TestCaseAgent("/tmp/qga.sock")
     except:
         continue
 
@@ -25,4 +32,4 @@ except:
 
 if cmd is not None:
     print("Changing some files within guest")
-    qga._create_dir_for_inc(f"/tmp/{cmd}")
+    qga.create_dir_for_inc(f"/tmp/{cmd}")
