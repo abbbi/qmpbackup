@@ -30,7 +30,7 @@ class QemuGuestAgentClient:
 
     def __init__(self, address):
         self.qga = QemuGuestAgent(address)
-        self.qga.connect(negotiate=False)
+        self.qga.connect()
 
     def sync(self, timeout=3):
         # Avoid being blocked forever

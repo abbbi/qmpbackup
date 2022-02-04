@@ -22,6 +22,7 @@ while True:
         sleep(10)
         continue
 
+    print("guest agent is reachable")
     break
 
 cmd = None
