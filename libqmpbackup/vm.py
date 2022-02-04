@@ -33,8 +33,8 @@ class VMInfo:
             bitmaps = None
             has_bitmap = False
             backing_image = False
-            if not "inserted" in device:
-                log.debug("Ignoring device: %s", device)
+            if "inserted" not in device:
+                log.debug("Ignoring non-inserted device: %s", device)
                 continue
 
             inserted = device["inserted"]
