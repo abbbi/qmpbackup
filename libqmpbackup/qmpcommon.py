@@ -9,18 +9,19 @@
  the LICENSE file in the top-level directory.
 """
 import os
-import sys
-from qemu.qmp import QMPClient, EventListener
 from time import sleep, time
-from datetime import datetime
+from qemu.qmp import EventListener
 
 
 class QmpCommon:
+    """Common functions"""
     def __init__(self, qmp, log):
         self.qmp = qmp
         self.log = log
 
-    def transaction_action(self, action, **kwargs):
+    @staticmethod
+    def transaction_action(action, **kwargs):
+        """Return transaction action object"""
         return {
             "type": action,
             "data": dict((k.replace("_", "-"), v) for k, v in kwargs.items()),
@@ -131,10 +132,12 @@ class QmpCommon:
         return files
 
     async def do_query_block(self):
+        """Return list of attached block devices"""
         devices = await self.qmp.execute("query-block")
         return devices
 
     async def remove_bitmaps(self, blockdev):
+        """Remove existing bitmaps for block devices"""
         for dev in blockdev:
             if not dev.has_bitmap:
                 self.log.info("No bitmap set for device %s", dev.node)
@@ -153,10 +156,11 @@ class QmpCommon:
                 )
 
     def progress(self, jobs, devices):
+        """Report progress for active block job"""
         for device in devices:
             for job in jobs:
                 if job["device"] == device.node:
-                    pr = [
+                    prog = [
                         round(job["offset"] / job["len"] * 100)
                         if job["offset"] != 0
                         else 0
@@ -164,7 +168,7 @@ class QmpCommon:
                     self.log.info(
                         "[%s] Wrote Offset: %s%% (%s of %s)",
                         job["device"],
-                        pr[0],
+                        prog[0],
                         job["offset"],
                         job["len"],
                     )

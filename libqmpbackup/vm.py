@@ -19,7 +19,8 @@ log = logging.getLogger(__name__)
 class VMInfo:
     """Get information about Vm blockdev"""
 
-    def get_block_devices(self, blockinfo, excluded_disks, included_disks):
+    @staticmethod
+    def get_block_devices(blockinfo, excluded_disks, included_disks):
         """Get a list of block devices that we can create a bitmap for,
         currently we only get inserted qcow based images
         """

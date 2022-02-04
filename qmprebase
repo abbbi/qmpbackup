@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+"""
+ qmpbackup: Full an incremental backup using Qemus
+ dirty bitmap feature
+
+ Copyright (C) 2022  Michael Ablassmeier
+
+ Authors:
+  Michael Ablassmeier <abi@grinser.de>
+
+ This work is licensed under the terms of the GNU GPL, version 3.  See
+ the LICENSE file in the top-level directory.
+"""
 import sys
 import argparse
 from libqmpbackup import version
@@ -36,7 +48,7 @@ except:
 common = QmpBackup(argv.debug)
 log = common.setup_log(argv.debug)
 
-log.info("Version: %s Arguments: %s", version._VERSION_, " ".join(sys.argv))
+log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 
 if action == "rebase":
     """Rebase images in directory"""

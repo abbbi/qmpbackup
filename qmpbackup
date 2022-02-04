@@ -26,20 +26,20 @@ from libqmpbackup.lib import QmpBackup
 from libqmpbackup.vm import VMInfo
 from libqmpbackup import version
 
-signal_catched = False
+SIGNAL_CATCHED = False
 
 
-async def stop_jobs(blockdev, loop, log, qmp, signal):
+async def stop_jobs(blockdev, log, qmp, signal):
     """Catch signal: for some reason, cancelling the
     running block jobs with block-job-cancel issues
     a regular BLOCK_JOB_COMPLETED in the event loop,
     for some reason. Thus exit with different exit code
     by using global variable :/
     """
-    global signal_catched
+    global SIGNAL_CATCHED
     log.error("Caught signal: %s", signal)
     log.error("Stopping backup jobs")
-    signal_catched = True
+    SIGNAL_CATCHED = True
     jobs = await qmp.execute("query-block-jobs")
     if not jobs:
         log.info("No running jobs found")
@@ -135,7 +135,7 @@ async def main():
 
     common = QmpBackup(argv.debug)
     log = common.setup_log(argv.debug)
-    log.info("Version: %s Arguments: %s", version._VERSION_, " ".join(sys.argv))
+    log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 
     if action == "backup" and argv.exclude and argv.include:
         log.error("Specify either included or excluded devices")
@@ -191,7 +191,7 @@ async def main():
         loop.add_signal_handler(
             getattr(signal, signame),
             lambda signame=signame: asyncio.create_task(
-                stop_jobs(blockdev, loop, log, qmp, signame)
+                stop_jobs(blockdev, log, qmp, signame)
             ),
         )
 
@@ -223,13 +223,14 @@ async def main():
 
         backupdir = argv.target
         if argv.monthly:
-            backupdir += "/%s" % (datetime.today().strftime("%Y-%m"))
+            monthdir = datetime.today().strftime("%Y-%m")
+            backupdir = f"{backupdir}/{monthdir}"
             if not os.path.exists(backupdir):
                 log.info("New monthly directory will be created: %s", backupdir)
                 new_monthly = True
 
         if os.path.isfile(backupdir):
-            log.fatal("Backup target must be directory.")
+            log.fatal("Backup target must be an directory.")
             sys.exit(1)
 
         try:
@@ -299,7 +300,7 @@ async def main():
 
         await qmp.disconnect()
 
-        if signal_catched is True:
+        if SIGNAL_CATCHED is True:
             log.error("Backup aborted by signal.")
             sys.exit(1)
 

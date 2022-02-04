@@ -26,14 +26,16 @@ class QmpBackup:
     def __init__(self, debug):
         self._log = self.setup_log(debug)
 
-    def has_full(self, directory):
+    @staticmethod
+    def has_full(directory):
         """Check if directory contains full backup"""
         if len(glob(f"{directory}/FULL*")) == 0:
             return False
 
         return True
 
-    def setup_log(self, debug):
+    @staticmethod
+    def setup_log(debug):
         """setup logging"""
         log_format = "[%(asctime)-15s] %(levelname)7s  %(message)s"
         if debug:
@@ -43,7 +45,8 @@ class QmpBackup:
         logging.basicConfig(format=log_format, level=loglevel)
         return logging.getLogger(sys.argv[0])
 
-    def json_pp(self, json):
+    @staticmethod
+    def json_pp(json):
         """human readable json output"""
         return json_dumps(json, indent=4, sort_keys=True)
 
@@ -139,7 +142,7 @@ class QmpBackup:
         """
         for bitmap in bitmaps:
             self._log.debug("Existing Bitmaps and states: %s", self.json_pp(bitmap))
-            match = "%s-%s" % ("qmpbackup", node)
+            match = f"qmpbackup-{node}"
             try:
                 status = "active" in bitmap["status"]
             except KeyError:
