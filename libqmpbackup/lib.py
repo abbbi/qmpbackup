@@ -78,7 +78,7 @@ class QmpBackup:
             self._log.error("No image files found in specified directory")
             return False
 
-        if not "FULL-" in images[0]:
+        if "FULL-" not in images[0]:
             self._log.error("First image file is not a FULL base image")
             return False
 
@@ -169,8 +169,8 @@ class QmpBackup:
 
         qga_info = qga.info()
         self._log.info("Guest Agent is reachable")
-        if not "guest-fsfreeze-freeze" in qga_info:
-            self._log.warning("Guest agent does not support required commands")
+        if "guest-fsfreeze-freeze" not in qga_info:
+            self._log.warning("Guest agent does not support required commands.")
             return False
 
         return qga

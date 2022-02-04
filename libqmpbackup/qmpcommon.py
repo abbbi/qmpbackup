@@ -147,7 +147,7 @@ class QmpCommon:
             for bitmap in dev.bitmaps:
                 bitmap_name = bitmap["name"]
                 self.log.info("Bitmap name: %s", bitmap_name)
-                if not "qmpbackup" in bitmap_name:
+                if "qmpbackup" not in bitmap_name:
                     self.log.info("Ignoring bitmap: %s", bitmap_name)
                     continue
                 self.log.info("Removing bitmap: %s", f"qmpbackup-{dev.node}")
