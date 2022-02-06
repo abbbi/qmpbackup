@@ -1,37 +1,44 @@
-# QEMU Monitor Protocol Python class
-#
-# Copyright (C) 2009, 2010 Red Hat Inc.
-#
-# Authors:
-#  Luiz Capitulino <lcapitulino@redhat.com>
-#
-# This work is licensed under the terms of the GNU GPL, version 2.  See
-# the COPYING file in the top-level directory.
+"""
+ QEMU Monitor Protocol Python class
 
+ Copyright (C) 2022 Michael Ablassmeier <abi@grinser.de>
+ Copyright (C) 2009, 2010 Red Hat Inc.
+
+ Authors:
+  Michael Ablassmeier <abi@grinser.de>
+  Luiz Capitulino <lcapitulino@redhat.com>
+
+ Based on work by:
+  Luiz Capitulino <lcapitulino@redhat.com>
+
+ This work is licensed under the terms of the GNU GPL, version 2.  See
+ the COPYING file in the top-level directory.
+"""
 import json
 import errno
 import socket
-import sys
 
 
 class QMPError(Exception):
-    pass
+    """Error Exception"""
 
 
 class QMPConnectError(QMPError):
-    pass
+    """Error Exception"""
 
 
 class QMPCapabilitiesError(QMPError):
-    pass
+    """Error Exception"""
 
 
 class QMPTimeoutError(QMPError):
-    pass
+    """Error Exception"""
 
 
 class QEMUMonitorProtocol:
-    def __init__(self, address, debug=False):
+    """Qemu QMP protocol Monitor"""
+
+    def __init__(self, address):
         """
         Create a QEMUMonitorProtocol class.
 
@@ -44,14 +51,15 @@ class QEMUMonitorProtocol:
               accept() methods
         """
         self.__address = address
-        self._debug = debug
         self.__sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.__sockfile = None
 
     def __json_read(self):
+        """Read reply"""
         while True:
             data = self.__sockfile.readline()
             if not data:
-                return
+                return None
             resp = json.loads(data)
             return resp
 
@@ -77,20 +85,16 @@ class QEMUMonitorProtocol:
         @return QMP response as a Python dict or None if the connection has
                 been closed
         """
-        if self._debug:
-            print >> sys.stderr, "QMP:>>> %s" % qmp_cmd
         try:
             self.__sock.sendall(json.dumps(qmp_cmd).encode())
-        except socket.error as err:
-            if err[0] == errno.EPIPE:
-                return
+        except OSError as err:
+            if err.errno == errno.EPIPE:
+                return err
             raise socket.error(err)
         resp = self.__json_read()
-        if self._debug:
-            print >> sys.stderr, "QMP:<<< %s" % resp
         return resp
 
-    def cmd(self, name, args=None, id=None):
+    def cmd(self, name, args=None):
         """
         Build a QMP command and send it to the QMP Monitor.
 
@@ -101,21 +105,22 @@ class QEMUMonitorProtocol:
         qmp_cmd = {"execute": name}
         if args:
             qmp_cmd["arguments"] = args
-        if id:
-            qmp_cmd["id"] = id
         return self.cmd_obj(qmp_cmd)
 
     def command(self, cmd, **kwds):
+        """Execute command"""
         ret = self.cmd(cmd, kwds)
         if "error" in ret:
             raise Exception(ret["error"]["desc"])
         return ret["return"]
 
     def close(self):
+        """Close handle"""
         self.__sock.close()
         self.__sockfile.close()
 
     timeout = socket.timeout
 
     def settimeout(self, timeout):
+        """Set socket timeout"""
         self.__sock.settimeout(timeout)
