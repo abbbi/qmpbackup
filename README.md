@@ -165,7 +165,7 @@ see
  qmpbackup --help 
 ```
 
-for more information and possible functions.
+for more information and possible options.
 
 Limitations
 -----------
