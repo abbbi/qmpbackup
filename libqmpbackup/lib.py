@@ -50,6 +50,16 @@ class QmpBackup:
         """human readable json output"""
         return json_dumps(json, indent=4, sort_keys=True)
 
+    @staticmethod
+    def check_for_partial(backupdir, node):
+        """Check if partial backup exists in target directory"""
+        targetdir = f"{backupdir}/{node}"
+        if os.path.exists(targetdir):
+            if len(glob(f"{targetdir}/*.partial")) > 0:
+                return True
+
+        return False
+
     def rebase(self, directory, dry_run, until):
         """Rebase and commit all images in a directory"""
         if not os.path.exists(directory):
@@ -76,6 +86,11 @@ class QmpBackup:
 
         if len(images) == 0:
             self._log.error("No image files found in specified directory")
+            return False
+
+        if ".partial" in " ".join(images_flat):
+            self._log.error("Partial backup file found, backup chain might be broken.")
+            self._log.error("Consider removing file before attempting to rebase.")
             return False
 
         if "FULL-" not in images[0]:

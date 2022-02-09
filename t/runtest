@@ -44,7 +44,7 @@ echo "------------------------------------------------"
 echo "Executing qmpbackup tests"
 echo "------------------------------------------------"
 rm -rf /tmp/backup_no_agent
-../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET backup --level full --target /tmp/backup_no_agent/ --quisce
+../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET backup --level full --exclude ide0-hd0 --target /tmp/backup_no_agent/ --quisce
 
 rm -rf /tmp/backup
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/backup/ --quisce
@@ -87,6 +87,14 @@ rm -rf /tmp/include
 # at least one bitmap must be removed at this point
 ../qmpbackup --socket $QMP_SOCKET cleanup --remove-bitmap 2>&1 | grep "Removing bitmap: qmpbackup-ide0-hd0"
 
+
+# exit code of qmpbackup must be errnous if partial backup is found in directory
+rm -rf /tmp/partial_backup
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --include ide0-hd1 --target /tmp/partial_backup/ --quisce
+touch /tmp/partial_backup/ide0-hd1/FULL-bar.partial
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level inc --include ide0-hd1 --target /tmp/partial_backup/ --quisce && exit 1
+../qmprebase rebase --dir /tmp/partial_backup/ide0-hd1/ --dry-run && exit 1
+
 echo "------------------------------------------------"
 echo "Executing qmprebase tests"
 echo "------------------------------------------------"
@@ -111,5 +119,6 @@ sudo stat /tmp/empty/tmp/incdata1/fstab >/dev/null
 echo "Directory from incremental backup exists"
 sudo -E guestunmount /tmp/empty
 
-echo "killing qemu process"
-kill -9 "$(cat /tmp/qemu.pid)"
+PID=$(cat /tmp/qemu.pid)
+echo "killing qemu process: ${PID}"
+kill -9 "${PID}"
