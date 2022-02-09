@@ -24,7 +24,8 @@ class QmpBackup:
     """common functions"""
 
     def __init__(self, debug):
-        self._log = self.setup_log(debug)
+        self.debug = debug
+        self._log = logging.getLogger(__name__)
 
     @staticmethod
     def has_full(directory):
@@ -34,16 +35,20 @@ class QmpBackup:
 
         return True
 
-    @staticmethod
-    def setup_log(debug):
+    def setup_log(self, logfile=None):
         """setup logging"""
         log_format = "[%(asctime)-15s] %(levelname)7s  %(message)s"
-        if debug:
+        if self.debug:
             loglevel = logging.DEBUG
         else:
             loglevel = logging.INFO
-        logging.basicConfig(format=log_format, level=loglevel)
-        return logging.getLogger(sys.argv[0])
+        handler = []
+        handler.append(logging.StreamHandler(stream=sys.stdout))
+        if logfile:
+            os.makedirs(os.path.basename(logfile), exist_ok=True)
+            handler.append(logging.FileHandler(logfile, mode="a"))
+        logging.basicConfig(format=log_format, level=loglevel, handlers=handler)
+        return logging.getLogger(__name__)
 
     @staticmethod
     def json_pp(json):

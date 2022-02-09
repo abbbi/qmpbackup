@@ -17,7 +17,6 @@ import asyncio
 import signal
 import argparse
 import pprint
-from glob import glob
 from datetime import datetime
 from qemu.qmp import QMPClient
 
@@ -68,6 +67,12 @@ async def main():
         dest="debug",
         help="more verbose output",
         action="store_true",
+        required=0,
+    )
+    parser.add_argument(
+        "--logfile",
+        dest="logfile",
+        help="log output to specified logfile",
         required=0,
     )
     subparsers = parser.add_subparsers(help="sub-command help")
@@ -134,7 +139,7 @@ async def main():
         sys.exit(1)
 
     common = QmpBackup(argv.debug)
-    log = common.setup_log(argv.debug)
+    log = common.setup_log(argv.logfile)
     log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 
     if action == "backup" and argv.exclude and argv.include:
@@ -156,7 +161,7 @@ async def main():
             log.fatal("VM not in running state, status: %s", status)
             sys.exit(1)
 
-    qemu_client = QmpCommon(qmp, log)
+    qemu_client = QmpCommon(qmp)
 
     hv_version = qmp._greeting._raw["QMP"]
     qemu = hv_version["version"]["qemu"]

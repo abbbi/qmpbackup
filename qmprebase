@@ -13,6 +13,7 @@
 """
 import sys
 import argparse
+import logging
 from libqmpbackup import version
 from libqmpbackup.lib import QmpBackup
 
@@ -46,7 +47,7 @@ except Exception:
     sys.exit(1)
 
 common = QmpBackup(argv.debug)
-log = common.setup_log(argv.debug)
+log = common.setup_log()
 
 log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 

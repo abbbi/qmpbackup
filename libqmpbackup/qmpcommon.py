@@ -9,6 +9,7 @@
  the LICENSE file in the top-level directory.
 """
 import os
+import logging
 from time import sleep, time
 from qemu.qmp import EventListener
 
@@ -16,9 +17,9 @@ from qemu.qmp import EventListener
 class QmpCommon:
     """Common functions"""
 
-    def __init__(self, qmp, log):
+    def __init__(self, qmp):
         self.qmp = qmp
-        self.log = log
+        self.log = logging.getLogger(__name__)
 
     @staticmethod
     def transaction_action(action, **kwargs):

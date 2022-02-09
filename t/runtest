@@ -44,7 +44,11 @@ echo "------------------------------------------------"
 echo "Executing qmpbackup tests"
 echo "------------------------------------------------"
 rm -rf /tmp/backup_no_agent
-../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET backup --level full --exclude ide0-hd0 --target /tmp/backup_no_agent/ --quisce
+rm -f /tmp/backup.log
+../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET --logfile /tmp/backup.log backup --level full --exclude ide0-hd0 --target /tmp/backup_no_agent/ --quisce
+[ -e /tmp/backup.log ]
+grep Arguments /tmp/backup.log > /dev/null
+grep INFO /tmp/backup.log > /dev/null
 
 rm -rf /tmp/backup
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/backup/ --quisce
