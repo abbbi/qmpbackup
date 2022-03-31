@@ -7,6 +7,8 @@ qmpbackup is designed to create live full and incremental backups of running
 qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
 feature introduced in later Qemu versions.  It works with standalone Qemu
 processes.
+ 
+![Alt text](qmpbackup.jpg?raw=true "Title")
 
 If you want to backup Qemu virtual machines managed by `libvirt`,
 see this project:
