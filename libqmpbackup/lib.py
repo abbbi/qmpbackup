@@ -126,7 +126,7 @@ class QmpBackup:
 
             self._log.debug('"%s" is based on "%s"', images[idx], image)
 
-            # befor rebase we check consistency of all files
+            # before rebase we check consistency of all files
             check_cmd = f"qemu-img check '{image}'"
             try:
                 self._log.info(check_cmd)
@@ -184,7 +184,7 @@ class QmpBackup:
 
         self._log.info("Trying to ping guest agent")
         if not qga.ping(5):
-            self._log.warning("Unable to reach Guest Agent: cant freeze file systems.")
+            self._log.warning("Unable to reach Guest Agent: can't freeze file systems.")
             return False
 
         qga_info = qga.info()
@@ -219,7 +219,7 @@ class QmpBackup:
             return True
         try:
             reply = qga.fsfreeze("thaw")
-            self._log.info('"%s" fileystem(s) thawed', reply)
+            self._log.info('"%s" filesystem(s) thawed', reply)
             return True
         except Exception as errmsg:
             self._log.warning('Unable to thaw filesystem: "%s"', errmsg)
@@ -232,6 +232,6 @@ class QmpBackup:
             reply = qga.fsfreeze("status")
             return reply
         except Exception as errmsg:
-            self._log.warning("Unable to get Filesytem status: %s", errmsg)
+            self._log.warning("Unable to get Filesystem status: %s", errmsg)
 
         return None
