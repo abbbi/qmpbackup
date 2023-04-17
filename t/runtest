@@ -92,13 +92,13 @@ TFILE=/tmp/bitmapinfo
 rm -f $TFILE
 ../qmpbackup --socket $QMP_SOCKET info --show blockdev > $TFILE 
 cat $TFILE
-grep $TFILE "has_bitmap=True"
+grep "has_bitmap=True" $TFILE
 
 rm -f $TFILE
 # bitmaps must be active
 ../qmpbackup --socket $QMP_SOCKET info --show bitmaps > $TFILE
 cat $TFILE
-grep $TFILE "active"
+grep "active" $TFILE
 
 # at least one bitmap must be removed at this point
 ../qmpbackup --socket $QMP_SOCKET cleanup --remove-bitmap 2>&1 | grep "Removing bitmap: qmpbackup-ide0-hd0"
