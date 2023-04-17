@@ -101,7 +101,7 @@ Filesystem Quisce
 -----------------
 
 In case the virtual machine has an guest agent installed you can set the Qemu
-Guest Agent socket (*--agent-socket*)  and request filesytem quisce via
+Guest Agent socket (*--agent-socket*)  and request filesystem quisce via
 *--quisce* option:
 
 ```
