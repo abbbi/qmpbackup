@@ -84,10 +84,22 @@ rm -rf /tmp/include
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --include ide0-hd1 --target /tmp/include/ --quisce
 [ -e /tmp/exclude/ide0-hd0 ] && echo "backed up non included disks" && exit 1
 
+echo "------------------------------------------------"
+echo "Bitmap output tests"
+echo "------------------------------------------------"
 # at this point, block devices must show bitmaps
-../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "has_bitmap=True"
+TFILE=/tmp/bitmapinfo
+rm -f $TFILE
+../qmpbackup --socket $QMP_SOCKET info --show blockdev > $TFILE 
+cat $TFILE
+grep $TFILE "has_bitmap=True"
+
+rm -f $TFILE
 # bitmaps must be active
-../qmpbackup --socket $QMP_SOCKET info --show bitmaps 2>&1 | grep "active"
+../qmpbackup --socket $QMP_SOCKET info --show bitmaps > $TFILE
+cat $TFILE
+grep $TFILE "active"
+
 # at least one bitmap must be removed at this point
 ../qmpbackup --socket $QMP_SOCKET cleanup --remove-bitmap 2>&1 | grep "Removing bitmap: qmpbackup-ide0-hd0"
 
