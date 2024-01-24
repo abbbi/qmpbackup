@@ -207,7 +207,6 @@ async def main():
         if argv.show == "blockdev":
             log.info("Attached block devices:")
             log.info("%s", common.json_pp(blockdev))
-            sys.exit(0)
         if argv.show == "bitmaps":
             for dev in blockdev:
                 if dev.bitmaps is None:
@@ -215,6 +214,7 @@ async def main():
                     continue
                 log.info("%s:", dev.node)
                 log.info("%s", common.json_pp(dev.bitmaps))
+        sys.exit(0)
 
     if action == "cleanup":
         await qemu_client.remove_bitmaps(blockdev)
