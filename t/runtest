@@ -91,7 +91,7 @@ echo "------------------------------------------------"
 
 
 # at this point, block devices must show bitmaps
-../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "qmpbackup-drive"
+../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "qmpbackup-ide"
 # bitmaps must be active
 ../qmpbackup --socket $QMP_SOCKET info --show bitmaps 2>&1 | grep "recording.*true"
 # at least one bitmap must be removed at this point
