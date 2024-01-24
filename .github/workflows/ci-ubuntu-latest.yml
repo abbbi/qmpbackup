@@ -33,7 +33,7 @@ jobs:
         sudo pip3 install -r requirements.txt
         sudo python3 setup.py install
     - name: Execute testscript
-      run: cd t && sh runtest
+      run: cd t && sudo sh runtest
     - name: Execute
       run: |
         qmpbackup -h
