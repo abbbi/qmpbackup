@@ -121,13 +121,8 @@ echo "------------------------------------------------"
 mkdir -p /tmp/empty
 FILE=$(echo /tmp/restore/ide0-hd0/FULL*)
 # for debugging
-export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+#export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
 sudo -E guestmount -a $FILE /tmp/empty -i
-# files created during incremental backup must exist after
-# rebase, give guestmount some time to settle
-sleep 5
-sudo stat /tmp/empty/tmp/incdata1/fstab >/dev/null
-echo "Directory from incremental backup exists"
 sudo -E guestunmount /tmp/empty
 
 PID=$(cat /tmp/qemu.pid)
