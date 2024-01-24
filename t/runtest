@@ -126,7 +126,7 @@ sudo -E guestmount -a $FILE /tmp/empty -i
 # files created during incremental backup must exist after
 # rebase, give guestmount some time to settle
 sleep 5
-sudo stat /tmp/empty/tmp/incdata1/fstab >/dev/null
+sudo stat /tmp/empty/tmp/incdata1/fstab >/dev/null || find /tmp/empty/ && exit 1
 echo "Directory from incremental backup exists"
 sudo -E guestunmount /tmp/empty
 
