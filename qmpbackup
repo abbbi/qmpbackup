@@ -16,7 +16,6 @@ import sys
 import asyncio
 import signal
 import argparse
-import pprint
 from datetime import datetime
 from qemu.qmp import QMPClient
 
@@ -206,7 +205,8 @@ async def main():
 
     if action == "info":
         if argv.show == "blockdev":
-            pprint.pprint(blockdev)
+            log.info("Attached block devices:")
+            log.info("%s", common.json_pp(blockdev))
             sys.exit(0)
         if argv.show == "bitmaps":
             for dev in blockdev:
