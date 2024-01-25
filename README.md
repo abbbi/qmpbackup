@@ -59,7 +59,7 @@ option flag`. This means QEMU attempts to store them in the QCOW images, so
 they are available between virtual machine shutdowns. The attached QCOW images
 must be in qcow(v3) format, for this to work.
 
-If you cant convert your QCOW images to newer formats, you still can use the
+If you can't convert your QCOW images to newer formats, you still can use the
 backup mode `copy`: it allows to execute a complete full backup but no further
 incremental backups.
 
