@@ -1,18 +1,38 @@
 #!/bin/bash
+AGENT_SOCKET=/tmp/qga.sock
+QMP_SOCKET=/tmp/socket
+PIDFILE="/tmp/qemu.pid"
+
+function cleanup {
+    echo "cleanup"
+    if [ -e ${PIDFILE} ]; then
+        PID=$(cat ${PIDFILE})
+        echo "killing qemu process: ${PID}"
+        kill -9 "${PID}"
+    fi
+    rm -f ${AGENT_SOCKET}
+    rm -f ${QMP_SOCKET}
+    rm -f /tmp/disk1.qcow2
+    rm -f /tmp/disk2.qcow2
+    rm -f /tmp/disk3.qcow2
+    rm -f /tmp/qemu.pid
+}
+trap cleanup EXIT
+
 set -e
+
+rm -rf /tmp/restore
+rm -rf /tmp/backup
 
 IMAGE="https://app.vagrantup.com/generic/boxes/alpine38/versions/3.6.6/providers/libvirt.box"
 
 exist_files() {
-    if ! ls ${1} 1> /dev/null 2>&1; then
+    if ! ls "${1}" 1> /dev/null 2>&1; then
         echo "backup files do not exist"
         exit 1
     fi
 }
 
-rm -f /tmp/disk1.qcow2
-rm -f /tmp/disk2.qcow2
-rm -f /tmp/disk3.qcow2
 
 echo "Downloading image"
 [ ! -e /tmp/libvirt.box ] && curl -L -s $IMAGE > /tmp/libvirt.box
@@ -21,12 +41,10 @@ mv -f box.img /tmp/disk1.qcow2
 [ ! -e /tmp/disk2.qcow2 ] &&  qemu-img create -f qcow2 /tmp/disk2.qcow2 10M
 [ ! -e /tmp/disk3.raw ] && qemu-img create -f raw /tmp/disk3.raw 10M
 
-AGENT_SOCKET=/tmp/qga.sock
-QMP_SOCKET=/tmp/socket
 echo "Starting qemu process"
 KVMOPT=""
 [ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
-qemu-system-x86_64 $KVMOPT -smp $(nproc) -daemonize -display none -m 1024 \
+qemu-system-x86_64 $KVMOPT -smp "$(nproc)" -daemonize -display none -m 1024 \
     -hda /tmp/disk1.qcow2 \
     -hdb /tmp/disk2.qcow2 \
     -hdc /tmp/disk3.raw \
@@ -34,7 +52,7 @@ qemu-system-x86_64 $KVMOPT -smp $(nproc) -daemonize -display none -m 1024 \
     -chardev socket,path=$AGENT_SOCKET,server,nowait,id=qga0 \
     -device virtio-serial \
     -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
-    -pidfile /tmp/qemu.pid
+    -pidfile ${PIDFILE}
 
 # wait until qemu agent is reachable within booted Vm, then continue
 # with the tests
@@ -115,16 +133,8 @@ cp -a /tmp/backup/ /tmp/restore
 
 echo "rollback OK"
 
-echo "------------------------------------------------"
-echo "Mounting rebased image"
-echo "------------------------------------------------"
-mkdir -p /tmp/empty
 FILE=$(echo /tmp/restore/ide0-hd0/FULL*)
-# for debugging
-#export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
-sudo -E guestmount -a $FILE /tmp/empty -i
-sudo -E guestunmount /tmp/empty
-
-PID=$(cat /tmp/qemu.pid)
-echo "killing qemu process: ${PID}"
-kill -9 "${PID}"
+echo "------------------------------------------------"
+echo "Check rebased image: $FILE"
+echo "------------------------------------------------"
+qemu-img info "${FILE}" > /dev/null
