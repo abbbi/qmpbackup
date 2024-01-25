@@ -21,7 +21,7 @@ from qemu.qmp import QMPClient
 
 from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup.lib import QmpBackup
-from libqmpbackup.vm import VMInfo
+from libqmpbackup import vm
 from libqmpbackup import version
 
 SIGNAL_CATCHED = False
@@ -145,8 +145,6 @@ async def main():
         log.error("Specify either included or excluded devices")
         sys.exit(1)
 
-    vminfo = VMInfo()
-
     new_monthly = False
     qmp = QMPClient()
     try:
@@ -154,11 +152,11 @@ async def main():
     except Exception as errmsg:
         log.fatal("Can't connect QMP socket [%s]: %s", argv.socket, errmsg)
         sys.exit(1)
-    else:
-        status = await qmp.execute("query-status")
-        if status["running"] is False:
-            log.fatal("VM not in running state, status: %s", status)
-            sys.exit(1)
+
+    status = await qmp.execute("query-status")
+    if status["running"] is False:
+        log.fatal("VM not in running state, status: %s", status)
+        sys.exit(1)
 
     qemu_client = QmpCommon(qmp)
 
@@ -186,7 +184,7 @@ async def main():
             included_disks = argv.include.split(",")
             log.debug("Backing up only specified disks: %s", included_disks)
 
-    blockdev = vminfo.get_block_devices(
+    blockdev = vm.get_block_devices(
         await qemu_client.do_query_block(), excluded_disks, included_disks
     )
 
