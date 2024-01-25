@@ -75,6 +75,8 @@ grep INFO /tmp/backup.log > /dev/null
 
 rm -rf /tmp/backup
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/backup/ --quisce
+rm -rf /tmp/copy_backup
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/copy_backup/ --quisce
 
 exist_files /tmp/backup//ide0-hd0/FULL* 
 exist_files /tmp/backup//ide0-hd1/FULL* 
