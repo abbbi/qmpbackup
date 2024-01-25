@@ -58,6 +58,11 @@ qemu-system-x86_64 $KVMOPT -smp "$(nproc)" -daemonize -display none -m 1024 \
 # with the tests
 python3 -u agent.py
 
+if [ -n "$DEBUG_PAUSE" ]; then
+    echo "pausing"
+    sleep 1d
+fi
+
 echo "------------------------------------------------"
 echo "Executing qmpbackup tests"
 echo "------------------------------------------------"
