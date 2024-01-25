@@ -224,7 +224,7 @@ async def main():
             log.info("%s", common.json_pp(blockdev))
         if argv.show == "bitmaps":
             for dev in blockdev:
-                if dev.bitmaps is None:
+                if not dev.bitmaps:
                     log.info('No bitmaps found for device: "%s"', dev.node)
                     continue
                 log.info("%s:", dev.node)
