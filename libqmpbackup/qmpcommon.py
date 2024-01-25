@@ -49,6 +49,9 @@ class QmpCommon:
             prefix = "INC"
             sync = "incremental"
 
+        if level == "copy":
+            self.log.info("Copy backup: no bitmap will be created.")
+
         actions = []
         files = []
         for device in devices:
@@ -64,14 +67,16 @@ class QmpCommon:
             if not device.has_bitmap and level == "full":
                 self.log.debug("Creating new bitmap")
                 actions.append(
-                    self.transaction_bitmap_add(device.node, bitmap, persistent=True)
+                    self.transaction_bitmap_add(
+                        device.node, bitmap, persistent=True
+                    )
                 )
 
             if device.has_bitmap and level == "full":
                 self.log.debug("Clearing existing bitmap")
                 actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
-            if level == "full":
+            if level in ("full", "copy"):
                 actions.append(
                     self.transaction_action(
                         "drive-backup",

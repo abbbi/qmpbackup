@@ -54,8 +54,14 @@ consistency by creating the bitmap and backup within one QMP transaction.
 
 Multiple disks attached to the virtual machine are backed up concurrently.
 
-Bitmaps will be added with persistent option flag, which means they are stored
-permanently and are available between virtual machine shutdowns.
+During full and incremental backup, bitmaps will be created with `persistent
+option flag`. This means QEMU attempts to store them in the QCOW images, so
+they are available between virtual machine shutdowns. The attached QCOW images
+must be in qcow(v3) format, for this to work.
+
+If you cant convert your QCOW images to newer formats, you still can use the
+backup mode `copy`: it allows to execute a complete full backup but no further
+incremental backups.
 
 Second step is to change some data within your virtual machine and let
 *qmpbackup* create an incremental backup for you, this works by:

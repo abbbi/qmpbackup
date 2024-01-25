@@ -94,7 +94,7 @@ async def main():
     parser_backup.set_defaults(which="backup")
     parser_backup.add_argument(
         "--level",
-        choices=["full", "inc", "auto"],
+        choices=["copy", "full", "inc", "auto"],
         type=str,
         help="backup level",
         required=True,
