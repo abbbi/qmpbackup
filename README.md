@@ -5,12 +5,12 @@ qmpbackup
 
 qmpbackup is designed to create live full and incremental backups of running
 qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
-feature introduced in later Qemu versions. It works with standalone Qemu
+feature introduced in later QEMU versions. It works with standalone QEMU
 processes.
 
 ![Alt text](qmpbackup.jpg?raw=true "Title")
 
-If you want to backup Qemu virtual machines managed by `libvirt`, see this
+If you want to backup QEMU virtual machines managed by `libvirt`, see this
 project:
 
  https://github.com/abbbi/virtnbdbackup
@@ -100,7 +100,7 @@ If only specific disks should be saved, use the *--include* option.
 Filesystem Quisce
 -----------------
 
-In case the virtual machine has an guest agent installed you can set the Qemu
+In case the virtual machine has an guest agent installed you can set the QEMU
 Guest Agent socket (*--agent-socket*)  and request filesystem quisce via
 *--quisce* option:
 
@@ -108,7 +108,7 @@ Guest Agent socket (*--agent-socket*)  and request filesystem quisce via
   qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
 ```
 
-Use the following options to Qemu to enable an guest agent socket:
+Use the following options to QEMU to enable an guest agent socket:
 
 ```
    -chardev socket,path=/tmp/qga.sock,server,nowait,id=qga0 \
@@ -120,13 +120,12 @@ Backup Offline virtual machines
 -------------------------------
 
 If you want to backup virtual machines without the virtual machine being in
-fully operational, it is sufficient to bring up the QEMU process in `prelaunch`
-state (QEMU then starts but does not start any CPU)
+fully operational state, it is sufficient to bring up the QEMU process in
+`prelaunch` mode (The QEMU blocklayer is operational but no code is executed):
 
 ```
  qemu-system-<arch> -S <options>
 ```
-
 
 Restore
 -------
@@ -143,7 +142,7 @@ A image backup based on a backup folder containing the following backups:
  └── INC-1480542712
 ```
 
-can be rolled back by using *qmprebase*, it uses common Qemu tools to check
+can be rolled back by using *qmprebase*, it uses common QEMU tools to check
 consistency and does a rollback of your image file:
 
 ```
@@ -151,7 +150,7 @@ consistency and does a rollback of your image file:
 ```
 
 During rebase, the saveset chain is merged into your FULL image which then
-contains the latest state and can be booted via Qemu again.
+contains the latest state and can be booted via QEMU again.
 
 `Note:` It makes sense to copy the existing backup directory to a temporary
 folder before rebasing, to not alter your existing backups.
@@ -187,7 +186,7 @@ Limitations
 exclusively uses the virtual machines monitor socket. See
 [virtnbdbackup](https://github.com/abbbi/virtnbdbackup).
 
-2) Qemus ```drive-backup``` function does currently not support dumping
+2) QEMUs ```drive-backup``` function does currently not support dumping
 data as a stream, it also cannot work with fifo pipes as the blockdriver
 expects functions like ftruncate and fseek to work on the target file, so the
 backup target must be a directory.
