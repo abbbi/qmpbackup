@@ -5,13 +5,13 @@ qmpbackup
 
 qmpbackup is designed to create live full and incremental backups of running
 qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
-feature introduced in later Qemu versions.  It works with standalone Qemu
+feature introduced in later Qemu versions. It works with standalone Qemu
 processes.
- 
+
 ![Alt text](qmpbackup.jpg?raw=true "Title")
 
-If you want to backup Qemu virtual machines managed by `libvirt`,
-see this project:
+If you want to backup Qemu virtual machines managed by `libvirt`, see this
+project:
 
  https://github.com/abbbi/virtnbdbackup
  
@@ -108,12 +108,23 @@ Guest Agent socket (*--agent-socket*)  and request filesystem quisce via
   qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
 ```
 
-Use the following options to Qemu for initating an guest agent socket:
+Use the following options to Qemu to enable an guest agent socket:
 
 ```
    -chardev socket,path=/tmp/qga.sock,server,nowait,id=qga0 \
    -device virtio-serial \
    -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
+```
+
+Backup Offline virtual machines
+-------------------------------
+
+If you want to backup virtual machines without the virtual machine being in
+fully operational, it is sufficient to bring up the QEMU process in `prelaunch`
+state (QEMU then starts but does not start any CPU)
+
+```
+ qemu-system-<arch> -S <options>
 ```
 
 
@@ -178,5 +189,5 @@ exclusively uses the virtual machines monitor socket. See
 
 2) Qemus ```drive-backup``` function does currently not support dumping
 data as a stream, it also cannot work with fifo pipes as the blockdriver
-expects functions as ftruncate and fseek to work on the target file, so
-the backup target must be a directory.
+expects functions like ftruncate and fseek to work on the target file, so the
+backup target must be a directory.
