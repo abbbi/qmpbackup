@@ -154,9 +154,11 @@ async def main():
         sys.exit(1)
 
     status = await qmp.execute("query-status")
-    if status["running"] is False:
+    if status["running"] is False and not status["status"] in ("prelaunch", "paused"):
         log.fatal("VM not in running state, status: %s", status)
         sys.exit(1)
+
+    log.info("VM is in state: [%s]", status["status"])
 
     qemu_client = QmpCommon(qmp)
 
