@@ -291,7 +291,7 @@ async def main():
             if argv.level == "inc":
                 if common.check_for_partial(backupdir, device.node):
                     log.error(
-                        "Partial backup found in [%s/%s], possible broken backup chain. Exectue new full backup",
+                        "Partial backup found in [%s/%s], possible broken backup chain. Execute new full backup",
                         backupdir,
                         device.node,
                     )
