@@ -51,7 +51,22 @@ async def stop_jobs(blockdev, log, qmp, signal):
 
 async def main():
     """qmpbackup"""
-    parser = argparse.ArgumentParser(prog=sys.argv[0])
+    parser = argparse.ArgumentParser(
+        description="Backup QEMU virtual machines",
+        epilog=(
+            "Examples:\n"
+            "   # full backup with all attached disks:\n"
+            "\t%(prog)s --socket /tmp/sock backup --level full --target /backup/\n"
+            "   # incremental backup with all attached disks:\n"
+            "\t%(prog)s --socket /tmp/sock backup --level inc --target /backup/\n"
+            "   # show attached block devices:\n"
+            "\t%(prog)s --socket /tmp/socket info --show blockdev\n"
+            "   # full backup but exclude disk:\n"
+            "\t%(prog)s --socket /tmp/sock backup --level full --exclude ide0-hd0"
+            " --target /backup/\n"
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument(
         "--socket", dest="socket", help="qmp socket to connect", required=1
     )
