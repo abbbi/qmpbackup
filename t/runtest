@@ -140,8 +140,13 @@ cp -a /tmp/backup/ /tmp/restore
 
 echo "rollback OK"
 
-FILE=$(echo /tmp/restore/ide0-hd0/FULL*)
+RESTORED_FILE=$(echo /tmp/restore/ide0-hd0/FULL*)
+ORIGINAL_FILE=$(echo /tmp/backup/ide0-hd0/FULL*)
 echo "------------------------------------------------"
 echo "Check rebased image: $FILE"
 echo "------------------------------------------------"
-qemu-img info "${FILE}" > /dev/null
+qemu-img info "${RESTORED_FILE}" > /dev/null
+# between full and diff backup, additional data was changed
+# within the image. Diff must show these changes between
+# original and on incremental rebased image after restore.
+virt-diff -a "$ORIGINAL_FILE" -A "$RESTORED_FILE" | grep incdata > /dev/null
