@@ -52,6 +52,7 @@ class QmpCommon:
         bitmap_prefix = "qmpbackup"
         persistent = True
         if level == "copy":
+            prefix = "COPY"
             self.log.info("Copy backup: no persistent bitmap will be created.")
             bitmap_prefix = "qmpbackup-copy"
             persistent = False
