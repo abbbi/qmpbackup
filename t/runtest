@@ -3,7 +3,7 @@ AGENT_SOCKET=/tmp/qga.sock
 QMP_SOCKET=/tmp/socket
 PIDFILE="/tmp/qemu.pid"
 
-function cleanup {
+cleanup() {
     echo "cleanup"
     if [ -e ${PIDFILE} ]; then
         PID=$(cat ${PIDFILE})
