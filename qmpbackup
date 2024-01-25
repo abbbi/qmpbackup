@@ -128,6 +128,13 @@ async def main():
     parser_backup.add_argument(
         "--target", type=str, help="backup target directory", required=True
     )
+    parser_backup.add_argument(
+        "--speed-limit",
+        type=int,
+        default=0,
+        help="speed limit in bytes / second",
+        required=False,
+    )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
     parser_cleanup.add_argument(
@@ -306,9 +313,7 @@ async def main():
                 common.quisce(qga)
 
         try:
-            files = await qemu_client.backup(
-                blockdev, argv.level, backupdir, qga, common
-            )
+            files = await qemu_client.backup(argv, blockdev, backupdir, qga, common)
         except Exception as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
             if qga is not False:

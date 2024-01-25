@@ -41,17 +41,17 @@ class QmpCommon:
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
-    def prepare_transaction(self, devices, level, backupdir):
+    def prepare_transaction(self, argv, devices, backupdir):
         """Prepare transaction steps"""
         prefix = "FULL"
         sync = "full"
-        if level == "inc":
+        if argv.level == "inc":
             prefix = "INC"
             sync = "incremental"
 
         bitmap_prefix = "qmpbackup"
         persistent = True
-        if level == "copy":
+        if argv.level == "copy":
             prefix = "COPY"
             self.log.info("Copy backup: no persistent bitmap will be created.")
             bitmap_prefix = "qmpbackup-copy"
@@ -71,9 +71,9 @@ class QmpCommon:
 
             if (
                 not device.has_bitmap
-                and level in ("full", "copy")
+                and argv.level in ("full", "copy")
                 or device.has_bitmap
-                and level in ("copy")
+                and argv.level in ("copy")
             ):
                 self.log.info("Creating new bitmap: %s", bitmap)
                 actions.append(
@@ -82,11 +82,11 @@ class QmpCommon:
                     )
                 )
 
-            if device.has_bitmap and level in ("full"):
+            if device.has_bitmap and argv.level in ("full"):
                 self.log.debug("Clearing existing bitmap")
                 actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
-            if level in ("full", "copy"):
+            if argv.level in ("full", "copy"):
                 actions.append(
                     self.transaction_action(
                         "drive-backup",
@@ -94,6 +94,7 @@ class QmpCommon:
                         target=target,
                         sync=sync,
                         job_id=job_id,
+                        speed=argv.speed_limit,
                     )
                 )
             else:
@@ -105,6 +106,7 @@ class QmpCommon:
                         target=target,
                         sync=sync,
                         job_id=job_id,
+                        speed=argv.speed_limit,
                     )
                 )
 
@@ -112,10 +114,10 @@ class QmpCommon:
 
         return actions, files
 
-    async def backup(self, devices, level, backupdir, qga, common):
+    async def backup(self, argv, devices, backupdir, qga, common):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        actions, files = self.prepare_transaction(devices, level, backupdir)
+        actions, files = self.prepare_transaction(argv, devices, backupdir)
         listener = EventListener(
             (
                 "BLOCK_JOB_COMPLETED",
