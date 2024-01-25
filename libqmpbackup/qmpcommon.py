@@ -49,8 +49,12 @@ class QmpCommon:
             prefix = "INC"
             sync = "incremental"
 
+        bitmap_prefix = "qmpbackup"
+        persistent = True
         if level == "copy":
-            self.log.info("Copy backup: no bitmap will be created.")
+            self.log.info("Copy backup: no persistent bitmap will be created.")
+            bitmap_prefix = "qmpbackup-copy"
+            persistent = False
 
         actions = []
         files = []
@@ -61,18 +65,23 @@ class QmpCommon:
             filename = f"{prefix}-{timestamp}.partial"
             target = f"{targetdir}/{filename}"
             files.append(target)
-
-            bitmap = f"qmpbackup-{device.node}"
+            bitmap = f"{bitmap_prefix}-{device.node}"
             job_id = f"{device.node}"
-            if not device.has_bitmap and level == "full":
-                self.log.debug("Creating new bitmap")
+
+            if (
+                not device.has_bitmap
+                and level in ("full", "copy")
+                or device.has_bitmap
+                and level in ("copy")
+            ):
+                self.log.info("Creating new bitmap: %s", bitmap)
                 actions.append(
                     self.transaction_bitmap_add(
-                        device.node, bitmap, persistent=True
+                        device.node, bitmap, persistent=persistent
                     )
                 )
 
-            if device.has_bitmap and level == "full":
+            if device.has_bitmap and level in ("full"):
                 self.log.debug("Clearing existing bitmap")
                 actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
@@ -143,7 +152,7 @@ class QmpCommon:
         devices = await self.qmp.execute("query-block")
         return devices
 
-    async def remove_bitmaps(self, blockdev):
+    async def remove_bitmaps(self, blockdev, prefix="qmpbackup"):
         """Remove existing bitmaps for block devices"""
         for dev in blockdev:
             if not dev.has_bitmap:
@@ -153,13 +162,13 @@ class QmpCommon:
             for bitmap in dev.bitmaps:
                 bitmap_name = bitmap["name"]
                 self.log.info("Bitmap name: %s", bitmap_name)
-                if "qmpbackup" not in bitmap_name:
+                if prefix not in bitmap_name:
                     self.log.info("Ignoring bitmap: %s", bitmap_name)
                     continue
-                self.log.info("Removing bitmap: %s", f"qmpbackup-{dev.node}")
+                self.log.info("Removing bitmap: %s", f"{prefix}-{dev.node}")
                 await self.qmp.execute(
                     "block-dirty-bitmap-remove",
-                    arguments={"node": dev.node, "name": f"qmpbackup-{dev.node}"},
+                    arguments={"node": dev.node, "name": f"{prefix}-{dev.node}"},
                 )
 
     def progress(self, jobs, devices):

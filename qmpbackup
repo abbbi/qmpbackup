@@ -315,6 +315,13 @@ async def main():
                 common.thaw(qga)
             sys.exit(1)
 
+        if argv.level == "copy":
+            blockdev = vm.get_block_devices(
+                await qemu_client.do_query_block(), excluded_disks, included_disks
+            )
+            log.info("Removing non-persistent bitmaps used for copy backup.")
+            await qemu_client.remove_bitmaps(blockdev, prefix="qmpbackup-copy")
+
         await qmp.disconnect()
 
         if SIGNAL_CATCHED is True:
