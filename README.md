@@ -29,6 +29,10 @@ project:
 - [Backup Offline virtual machines](#backup-offline-virtual-machines)
 - [Restore](#restore)
 - [Misc commands](#misc-commands)
+  - [List devices suitable for backup](#list-devices-suitable-for-backup)
+  - [List existing bitmaps](#list-existing-bitmaps)
+  - [Cleanup bitmaps](#cleanup-bitmaps)
+  - [Speed limit](#speed-limit)
 - [Limitations](#limitations)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -189,19 +193,37 @@ time is possible:
 Misc commands
 -------------
 
+### List devices suitable for backup
+
+```
+ qmpbackup --socket /tmp/vm info --show blockdev
+```
+
+### List existing bitmaps
+
+To query existing bitmaps information use:
+
+```
+ qmpbackup --socket /tmp/vm info --show bitmaps
+```
+
+### Cleanup bitmaps
+
 In order to remove existing dirty-bitmaps use:
 
 ```
  qmpbackup --socket /tmp/vm cleanup --remove-bitmaps
 ```
 
-see 
+### Speed limit
+
+You can set an speed limit (bytes per second) for all backup operations to
+limit throughput:
 
 ```
- qmpbackup --help 
+ qmpbackup --socket /tmp/vm backup [..] --speed-limit 2000000
 ```
 
-for more information and possible options.
 
 Limitations
 -----------
