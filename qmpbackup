@@ -74,20 +74,20 @@ async def main():
         "--agent-socket",
         dest="agentsocket",
         help="socket to use for communication with qemu agent",
-        required=0,
+        required=False,
     )
     parser.add_argument(
         "--debug",
         dest="debug",
         help="more verbose output",
         action="store_true",
-        required=0,
+        required=False,
     )
     parser.add_argument(
         "--logfile",
         dest="logfile",
         help="log output to specified logfile",
-        required=0,
+        required=False,
     )
     subparsers = parser.add_subparsers(help="sub-command help")
     parser_backup = subparsers.add_parser("backup", help="backup")
