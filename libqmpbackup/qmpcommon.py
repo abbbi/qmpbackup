@@ -161,9 +161,9 @@ class QmpCommon:
 
             for bitmap in dev.bitmaps:
                 bitmap_name = bitmap["name"]
-                self.log.info("Bitmap name: %s", bitmap_name)
+                self.log.debug("Bitmap name: %s", bitmap_name)
                 if prefix not in bitmap_name:
-                    self.log.info("Ignoring bitmap: %s", bitmap_name)
+                    self.log.debug("Ignoring bitmap: %s", bitmap_name)
                     continue
                 self.log.info("Removing bitmap: %s", f"{prefix}-{dev.node}")
                 await self.qmp.execute(
