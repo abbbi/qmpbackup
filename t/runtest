@@ -149,8 +149,9 @@ cp -a /tmp/backup/ /tmp/restore
 ../qmprebase rebase --dir /tmp/restore/ide0-hd0/
 
 echo "rollback OK"
-
 RESTORED_FILE=$(echo /tmp/restore/ide0-hd0/FULL*)
+qemu-img info "${RESTORED_FILE}" > /dev/null
+
 ORIGINAL_FILE=$(echo /tmp/backup/ide0-hd0/FULL*)
 echo "------------------------------------------------------"
 echo "Check restored image for contents of both inc backups "
