@@ -13,7 +13,6 @@
 """
 import sys
 import argparse
-import logging
 from libqmpbackup import version
 from libqmpbackup.lib import QmpBackup
 
