@@ -114,13 +114,17 @@ async def main():
         "--include",
         type=str,
         default=None,
-        help="backup only specific block device",
+        help="backup only specified block device",
         required=False,
     )
     parser_backup.add_argument(
         "--monthly",
         action="store_true",
-        help="monthly backup directories (in format YYYY-MM). If combined with backup level 'auto' this will create monthly backup chains.",
+        help=(
+            "Create monthly backup directories (in format YYYY-MM). "
+            "If combined with backup level 'auto' this will "
+            "create monthly backup chains."
+        ),
         required=False,
     )
     parser_backup.add_argument(
