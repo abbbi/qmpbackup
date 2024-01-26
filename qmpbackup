@@ -226,7 +226,8 @@ async def main():
     if action == "info":
         if argv.show == "blockdev":
             log.info("Attached block devices:")
-            log.info("%s", common.json_pp(blockdev))
+            for dev in blockdev:
+                log.info("%s", common.json_pp(dev._asdict()))
         if argv.show == "bitmaps":
             for dev in blockdev:
                 if not dev.bitmaps:
