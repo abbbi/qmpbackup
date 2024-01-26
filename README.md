@@ -164,10 +164,10 @@ using standard tools such as *qemu-img* or *qmprebase*.
 A image backup based on a backup folder containing the following backups:
 
 ```
- /tmp/backup/ide0-hd0
- ├── FULL-1480542683
- ├── INC-1480542701
- └── INC-1480542712
+/tmp/backup/ide0-hd0/
+├── FULL-1706260639-disk1.qcow2
+├── INC-1706260646-disk1.qcow2
+└── INC-1706260647-disk1.qcow2
 ```
 
 can be rolled back by using *qmprebase*, it uses common QEMU tools to check
