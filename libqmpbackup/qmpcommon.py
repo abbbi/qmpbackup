@@ -63,7 +63,9 @@ class QmpCommon:
             timestamp = int(time())
             targetdir = f"{backupdir}/{device.node}/"
             os.makedirs(targetdir, exist_ok=True)
-            filename = f"{prefix}-{timestamp}.partial"
+            filename = (
+                f"{prefix}-{timestamp}-{os.path.basename(device.filename)}.partial"
+            )
             target = f"{targetdir}/{filename}"
             files.append(target)
             bitmap = f"{bitmap_prefix}-{device.node}"
