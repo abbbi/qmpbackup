@@ -17,7 +17,7 @@ import asyncio
 import signal
 import argparse
 from datetime import datetime
-from qemu.qmp import QMPClient
+from qemu.qmp import protocol, QMPClient
 
 from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup.lib import QmpBackup
@@ -173,9 +173,10 @@ async def main():
 
     new_monthly = False
     qmp = QMPClient()
+    log.info("Connecting QMP socket: [%s]", argv.socket)
     try:
         await qmp.connect(argv.socket)
-    except Exception as errmsg:
+    except protocol.ConnectError as errmsg:
         log.fatal("Can't connect QMP socket [%s]: %s", argv.socket, errmsg)
         sys.exit(1)
 
