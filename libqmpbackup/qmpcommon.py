@@ -187,8 +187,9 @@ class QmpCommon:
                         else 0
                     ]
                     self.log.info(
-                        "[%s] Wrote Offset: %s%% (%s of %s)",
+                        "[%s:%s] Wrote Offset: %s%% (%s of %s)",
                         job["device"],
+                        os.path.basename(device.filename),
                         prog[0],
                         job["offset"],
                         job["len"],

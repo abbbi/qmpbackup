@@ -58,6 +58,6 @@ class QemuGuestAgentClient:
     def fsfreeze(self, cmd):
         """Freeze / thaw filesystem"""
         if cmd not in ["status", "freeze", "thaw"]:
-            raise Exception("Invalid command: " + cmd)
+            raise RuntimeError("Invalid command: " + cmd)
 
         return getattr(self.qga, "fsfreeze" + "_" + cmd)()

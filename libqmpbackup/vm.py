@@ -10,6 +10,7 @@
  This work is licensed under the terms of the GNU GPL, version 3.  See
  the LICENSE file in the top-level directory.
 """
+import os
 import logging
 from collections import namedtuple
 
@@ -42,9 +43,12 @@ def get_block_devices(blockinfo, excluded_disks, included_disks):
             continue
 
         inserted = device["inserted"]
+        base_filename = os.path.basename(inserted["image"]["filename"])
         if inserted["drv"] == "raw":
             log.warning(
-                "Excluding device with raw format from backup: %s", device["device"]
+                "Excluding device with raw format from backup: [%s:%s]",
+                device["device"],
+                base_filename,
             )
             continue
 
@@ -65,11 +69,19 @@ def get_block_devices(blockinfo, excluded_disks, included_disks):
             pass
 
         if included_disks and not device["device"] in included_disks:
-            log.info("Device not in included disk list, ignoring: %s", device["device"])
+            log.info(
+                "Device not in included disk list, ignoring: [%s:%s]",
+                device["device"],
+                base_filename,
+            )
             continue
 
         if excluded_disks and device["device"] in excluded_disks:
-            logging.info("Excluding device from backup: %s", device["device"])
+            logging.info(
+                "Excluding device from backup: [%s:%s]",
+                device["device"],
+                base_filename,
+            )
             continue
 
         log.debug("Adding device to device list: %s", device)
