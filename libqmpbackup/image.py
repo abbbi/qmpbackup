@@ -18,6 +18,18 @@ import subprocess
 log = logging.getLogger(__name__)
 
 
+def get_info(filename):
+    """Query original qemu image information, can be used to re-create
+    the image during rebase operation with the same options as the
+    original one."""
+    try:
+        return subprocess.check_output(
+            ["qemu-img", "info", f"{filename}", "--output", "json", "--force-share"]
+        )
+    except subprocess.CalledProcessError as errmsg:
+        raise RuntimeError from errmsg
+
+
 def rebase(directory, dry_run, until):
     """Rebase and commit all images in a directory"""
     if not os.path.exists(directory):
