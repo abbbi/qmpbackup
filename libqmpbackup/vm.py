@@ -22,7 +22,15 @@ def get_block_devices(blockinfo, excluded_disks, included_disks):
     """
     BlockDev = namedtuple(
         "BlockDev",
-        ["node", "format", "filename", "backing_image", "has_bitmap", "bitmaps"],
+        [
+            "node",
+            "format",
+            "filename",
+            "backing_image",
+            "has_bitmap",
+            "bitmaps",
+            "virtual_size",
+        ],
     )
     blockdevs = []
     for device in blockinfo:
@@ -73,6 +81,7 @@ def get_block_devices(blockinfo, excluded_disks, included_disks):
                 backing_image,
                 has_bitmap,
                 bitmaps,
+                inserted["image"]["virtual-size"],
             )
         )
 
