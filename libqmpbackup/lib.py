@@ -147,6 +147,7 @@ class QmpBackup:
                 self._log.info(commit_cmd)
                 if not dry_run:
                     subprocess.check_output(commit_cmd, shell=True)
+                    os.remove(image)
             except subprocess.CalledProcessError as errmsg:
                 self._log.error("Error while rollback: %s", errmsg)
                 return False
