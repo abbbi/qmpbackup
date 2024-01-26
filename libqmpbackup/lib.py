@@ -16,7 +16,6 @@ import sys
 from json import dumps as json_dumps
 from glob import glob
 import logging
-import subprocess
 from libqmpbackup.qaclient import QemuGuestAgentClient
 
 
@@ -64,95 +63,6 @@ class QmpBackup:
                 return True
 
         return False
-
-    def rebase(self, directory, dry_run, until):
-        """Rebase and commit all images in a directory"""
-        if not os.path.exists(directory):
-            self._log.error("Unable to find target directory")
-            return False
-
-        os.chdir(directory)
-        image_files = filter(os.path.isfile, os.listdir(directory))
-        images = [os.path.join(directory, f) for f in image_files]
-        images_flat = [os.path.basename(f) for f in images]
-        if until is not None and until not in images_flat:
-            self._log.error(
-                "Image file specified by --until option [%s] does not exist in backup directory",
-                until,
-            )
-            return False
-
-        # sort files by creation date
-        images.sort(key=os.path.getmtime)
-        images_flat.sort(key=os.path.getmtime)
-
-        if dry_run:
-            self._log.info("Dry run activated, not applying any changes")
-
-        if len(images) == 0:
-            self._log.error("No image files found in specified directory")
-            return False
-
-        if ".partial" in " ".join(images_flat):
-            self._log.error("Partial backup file found, backup chain might be broken.")
-            self._log.error("Consider removing file before attempting to rebase.")
-            return False
-
-        if "FULL-" not in images[0]:
-            self._log.error("First image file is not a FULL base image")
-            return False
-
-        if "FULL-" in images[-1]:
-            self._log.error("No incremental images found, nothing to commit")
-            return False
-
-        idx = len(images) - 1
-
-        if until is not None:
-            sidx = images_flat.index(until)
-        for image in reversed(images):
-            idx = idx - 1
-            if until is not None and idx >= sidx:
-                self._log.info(
-                    "Skipping checkpoint: %s as requested with --until option", image
-                )
-                continue
-
-            if images.index(image) == 0 or "FULL-" in images[images.index(image)]:
-                self._log.info(
-                    "Rollback of latest [FULL]<-[INC] chain complete, ignoring older chains"
-                )
-                break
-
-            self._log.debug('"%s" is based on "%s"', images[idx], image)
-
-            # before rebase we check consistency of all files
-            check_cmd = f"qemu-img check '{image}'"
-            try:
-                self._log.info(check_cmd)
-                if not dry_run:
-                    subprocess.check_output(check_cmd, shell=True)
-            except subprocess.CalledProcessError as errmsg:
-                self._log.error("Error while file check: %s", errmsg)
-                return False
-
-            try:
-                rebase_cmd = (
-                    f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[idx]}" "{image}" -u'
-                )
-                if not dry_run:
-                    subprocess.check_output(rebase_cmd, shell=True)
-                self._log.info(rebase_cmd)
-                commit_cmd = f"qemu-img commit '{image}'"
-                self._log.info(commit_cmd)
-                if not dry_run:
-                    subprocess.check_output(commit_cmd, shell=True)
-                    os.remove(image)
-            except subprocess.CalledProcessError as errmsg:
-                self._log.error("Error while rollback: %s", errmsg)
-                return False
-
-        return True
 
     def check_bitmap_state(self, node, bitmaps):
         """Check if the bitmap state is ready for backup
