@@ -25,7 +25,7 @@ project:
 - [Usage](#usage)
 - [Monthly Backups](#monthly-backups)
 - [Excluding disks from backup](#excluding-disks-from-backup)
-- [Filesystem Quisce](#filesystem-quisce)
+- [Filesystem Freeze](#filesystem-freeze)
 - [Backup Offline virtual machines](#backup-offline-virtual-machines)
 - [Restore](#restore)
 - [Misc commands](#misc-commands)
