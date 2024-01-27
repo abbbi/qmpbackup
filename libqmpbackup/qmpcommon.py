@@ -13,6 +13,8 @@ import logging
 from time import sleep, time
 from qemu.qmp import EventListener
 
+from libqmpbackup import lib
+
 
 class QmpCommon:
     """Common functions"""
@@ -116,7 +118,7 @@ class QmpCommon:
 
         return actions, files
 
-    async def backup(self, argv, devices, backupdir, qga, common):
+    async def backup(self, argv, devices, backupdir, qga):
         """Start backup transaction, while backup is active,
         watch for block status"""
         actions, files = self.prepare_transaction(argv, devices, backupdir)
@@ -133,7 +135,7 @@ class QmpCommon:
         with self.qmp.listen(listener):
             await self.qmp.execute("transaction", arguments={"actions": actions})
             if qga is not False:
-                common.thaw(qga)
+                lib.thaw(qga)
             async for event in listener:
                 if event["event"] == "BLOCK_JOB_COMPLETED":
                     self.log.info("Saved all disks")

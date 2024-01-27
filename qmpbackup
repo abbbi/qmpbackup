@@ -20,7 +20,7 @@ from datetime import datetime
 from qemu.qmp import protocol, QMPClient
 
 from libqmpbackup.qmpcommon import QmpCommon
-from libqmpbackup.lib import QmpBackup
+from libqmpbackup import lib
 from libqmpbackup import vm
 from libqmpbackup import image
 from libqmpbackup import version
@@ -168,8 +168,7 @@ async def main():
         parser.print_help()
         sys.exit(1)
 
-    common = QmpBackup(argv.debug)
-    log = common.setup_log(argv.logfile)
+    log = lib.setup_log(argv.debug, argv.logfile)
     log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 
     if action == "backup" and argv.exclude and argv.include:
@@ -237,14 +236,14 @@ async def main():
         if argv.show == "blockdev":
             log.info("Attached block devices:")
             for dev in blockdev:
-                log.info("%s", common.json_pp(dev._asdict()))
+                log.info("%s", lib.json_pp(dev._asdict()))
         if argv.show == "bitmaps":
             for dev in blockdev:
                 if not dev.bitmaps:
                     log.info('No bitmaps found for device: "%s"', dev.node)
                     continue
                 log.info("%s:", dev.node)
-                log.info("%s", common.json_pp(dev.bitmaps))
+                log.info("%s", lib.json_pp(dev.bitmaps))
         sys.exit(0)
 
     if action == "cleanup":
@@ -291,7 +290,7 @@ async def main():
             if argv.level == "auto":
                 if (
                     device.has_bitmap
-                    and not common.has_full(f"{backupdir}/{device.node}")
+                    and not lib.has_full(f"{backupdir}/{device.node}")
                     and new_monthly is False
                 ):
                     log.error(
@@ -307,7 +306,7 @@ async def main():
                 log.info("Auto backup mode set to: %s", argv.level)
 
             if argv.level == "inc":
-                if common.check_for_partial(backupdir, device.node):
+                if lib.check_for_partial(backupdir, device.node):
                     log.error(
                         "Partial backup found in [%s/%s], possible broken backup chain. Execute new full backup",
                         backupdir,
@@ -319,16 +318,16 @@ async def main():
 
         qga = False
         if argv.agentsocket and argv.quisce:
-            qga = common.connect_qaagent(argv.agentsocket)
+            qga = lib.connect_qaagent(argv.agentsocket)
             if qga:
-                common.quisce(qga)
+                lib.quisce(qga)
 
         try:
-            files = await qemu_client.backup(argv, blockdev, backupdir, qga, common)
+            files = await qemu_client.backup(argv, blockdev, backupdir, qga)
         except Exception as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
             if qga is not False:
-                common.thaw(qga)
+                lib.thaw(qga)
             sys.exit(1)
 
         for dev in blockdev:

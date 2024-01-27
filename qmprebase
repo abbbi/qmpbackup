@@ -15,7 +15,7 @@ import sys
 import argparse
 from libqmpbackup import version
 from libqmpbackup import image
-from libqmpbackup.lib import QmpBackup
+from libqmpbackup import lib
 
 parser = argparse.ArgumentParser(prog=sys.argv[0])
 subparsers = parser.add_subparsers(help="sub-command help")
@@ -43,8 +43,7 @@ except AttributeError:
     parser.print_help()
     sys.exit(1)
 
-common = QmpBackup(False)
-log = common.setup_log()
+log = lib.setup_log(False)
 
 log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 
