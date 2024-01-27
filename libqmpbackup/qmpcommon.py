@@ -12,7 +12,6 @@ import os
 import logging
 from time import sleep, time
 from qemu.qmp import EventListener
-from libqmpbackup import lib
 from libqmpbackup import fs
 
 
