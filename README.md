@@ -125,12 +125,12 @@ get a list of attached block devices considered for backup)
 
 If only specific disks should be saved, use the *--include* option.
 
-Filesystem Quisce
+Filesystem Freeze
 -----------------
 
 In case the virtual machine has an guest agent installed you can set the QEMU
-Guest Agent socket (*--agent-socket*)  and request filesystem quisce via
-*--quisce* option:
+Guest Agent socket (*--agent-socket*)  and request filesystem quiesce via
+*--quiesce* option:
 
 ```
   qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce

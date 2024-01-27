@@ -12,8 +12,8 @@ import os
 import logging
 from time import sleep, time
 from qemu.qmp import EventListener
-
 from libqmpbackup import lib
+from libqmpbackup import fs
 
 
 class QmpCommon:
@@ -135,7 +135,7 @@ class QmpCommon:
         with self.qmp.listen(listener):
             await self.qmp.execute("transaction", arguments={"actions": actions})
             if qga is not False:
-                lib.thaw(qga)
+                fs.thaw(qga)
             async for event in listener:
                 if event["event"] == "BLOCK_JOB_COMPLETED":
                     self.log.info("Saved all disks")

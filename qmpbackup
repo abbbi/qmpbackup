@@ -21,6 +21,7 @@ from qemu.qmp import protocol, QMPClient
 
 from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup import lib
+from libqmpbackup import fs
 from libqmpbackup import vm
 from libqmpbackup import image
 from libqmpbackup import version
@@ -129,9 +130,9 @@ async def main():
         required=False,
     )
     parser_backup.add_argument(
-        "--quisce",
+        "--quiesce",
         action="store_true",
-        help="Use Qemu Agent to quisce filesystem",
+        help="Use Qemu Agent to quiesce filesystem",
         required=False,
     )
     parser_backup.add_argument(
@@ -251,7 +252,7 @@ async def main():
         log.info("Bitmaps for all devices have been removed")
 
     if action == "backup":
-        if argv.quisce and not argv.agentsocket:
+        if argv.quiesce and not argv.agentsocket:
             log.warning(
                 "Quisce option set but agent socket is missing, please set via --agent-socket"
             )
@@ -317,17 +318,17 @@ async def main():
         log.info("Backup target directory: %s", backupdir)
 
         qga = False
-        if argv.agentsocket and argv.quisce:
+        if argv.agentsocket and argv.quiesce:
             qga = lib.connect_qaagent(argv.agentsocket)
             if qga:
-                lib.quisce(qga)
+                fs.quiesce(qga)
 
         try:
             files = await qemu_client.backup(argv, blockdev, backupdir, qga)
         except Exception as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
             if qga is not False:
-                lib.thaw(qga)
+                fs.thaw(qga)
             sys.exit(1)
 
         for dev in blockdev:
