@@ -29,6 +29,19 @@ def get_info(filename):
     except subprocess.CalledProcessError as errmsg:
         raise RuntimeError from errmsg
 
+def save_info(backupdir, blockdev):
+    """Save qcow image information"""
+    for dev in blockdev:
+        infofile = f"{backupdir}/{dev.node}.config"
+        try:
+            info = get_info(dev.filename)
+        except RuntimeError as errmsg:
+            log.warning("Unable to get qemu image info: [%s]", errmsg)
+            continue
+        with open(infofile, "wb+") as info_file:
+            info_file.write(info)
+            log.info("Saved image info: [%s]", infofile)
+
 
 def rebase(directory, dry_run, until):
     """Rebase and commit all images in a directory"""
