@@ -29,6 +29,7 @@ def get_info(filename):
     except subprocess.CalledProcessError as errmsg:
         raise RuntimeError from errmsg
 
+
 def save_info(backupdir, blockdev):
     """Save qcow image information"""
     for dev in blockdev:
