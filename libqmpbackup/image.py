@@ -76,7 +76,7 @@ def create(backupdir, dev):
         "create",
         "-f",
         f"{dev.format}",
-        f"{targetFile}",
+        f"{dev.targetfile}",
         "-o",
         f"size={dev.virtual_size}",
         opt,
