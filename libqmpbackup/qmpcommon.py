@@ -62,16 +62,14 @@ class QmpCommon:
 
     def prepare_transaction(self, argv, devices, backupdir):
         """Prepare transaction steps"""
-        prefix = "FULL"
+        prefix = argv.level.upper()
         sync = "full"
         if argv.level == "inc":
-            prefix = "INC"
             sync = "incremental"
 
         bitmap_prefix = "qmpbackup"
         persistent = True
         if argv.level == "copy":
-            prefix = "COPY"
             self.log.info("Copy backup: no persistent bitmap will be created.")
             bitmap_prefix = "qmpbackup-copy"
             persistent = False
