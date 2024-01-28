@@ -32,11 +32,12 @@ def get_info(filename):
 
 def rebase(directory, dry_run, until):
     """Rebase and commit all images in a directory"""
-    if not os.path.exists(directory):
-        log.error("Unable to find target directory")
+    try:
+        os.chdir(directory)
+    except FileNotFoundError as errmsg:
+        log.error(errmsg)
         return False
 
-    os.chdir(directory)
     image_files = filter(os.path.isfile, os.listdir(directory))
     images = [os.path.join(directory, f) for f in image_files]
     images_flat = [os.path.basename(f) for f in images]
