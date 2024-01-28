@@ -31,6 +31,7 @@ def get_block_devices(blockinfo, excluded_disks, included_disks):
             "has_bitmap",
             "bitmaps",
             "virtual_size",
+            "targetfile",
         ],
     )
     blockdevs = []

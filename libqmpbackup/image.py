@@ -12,6 +12,7 @@
  the LICENSE file in the top-level directory.
 """
 import os
+import json
 import logging
 import subprocess
 
@@ -42,6 +43,49 @@ def save_info(backupdir, blockdev):
         with open(infofile, "wb+") as info_file:
             info_file.write(info)
             log.info("Saved image info: [%s]", infofile)
+
+
+def create(backupdir, dev):
+    """Create target image used by qmp blockdev-backup image to dump
+    data"""
+    opt = []
+    with open(f"{backupdir}/{dev.node}.config", "rb") as config_file:
+        qcow_config = json.loads(config_file.read().decode())
+
+    try:
+        opt.append("-o")
+        opt.append(f"compat={qcow_config['format-specific']['data']['compat']}")
+    except KeyError as errmsg:
+        log.warning("Unable apply QCOW specific compat option: [%s]", errmsg)
+
+    try:
+        opt.append("-o")
+        opt.append(f"cluster_size={qcow_config['cluster-size']}")
+    except KeyError as errmsg:
+        log.warning("Unable apply QCOW specific cluster_size option: [%s]", errmsg)
+
+    try:
+        if qcow_config["format-specific"]["data"]["lazy-refcounts"]:
+            opt.append("-o")
+            opt.append("lazy_refcounts=on")
+    except KeyError as errmsg:
+        log.warning("Unable apply QCOW specific lazy_refcounts option: [%s]", errmsg)
+
+    cmd = [
+        "qemu-img",
+        "create",
+        "-f",
+        f"{dev.format}",
+        f"{targetFile}",
+        "-o",
+        f"size={dev.virtual_size}",
+        opt,
+    ]
+
+    try:
+        return subprocess.check_output(cmd)
+    except subprocess.CalledProcessError as errmsg:
+        raise RuntimeError from errmsg
 
 
 def rebase(directory, dry_run, until):
