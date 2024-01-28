@@ -36,6 +36,24 @@ class QmpCommon:
             "block-dirty-bitmap-clear", node=node, name=name, **kwargs
         )
 
+    def transaction_add_blockdev(self, name, driver, filename):
+        """Return transaction action object for blockdev-add"""
+        return self.transaction_action(
+            "blockdev-add",
+            driver=driver,
+            name=name,
+            file={"driver": "file", "filename": filename},
+        )
+
+    def transaction_blockdev_create(self, name, driver, filename, size):
+        """Return transaction action object for blockdev-add"""
+        return self.transaction_action(
+            "blockdev-create",
+            job_id=name,
+            name=name,
+            options={"driver": driver, "file": filename, "size": size},
+        )
+
     def transaction_bitmap_add(self, node, name, **kwargs):
         """Return transaction action object for bitmap add"""
         return self.transaction_action(
