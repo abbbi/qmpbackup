@@ -205,13 +205,11 @@ async def main():
     )
 
     excluded_disks = None
+    included_disks = None
     if action == "backup":
         if argv.exclude is not None:
             excluded_disks = argv.exclude.split(",")
             log.debug("Excluded disks: %s", excluded_disks)
-
-    included_disks = None
-    if action == "backup":
         if argv.include is not None:
             included_disks = argv.include.split(",")
             log.debug("Backing up only specified disks: %s", included_disks)
