@@ -12,28 +12,27 @@
 """
 import os
 import logging
-from collections import namedtuple
+from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class BlockDev:
+    node: str
+    format: str
+    filename: str
+    backing_image: str
+    has_bitmap: bool
+    bitmaps: list
+    virtual_size: int
+    targetfile: str
 
 
 def get_block_devices(blockinfo, excluded_disks, included_disks):
     """Get a list of block devices that we can create a bitmap for,
     currently we only get inserted qcow based images
     """
-    BlockDev = namedtuple(
-        "BlockDev",
-        [
-            "node",
-            "format",
-            "filename",
-            "backing_image",
-            "has_bitmap",
-            "bitmaps",
-            "virtual_size",
-            "targetfile",
-        ],
-    )
     blockdevs = []
     for device in blockinfo:
         bitmaps = None

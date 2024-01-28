@@ -17,6 +17,7 @@ import asyncio
 import signal
 import argparse
 from datetime import datetime
+from dataclasses import asdict
 from qemu.qmp import protocol, QMPClient
 
 from libqmpbackup.qmpcommon import QmpCommon
@@ -235,7 +236,7 @@ async def main():
         if argv.show == "blockdev":
             log.info("Attached block devices:")
             for dev in blockdev:
-                log.info("%s", lib.json_pp(dev._asdict()))
+                log.info("%s", lib.json_pp(asdict(dev)))
         if argv.show == "bitmaps":
             for dev in blockdev:
                 if not dev.bitmaps:
