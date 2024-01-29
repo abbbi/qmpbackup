@@ -304,7 +304,6 @@ async def main():
                     argv.level = "inc"
 
                 log.info("Auto backup mode set to: %s", argv.level)
-
             if argv.level == "inc":
                 if lib.check_for_partial(backupdir, device.node):
                     log.error(
@@ -317,6 +316,7 @@ async def main():
         log.info("Backup target directory: %s", backupdir)
 
         image.save_info(backupdir, blockdev)
+        target_files = image.create(argv, backupdir, blockdev)
 
         qga = False
         if argv.agentsocket and argv.quiesce:
@@ -325,12 +325,15 @@ async def main():
                 fs.quiesce(qga)
 
         try:
-            files = await qemu_client.backup(argv, blockdev, backupdir, qga)
+            await qemu_client.prepare_target_devices(blockdev, target_files)
+            files = await qemu_client.backup(argv, blockdev, target_files, qga)
         except Exception as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
+            sys.exit(1)
+        finally:
+            await qemu_client.remove_target_devices(blockdev)
             if qga is not False:
                 fs.thaw(qga)
-            sys.exit(1)
 
         if argv.level == "copy":
             blockdev = vm.get_block_devices(

@@ -11,8 +11,8 @@
 import os
 import logging
 from time import sleep, time
-from qemu.qmp import EventListener
 from libqmpbackup import fs
+from qemu.qmp import EventListener
 
 
 class QmpCommon:
@@ -36,33 +36,45 @@ class QmpCommon:
             "block-dirty-bitmap-clear", node=node, name=name, **kwargs
         )
 
-    def transaction_add_blockdev(self, name, driver, filename):
-        """Return transaction action object for blockdev-add"""
-        return self.transaction_action(
-            "blockdev-add",
-            driver=driver,
-            name=name,
-            file={"driver": "file", "filename": filename},
-        )
-
-    def transaction_blockdev_create(self, name, driver, filename, size):
-        """Return transaction action object for blockdev-add"""
-        return self.transaction_action(
-            "blockdev-create",
-            job_id=name,
-            name=name,
-            options={"driver": driver, "file": filename, "size": size},
-        )
-
     def transaction_bitmap_add(self, node, name, **kwargs):
         """Return transaction action object for bitmap add"""
         return self.transaction_action(
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
-    def prepare_transaction(self, argv, devices, backupdir):
+    async def prepare_target_devices(self, devices, target_files):
+        """Create the required target devices for blockev-backup
+        operation"""
+        self.log.info("Prepare backup target devices")
+        for device in devices:
+            target = target_files[device.node]
+            targetdev = f"qmpbackup-{device.node}"
+
+            await self.qmp.execute(
+                "blockdev-add",
+                arguments={
+                    "driver": device.format,
+                    "node-name": targetdev,
+                    "file": {"driver": "file", "filename": target},
+                },
+            )
+
+    async def remove_target_devices(self, devices):
+        """Cleanup named devices after executing blockdev-backup
+        operation"""
+        self.log.info("Cleanup added backup target devices")
+        for device in devices:
+            targetdev = f"qmpbackup-{device.node}"
+
+            await self.qmp.execute(
+                "blockdev-del",
+                arguments={
+                    "node-name": targetdev,
+                },
+            )
+
+    async def prepare_transaction(self, argv, devices, target_files):
         """Prepare transaction steps"""
-        prefix = argv.level.upper()
         sync = "full"
         if argv.level == "inc":
             sync = "incremental"
@@ -77,14 +89,9 @@ class QmpCommon:
         actions = []
         files = []
         for device in devices:
-            timestamp = int(time())
-            targetdir = f"{backupdir}/{device.node}/"
-            os.makedirs(targetdir, exist_ok=True)
-            filename = (
-                f"{prefix}-{timestamp}-{os.path.basename(device.filename)}.partial"
-            )
-            target = f"{targetdir}/{filename}"
+            target = target_files[device.node]
             files.append(target)
+            targetdev = f"qmpbackup-{device.node}"
             bitmap = f"{bitmap_prefix}-{device.node}"
             job_id = f"{device.node}"
 
@@ -108,9 +115,9 @@ class QmpCommon:
             if argv.level in ("full", "copy"):
                 actions.append(
                     self.transaction_action(
-                        "drive-backup",
+                        "blockdev-backup",
                         device=device.node,
-                        target=target,
+                        target=targetdev,
                         sync=sync,
                         job_id=job_id,
                         speed=argv.speed_limit,
@@ -119,10 +126,10 @@ class QmpCommon:
             else:
                 actions.append(
                     self.transaction_action(
-                        "drive-backup",
+                        "blockdev-backup",
                         bitmap=bitmap,
                         device=device.node,
-                        target=target,
+                        target=targetdev,
                         sync=sync,
                         job_id=job_id,
                         speed=argv.speed_limit,
@@ -136,7 +143,7 @@ class QmpCommon:
     async def backup(self, argv, devices, backupdir, qga):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        actions, files = self.prepare_transaction(argv, devices, backupdir)
+        actions, files = await self.prepare_transaction(argv, devices, backupdir)
         listener = EventListener(
             (
                 "BLOCK_JOB_COMPLETED",

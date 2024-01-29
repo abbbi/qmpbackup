@@ -26,7 +26,6 @@ class BlockDev:
     has_bitmap: bool
     bitmaps: list
     virtual_size: int
-    targetfile: str
 
 
 def get_block_devices(blockinfo, excluded_disks, included_disks):
@@ -94,7 +93,6 @@ def get_block_devices(blockinfo, excluded_disks, included_disks):
                 has_bitmap,
                 bitmaps,
                 inserted["image"]["virtual-size"],
-                None,
             )
         )
 
