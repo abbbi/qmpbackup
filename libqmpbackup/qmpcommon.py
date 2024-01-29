@@ -112,6 +112,11 @@ class QmpCommon:
                 self.log.info("Clearing existing bitmap for device: [%s]", device.node)
                 actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
+            compress = argv.compress
+            if device.format == "raw" and compress:
+                compress = False
+                self.log.info("Disabling compression for raw device: [%s]", device.node)
+
             if argv.level in ("full", "copy") or (
                 argv.level == "inc" and device.format == "raw"
             ):
@@ -123,7 +128,7 @@ class QmpCommon:
                         sync="full",
                         job_id=job_id,
                         speed=argv.speed_limit,
-                        compress=argv.compress,
+                        compress=compress,
                     )
                 )
             else:
