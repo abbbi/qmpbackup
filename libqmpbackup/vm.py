@@ -19,6 +19,8 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class BlockDev:
+    """Block device information"""
+
     node: str
     format: str
     filename: str
