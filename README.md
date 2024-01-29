@@ -31,6 +31,7 @@ project:
 - [Misc commands and options](#misc-commands-and-options)
   - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
+  - [Including raw devices](#including-raw-devices)
   - [List existing bitmaps](#list-existing-bitmaps)
   - [Cleanup bitmaps](#cleanup-bitmaps)
   - [Speed limit](#speed-limit)
@@ -209,6 +210,18 @@ the created target images, but may slow down the backup operation.
 ```
  qmpbackup --socket /tmp/vm info --show blockdev
 ```
+
+### Including raw devices
+
+Attached raw devices (format: raw) do not support incremental backup. The
+only way to create backups for these devices is to create a complete full
+backup.
+
+By default `qmpbackup` will ignore such devices, but you can use the
+`--include-raw` option to create a backup for those devices too.
+
+Of course, if you create an incremental backup for these devices, the
+complete image will be backed up.
 
 ### List existing bitmaps
 

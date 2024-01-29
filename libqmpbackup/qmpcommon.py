@@ -94,28 +94,33 @@ class QmpCommon:
 
             if (
                 not device.has_bitmap
+                and device.format != "raw"
                 and argv.level in ("full", "copy")
                 or device.has_bitmap
                 and argv.level in ("copy")
             ):
-                self.log.info("Creating new bitmap: %s", bitmap)
+                self.log.info(
+                    "Creating new bitmap: [%s] for device [%s]", bitmap, device.node
+                )
                 actions.append(
                     self.transaction_bitmap_add(
                         device.node, bitmap, persistent=persistent
                     )
                 )
 
-            if device.has_bitmap and argv.level in ("full"):
-                self.log.debug("Clearing existing bitmap")
+            if device.has_bitmap and argv.level in ("full") and device.format != "raw":
+                self.log.info("Clearing existing bitmap for device: [%s]", device.node)
                 actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
-            if argv.level in ("full", "copy"):
+            if argv.level in ("full", "copy") or (
+                argv.level == "inc" and device.format == "raw"
+            ):
                 actions.append(
                     self.transaction_action(
                         "blockdev-backup",
                         device=device.node,
                         target=targetdev,
-                        sync=sync,
+                        sync="full",
                         job_id=job_id,
                         speed=argv.speed_limit,
                         compress=argv.compress,
@@ -190,10 +195,10 @@ class QmpCommon:
                 if prefix not in bitmap_name:
                     self.log.debug("Ignoring bitmap: %s", bitmap_name)
                     continue
-                self.log.info("Removing bitmap: %s", f"{prefix}-{dev.node}")
+                self.log.info("Removing bitmap: %s", bitmap_name)
                 await self.qmp.execute(
                     "block-dirty-bitmap-remove",
-                    arguments={"node": dev.node, "name": f"{prefix}-{dev.node}"},
+                    arguments={"node": dev.node, "name": bitmap_name},
                 )
 
     def progress(self, jobs, devices):

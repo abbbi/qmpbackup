@@ -83,13 +83,22 @@ rm -rf /tmp/backup
 rm -rf /tmp/copy_backup
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/copy_backup/ --quiesce
 
+exist_files /tmp/backup//ide0-hd0/FULL*
+exist_files /tmp/backup//ide0-hd1/FULL*
+
+
 # compress option
 rm -rf /tmp/compressed_backup/
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/compressed_backup/ --quiesce --compress
 rm -rf /tmp/compressed_backup/
 
-exist_files /tmp/backup//ide0-hd0/FULL* 
-exist_files /tmp/backup//ide0-hd1/FULL* 
+# compress option
+rm -rf /tmp/raw_backup/
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/raw_backup/ --quiesce --include-raw
+exist_files /tmp/raw_backup//ide1-hd0/FULL*
+rm -rf /tmp/raw_backup/
+
+
 
 # create /tmp/incdata1 within the guest, execute further
 # incremental backups

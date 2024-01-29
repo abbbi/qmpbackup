@@ -30,7 +30,7 @@ class BlockDev:
     virtual_size: int
 
 
-def get_block_devices(blockinfo, excluded_disks, included_disks):
+def get_block_devices(blockinfo, argv, excluded_disks, included_disks):
     """Get a list of block devices that we can create a bitmap for,
     currently we only get inserted qcow based images
     """
@@ -45,7 +45,7 @@ def get_block_devices(blockinfo, excluded_disks, included_disks):
 
         inserted = device["inserted"]
         base_filename = os.path.basename(inserted["image"]["filename"])
-        if inserted["drv"] == "raw":
+        if inserted["drv"] == "raw" and not argv.include_raw:
             log.warning(
                 "Excluding device with raw format from backup: [%s:%s]",
                 device["device"],

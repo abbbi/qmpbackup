@@ -47,6 +47,35 @@ def save_info(backupdir, blockdev):
             raise RuntimeError(errmsg) from errmsg
 
 
+def _get_options_cmd(backupdir, dev):
+    """Read options to apply for backup target image from
+    qcow image info json output"""
+    opt = []
+    with open(f"{backupdir}/{dev.node}.config", "rb") as config_file:
+        qcow_config = json.loads(config_file.read().decode())
+
+    try:
+        opt.append("-o")
+        opt.append(f"compat={qcow_config['format-specific']['data']['compat']}")
+    except KeyError as errmsg:
+        log.warning("Unable apply QCOW specific compat option: [%s]", errmsg)
+
+    try:
+        opt.append("-o")
+        opt.append(f"cluster_size={qcow_config['cluster-size']}")
+    except KeyError as errmsg:
+        log.warning("Unable apply QCOW specific cluster_size option: [%s]", errmsg)
+
+    try:
+        if qcow_config["format-specific"]["data"]["lazy-refcounts"]:
+            opt.append("-o")
+            opt.append("lazy_refcounts=on")
+    except KeyError as errmsg:
+        log.warning("Unable apply QCOW specific lazy_refcounts option: [%s]", errmsg)
+
+    return opt
+
+
 def create(argv, backupdir, blockdev):
     """Create target image used by qmp blockdev-backup image to dump
     data and returns a list of target images per-device, which will
@@ -61,30 +90,8 @@ def create(argv, backupdir, blockdev):
             f"{argv.level.upper()}-{timestamp}-{os.path.basename(dev.filename)}.partial"
         )
         target = f"{targetdir}/{filename}"
-
-        with open(f"{backupdir}/{dev.node}.config", "rb") as config_file:
-            qcow_config = json.loads(config_file.read().decode())
-
-        try:
-            opt.append("-o")
-            opt.append(f"compat={qcow_config['format-specific']['data']['compat']}")
-        except KeyError as errmsg:
-            log.warning("Unable apply QCOW specific compat option: [%s]", errmsg)
-
-        try:
-            opt.append("-o")
-            opt.append(f"cluster_size={qcow_config['cluster-size']}")
-        except KeyError as errmsg:
-            log.warning("Unable apply QCOW specific cluster_size option: [%s]", errmsg)
-
-        try:
-            if qcow_config["format-specific"]["data"]["lazy-refcounts"]:
-                opt.append("-o")
-                opt.append("lazy_refcounts=on")
-        except KeyError as errmsg:
-            log.warning(
-                "Unable apply QCOW specific lazy_refcounts option: [%s]", errmsg
-            )
+        if dev.format != "raw":
+            opt = opt + _get_options_cmd(backupdir, dev)
 
         cmd = [
             "qemu-img",
@@ -95,7 +102,8 @@ def create(argv, backupdir, blockdev):
             "-o",
             f"size={dev.virtual_size}",
         ]
-        cmd = cmd + opt
+        if dev.format != "raw":
+            cmd = cmd + opt
 
         try:
             log.info(
