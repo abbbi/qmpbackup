@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 def get_info(filename):
     """Query original qemu image information, can be used to re-create
-    the image during rebase operation with the same options as the
+    the image during backup operation with the same options as the
     original one."""
     try:
         return subprocess.check_output(
@@ -50,7 +50,6 @@ def create(argv, backupdir, blockdev):
     """Create target image used by qmp blockdev-backup image to dump
     data and returns a list of target images per-device, which will
     be used as parameter for QMP drive-backup operation"""
-
     opt = []
     dev_target = {}
     timestamp = int(time())

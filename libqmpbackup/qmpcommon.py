@@ -10,9 +10,9 @@
 """
 import os
 import logging
-from time import sleep, time
-from libqmpbackup import fs
+from time import sleep
 from qemu.qmp import EventListener
+from libqmpbackup import fs
 
 
 class QmpCommon:
