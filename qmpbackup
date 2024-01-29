@@ -150,7 +150,7 @@ async def main():
         "--compress",
         action="store_true",
         default=False,
-        help="Attempt to compress data if target image format suppports it",
+        help="Attempt to compress data if target image format supports it",
         required=False,
     )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
