@@ -102,6 +102,12 @@ echo "------------------------------------------------"
 
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --target /tmp/backup/ --quiesce
 
+echo "------------------------------------------------"
+python3 agent.py incdata3
+echo "------------------------------------------------"
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --target /tmp/backup/ --quiesce --compress
+
+
 rm -rf /tmp/monthly
 ../qmpbackup --socket $QMP_SOCKET backup --level auto --monthly --target /tmp/monthly/
 exist_files /tmp/monthly/*/*/FULL*
@@ -164,5 +170,6 @@ rm -f /tmp/diff
 virt-diff -a "$ORIGINAL_FILE" -A "$RESTORED_FILE" > /tmp/diff
 grep -m 1 incdata1 /tmp/diff
 grep -m 1 incdata2 /tmp/diff
+grep -m 1 incdata3 /tmp/diff
 
 echo "OK"

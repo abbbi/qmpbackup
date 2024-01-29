@@ -146,6 +146,13 @@ async def main():
         help="speed limit in bytes / second",
         required=False,
     )
+    parser_backup.add_argument(
+        "--compress",
+        action="store_true",
+        default=False,
+        help="Attempt to compress data if target image format suppports it",
+        required=False,
+    )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
     parser_cleanup.add_argument(
@@ -214,6 +221,8 @@ async def main():
         if argv.include is not None:
             included_disks = argv.include.split(",")
             log.debug("Saving only specified disks: %s", included_disks)
+        if argv.compress:
+            log.info("Enabling compress option for backup operation.")
 
     blockdev = vm.get_block_devices(
         await qemu_client.do_query_block(), excluded_disks, included_disks

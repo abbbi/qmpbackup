@@ -118,6 +118,7 @@ class QmpCommon:
                         sync=sync,
                         job_id=job_id,
                         speed=argv.speed_limit,
+                        compress=argv.compress,
                     )
                 )
             else:
@@ -130,6 +131,7 @@ class QmpCommon:
                         sync=sync,
                         job_id=job_id,
                         speed=argv.speed_limit,
+                        compress=argv.compress,
                     )
                 )
 

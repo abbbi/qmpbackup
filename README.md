@@ -28,7 +28,8 @@ project:
 - [Filesystem Freeze](#filesystem-freeze)
 - [Backup Offline virtual machines](#backup-offline-virtual-machines)
 - [Restore](#restore)
-- [Misc commands](#misc-commands)
+- [Misc commands and options](#misc-commands-and-options)
+  - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
   - [List existing bitmaps](#list-existing-bitmaps)
   - [Cleanup bitmaps](#cleanup-bitmaps)
@@ -190,8 +191,18 @@ time is possible:
  qmprebase  rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
 ```
 
-Misc commands
--------------
+Misc commands and options
+--------------------------
+
+### Compressing backups
+
+The `--compress` option can be used to enable compression for target files
+during the blockdev-backup operation, this can save quite some storage space on
+the created target images.
+
+```
+ qmpbackup --socket /tmp/vm backup [..] --compress
+```
 
 ### List devices suitable for backup
 
