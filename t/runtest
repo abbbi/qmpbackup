@@ -83,6 +83,11 @@ rm -rf /tmp/backup
 rm -rf /tmp/copy_backup
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/copy_backup/ --quiesce
 
+# compress option
+rm -rf /tmp/compressed_backup/
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/compressed_backup/ --quiesce --compress
+rm -rf /tmp/compressed_backup/
+
 exist_files /tmp/backup//ide0-hd0/FULL* 
 exist_files /tmp/backup//ide0-hd1/FULL* 
 

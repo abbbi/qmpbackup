@@ -197,8 +197,8 @@ Misc commands and options
 ### Compressing backups
 
 The `--compress` option can be used to enable compression for target files
-during the blockdev-backup operation, this can save quite some storage space on
-the created target images.
+during the `blockdev-backup` operation. This can save quite some storage space on
+the created target images, but may slow down the backup operation.
 
 ```
  qmpbackup --socket /tmp/vm backup [..] --compress
