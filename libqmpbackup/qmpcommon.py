@@ -10,7 +10,7 @@
 """
 import os
 import logging
-from time import sleep, time
+from time import sleep
 from qemu.qmp import EventListener
 from libqmpbackup import fs
 
@@ -36,33 +36,45 @@ class QmpCommon:
             "block-dirty-bitmap-clear", node=node, name=name, **kwargs
         )
 
-    def transaction_add_blockdev(self, name, driver, filename):
-        """Return transaction action object for blockdev-add"""
-        return self.transaction_action(
-            "blockdev-add",
-            driver=driver,
-            name=name,
-            file={"driver": "file", "filename": filename},
-        )
-
-    def transaction_blockdev_create(self, name, driver, filename, size):
-        """Return transaction action object for blockdev-add"""
-        return self.transaction_action(
-            "blockdev-create",
-            job_id=name,
-            name=name,
-            options={"driver": driver, "file": filename, "size": size},
-        )
-
     def transaction_bitmap_add(self, node, name, **kwargs):
         """Return transaction action object for bitmap add"""
         return self.transaction_action(
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
-    def prepare_transaction(self, argv, devices, backupdir):
+    async def prepare_target_devices(self, devices, target_files):
+        """Create the required target devices for blockev-backup
+        operation"""
+        self.log.info("Prepare backup target devices")
+        for device in devices:
+            target = target_files[device.node]
+            targetdev = f"qmpbackup-{device.node}"
+
+            await self.qmp.execute(
+                "blockdev-add",
+                arguments={
+                    "driver": device.format,
+                    "node-name": targetdev,
+                    "file": {"driver": "file", "filename": target},
+                },
+            )
+
+    async def remove_target_devices(self, devices):
+        """Cleanup named devices after executing blockdev-backup
+        operation"""
+        self.log.info("Cleanup added backup target devices")
+        for device in devices:
+            targetdev = f"qmpbackup-{device.node}"
+
+            await self.qmp.execute(
+                "blockdev-del",
+                arguments={
+                    "node-name": targetdev,
+                },
+            )
+
+    def prepare_transaction(self, argv, devices):
         """Prepare transaction steps"""
-        prefix = argv.level.upper()
         sync = "full"
         if argv.level == "inc":
             sync = "incremental"
@@ -71,72 +83,76 @@ class QmpCommon:
         persistent = True
         if argv.level == "copy":
             self.log.info("Copy backup: no persistent bitmap will be created.")
-            bitmap_prefix = "qmpbackup-copy"
+            bitmap_prefix = f"qmpbackup-{argv.level}"
             persistent = False
 
         actions = []
-        files = []
         for device in devices:
-            timestamp = int(time())
-            targetdir = f"{backupdir}/{device.node}/"
-            os.makedirs(targetdir, exist_ok=True)
-            filename = (
-                f"{prefix}-{timestamp}-{os.path.basename(device.filename)}.partial"
-            )
-            target = f"{targetdir}/{filename}"
-            files.append(target)
+            targetdev = f"qmpbackup-{device.node}"
             bitmap = f"{bitmap_prefix}-{device.node}"
             job_id = f"{device.node}"
 
             if (
                 not device.has_bitmap
+                and device.format != "raw"
                 and argv.level in ("full", "copy")
                 or device.has_bitmap
                 and argv.level in ("copy")
             ):
-                self.log.info("Creating new bitmap: %s", bitmap)
+                self.log.info(
+                    "Creating new bitmap: [%s] for device [%s]", bitmap, device.node
+                )
                 actions.append(
                     self.transaction_bitmap_add(
                         device.node, bitmap, persistent=persistent
                     )
                 )
 
-            if device.has_bitmap and argv.level in ("full"):
-                self.log.debug("Clearing existing bitmap")
+            if device.has_bitmap and argv.level in ("full") and device.format != "raw":
+                self.log.info("Clearing existing bitmap for device: [%s]", device.node)
                 actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
-            if argv.level in ("full", "copy"):
+            compress = argv.compress
+            if device.format == "raw" and compress:
+                compress = False
+                self.log.info("Disabling compression for raw device: [%s]", device.node)
+
+            if argv.level in ("full", "copy") or (
+                argv.level == "inc" and device.format == "raw"
+            ):
                 actions.append(
                     self.transaction_action(
-                        "drive-backup",
+                        "blockdev-backup",
                         device=device.node,
-                        target=target,
-                        sync=sync,
+                        target=targetdev,
+                        sync="full",
                         job_id=job_id,
                         speed=argv.speed_limit,
+                        compress=compress,
                     )
                 )
             else:
                 actions.append(
                     self.transaction_action(
-                        "drive-backup",
+                        "blockdev-backup",
                         bitmap=bitmap,
                         device=device.node,
-                        target=target,
+                        target=targetdev,
                         sync=sync,
                         job_id=job_id,
                         speed=argv.speed_limit,
+                        compress=argv.compress,
                     )
                 )
 
         self.log.debug("Created transaction: %s", actions)
 
-        return actions, files
+        return actions
 
-    async def backup(self, argv, devices, backupdir, qga):
+    async def backup(self, argv, devices, qga):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        actions, files = self.prepare_transaction(argv, devices, backupdir)
+        actions = self.prepare_transaction(argv, devices)
         listener = EventListener(
             (
                 "BLOCK_JOB_COMPLETED",
@@ -167,12 +183,9 @@ class QmpCommon:
                     self.progress(jobs, devices)
                     sleep(1)
 
-        return files
-
     async def do_query_block(self):
         """Return list of attached block devices"""
-        devices = await self.qmp.execute("query-block")
-        return devices
+        return await self.qmp.execute("query-block")
 
     async def remove_bitmaps(self, blockdev, prefix="qmpbackup"):
         """Remove existing bitmaps for block devices"""
@@ -187,10 +200,10 @@ class QmpCommon:
                 if prefix not in bitmap_name:
                     self.log.debug("Ignoring bitmap: %s", bitmap_name)
                     continue
-                self.log.info("Removing bitmap: %s", f"{prefix}-{dev.node}")
+                self.log.info("Removing bitmap: %s", bitmap_name)
                 await self.qmp.execute(
                     "block-dirty-bitmap-remove",
-                    arguments={"node": dev.node, "name": f"{prefix}-{dev.node}"},
+                    arguments={"node": dev.node, "name": bitmap_name},
                 )
 
     def progress(self, jobs, devices):

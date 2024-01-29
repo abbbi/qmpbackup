@@ -12,15 +12,17 @@
  the LICENSE file in the top-level directory.
 """
 import os
+import json
 import logging
 import subprocess
+from time import time
 
 log = logging.getLogger(__name__)
 
 
 def get_info(filename):
     """Query original qemu image information, can be used to re-create
-    the image during rebase operation with the same options as the
+    the image during backup operation with the same options as the
     original one."""
     try:
         return subprocess.check_output(
@@ -34,14 +36,88 @@ def save_info(backupdir, blockdev):
     """Save qcow image information"""
     for dev in blockdev:
         infofile = f"{backupdir}/{dev.node}.config"
+        info = get_info(dev.filename)
         try:
-            info = get_info(dev.filename)
-        except RuntimeError as errmsg:
-            log.warning("Unable to get qemu image info: [%s]", errmsg)
-            continue
-        with open(infofile, "wb+") as info_file:
-            info_file.write(info)
-            log.info("Saved image info: [%s]", infofile)
+            with open(infofile, "wb+") as info_file:
+                info_file.write(info)
+                log.info("Saved image info: [%s]", infofile)
+        except IOError as errmsg:
+            raise RuntimeError(f"Unable to store qcow config: [{errmsg}]") from errmsg
+        except Exception as errmsg:
+            raise RuntimeError(errmsg) from errmsg
+
+
+def _get_options_cmd(backupdir, dev):
+    """Read options to apply for backup target image from
+    qcow image info json output"""
+    opt = []
+    with open(f"{backupdir}/{dev.node}.config", "rb") as config_file:
+        qcow_config = json.loads(config_file.read().decode())
+
+    try:
+        opt.append("-o")
+        opt.append(f"compat={qcow_config['format-specific']['data']['compat']}")
+    except KeyError as errmsg:
+        log.warning("Unable apply QCOW specific compat option: [%s]", errmsg)
+
+    try:
+        opt.append("-o")
+        opt.append(f"cluster_size={qcow_config['cluster-size']}")
+    except KeyError as errmsg:
+        log.warning("Unable apply QCOW specific cluster_size option: [%s]", errmsg)
+
+    try:
+        if qcow_config["format-specific"]["data"]["lazy-refcounts"]:
+            opt.append("-o")
+            opt.append("lazy_refcounts=on")
+    except KeyError as errmsg:
+        log.warning("Unable apply QCOW specific lazy_refcounts option: [%s]", errmsg)
+
+    return opt
+
+
+def create(argv, backupdir, blockdev):
+    """Create target image used by qmp blockdev-backup image to dump
+    data and returns a list of target images per-device, which will
+    be used as parameter for QMP drive-backup operation"""
+    opt = []
+    dev_target = {}
+    timestamp = int(time())
+    for dev in blockdev:
+        targetdir = f"{backupdir}/{dev.node}/"
+        os.makedirs(targetdir, exist_ok=True)
+        filename = (
+            f"{argv.level.upper()}-{timestamp}-{os.path.basename(dev.filename)}.partial"
+        )
+        target = f"{targetdir}/{filename}"
+        if dev.format != "raw":
+            opt = opt + _get_options_cmd(backupdir, dev)
+
+        cmd = [
+            "qemu-img",
+            "create",
+            "-f",
+            f"{dev.format}",
+            f"{target}",
+            "-o",
+            f"size={dev.virtual_size}",
+        ]
+        if dev.format != "raw":
+            cmd = cmd + opt
+
+        try:
+            log.info(
+                "Create target backup image: [%s], virtual size: [%s]",
+                target,
+                dev.virtual_size,
+            )
+            log.debug(cmd)
+            subprocess.check_output(cmd)
+            dev_target[dev.node] = target
+        except subprocess.CalledProcessError as errmsg:
+            raise RuntimeError from errmsg
+
+    return dev_target
 
 
 def rebase(directory, dry_run, until):
