@@ -73,7 +73,7 @@ class QmpCommon:
                 },
             )
 
-    def prepare_transaction(self, argv, devices, target_files):
+    def prepare_transaction(self, argv, devices):
         """Prepare transaction steps"""
         sync = "full"
         if argv.level == "inc":
@@ -137,10 +137,10 @@ class QmpCommon:
 
         return actions
 
-    async def backup(self, argv, devices, backupdir, qga):
+    async def backup(self, argv, devices, qga):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        actions = self.prepare_transaction(argv, devices, backupdir)
+        actions = self.prepare_transaction(argv, devices)
         listener = EventListener(
             (
                 "BLOCK_JOB_COMPLETED",
