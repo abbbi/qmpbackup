@@ -246,7 +246,7 @@ async def main():
                 log.info("%s", lib.json_pp(dev.bitmaps))
 
     if action == "cleanup":
-        log.info("Removing all existant bitmaps.")
+        log.info("Removing all existent bitmaps.")
         await qemu_client.remove_bitmaps(blockdev)
 
     if action == "backup":
