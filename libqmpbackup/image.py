@@ -48,7 +48,7 @@ def save_info(backupdir, blockdev):
 
 def create(argv, backupdir, blockdev):
     """Create target image used by qmp blockdev-backup image to dump
-    data and resturn a list of target images per-device, which will
+    data and returns a list of target images per-device, which will
     be used as parameter for QMP drive-backup operation"""
 
     opt = []

@@ -73,7 +73,7 @@ class QmpCommon:
                 },
             )
 
-    async def prepare_transaction(self, argv, devices, target_files):
+    def prepare_transaction(self, argv, devices, target_files):
         """Prepare transaction steps"""
         sync = "full"
         if argv.level == "inc":
@@ -87,10 +87,7 @@ class QmpCommon:
             persistent = False
 
         actions = []
-        files = []
         for device in devices:
-            target = target_files[device.node]
-            files.append(target)
             targetdev = f"qmpbackup-{device.node}"
             bitmap = f"{bitmap_prefix}-{device.node}"
             job_id = f"{device.node}"
@@ -138,12 +135,12 @@ class QmpCommon:
 
         self.log.debug("Created transaction: %s", actions)
 
-        return actions, files
+        return actions
 
     async def backup(self, argv, devices, backupdir, qga):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        actions, files = await self.prepare_transaction(argv, devices, backupdir)
+        actions = self.prepare_transaction(argv, devices, backupdir)
         listener = EventListener(
             (
                 "BLOCK_JOB_COMPLETED",
@@ -173,8 +170,6 @@ class QmpCommon:
                         break
                     self.progress(jobs, devices)
                     sleep(1)
-
-        return files
 
     async def do_query_block(self):
         """Return list of attached block devices"""
