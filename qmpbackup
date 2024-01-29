@@ -213,7 +213,7 @@ async def main():
             log.debug("Excluded disks: %s", excluded_disks)
         if argv.include is not None:
             included_disks = argv.include.split(",")
-            log.debug("Backing up only specified disks: %s", included_disks)
+            log.debug("Saving only specified disks: %s", included_disks)
 
     blockdev = vm.get_block_devices(
         await qemu_client.do_query_block(), excluded_disks, included_disks
@@ -246,8 +246,8 @@ async def main():
                 log.info("%s", lib.json_pp(dev.bitmaps))
 
     if action == "cleanup":
+        log.info("Removing all existant bitmaps.")
         await qemu_client.remove_bitmaps(blockdev)
-        log.info("Bitmaps for all devices have been removed")
 
     if action == "backup":
         if argv.quiesce and not argv.agentsocket:
