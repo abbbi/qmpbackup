@@ -244,7 +244,6 @@ async def main():
                     continue
                 log.info("%s:", dev.node)
                 log.info("%s", lib.json_pp(dev.bitmaps))
-        sys.exit(0)
 
     if action == "cleanup":
         await qemu_client.remove_bitmaps(blockdev)
@@ -264,10 +263,6 @@ async def main():
                 log.info("New monthly directory will be created: %s", backupdir)
                 new_monthly = True
 
-        if os.path.isfile(backupdir):
-            log.fatal("Backup target must be an directory.")
-            sys.exit(1)
-
         try:
             os.makedirs(backupdir, exist_ok=True)
         except OSError as errmsg:
@@ -286,7 +281,6 @@ async def main():
                     "Incremental backup requested but no active bitmap has been found."
                 )
                 sys.exit(1)
-
             if argv.level == "auto":
                 if (
                     device.has_bitmap
@@ -315,8 +309,12 @@ async def main():
 
         log.info("Backup target directory: %s", backupdir)
 
-        image.save_info(backupdir, blockdev)
-        target_files = image.create(argv, backupdir, blockdev)
+        try:
+            image.save_info(backupdir, blockdev)
+            target_files = image.create(argv, backupdir, blockdev)
+        except RuntimeError as errmsg:
+            log.fatal(errmsg)
+            sys.exit(1)
 
         qga = False
         if argv.agentsocket and argv.quiesce:

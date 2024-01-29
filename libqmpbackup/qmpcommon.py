@@ -83,7 +83,7 @@ class QmpCommon:
         persistent = True
         if argv.level == "copy":
             self.log.info("Copy backup: no persistent bitmap will be created.")
-            bitmap_prefix = "qmpbackup-copy"
+            bitmap_prefix = f"qmpbackup-{argv.level}"
             persistent = False
 
         actions = []
@@ -173,8 +173,7 @@ class QmpCommon:
 
     async def do_query_block(self):
         """Return list of attached block devices"""
-        devices = await self.qmp.execute("query-block")
-        return devices
+        return await self.qmp.execute("query-block")
 
     async def remove_bitmaps(self, blockdev, prefix="qmpbackup"):
         """Remove existing bitmaps for block devices"""

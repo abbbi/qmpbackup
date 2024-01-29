@@ -36,14 +36,15 @@ def save_info(backupdir, blockdev):
     """Save qcow image information"""
     for dev in blockdev:
         infofile = f"{backupdir}/{dev.node}.config"
+        info = get_info(dev.filename)
         try:
-            info = get_info(dev.filename)
-        except RuntimeError as errmsg:
-            log.warning("Unable to get qemu image info: [%s]", errmsg)
-            continue
-        with open(infofile, "wb+") as info_file:
-            info_file.write(info)
-            log.info("Saved image info: [%s]", infofile)
+            with open(infofile, "wb+") as info_file:
+                info_file.write(info)
+                log.info("Saved image info: [%s]", infofile)
+        except IOError as errmsg:
+            raise RuntimeError(f"Unable to store qcow config: [{errmsg}]") from errmsg
+        except Exception as errmsg:
+            raise RuntimeError(errmsg) from errmsg
 
 
 def create(argv, backupdir, blockdev):
