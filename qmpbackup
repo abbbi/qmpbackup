@@ -19,6 +19,7 @@ import argparse
 from datetime import datetime
 from dataclasses import asdict
 from qemu.qmp import protocol, QMPClient
+from qemu.qmp.error import QMPError
 
 from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup import lib
@@ -200,24 +201,17 @@ async def main():
         log.fatal("Can't connect QMP socket [%s]: %s", argv.socket, errmsg)
         sys.exit(1)
 
-    status = await qmp.execute("query-status")
-    if status["running"] is False and not status["status"] in ("prelaunch", "paused"):
-        log.fatal("VM not ready for backup, state: [%s]", status)
-        sys.exit(1)
-
-    log.info("VM is in state: [%s]", status["status"])
-
     qemu_client = QmpCommon(qmp)
 
-    hv_version = qmp._greeting._raw["QMP"]
-    qemu = hv_version["version"]["qemu"]
-    log.info(
-        "Qemu version: [%s.%s.%s] [%s]",
-        qemu["major"],
-        qemu["micro"],
-        qemu["minor"],
-        hv_version["version"]["package"],
-    )
+    try:
+        await qemu_client.show_vm_state()
+    except RuntimeError as errmsg:
+        log.fatal(errmsg)
+        sys.exit(1)
+
+    qemu_client = QmpCommon(qmp)
+    qemu_client.show_version()
+    await qemu_client.show_name()
 
     excluded_disks = None
     included_disks = None
@@ -360,11 +354,14 @@ async def main():
         try:
             await qemu_client.prepare_target_devices(blockdev, target_files)
             await qemu_client.backup(argv, blockdev, qga)
-        except Exception as errmsg:
+        except QMPError as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
         finally:
-            await qemu_client.remove_target_devices(blockdev)
+            try:
+                await qemu_client.remove_target_devices(blockdev)
+            except QMPError as errmsg:
+                log.warning("Unable to cleanup: %s", errmsg)
             if qga is not False:
                 fs.thaw(qga)
 
