@@ -22,6 +22,35 @@ class QmpCommon:
         self.qmp = qmp
         self.log = logging.getLogger(__name__)
 
+    async def show_vm_state(self):
+        """Show and check if virtual machine is in required
+        state"""
+        status = await self.qmp.execute("query-status")
+        if status["running"] is False and not status["status"] in (
+            "prelaunch",
+            "paused",
+        ):
+            raise RuntimeError(f"VM not ready for backup, state: [{status}]")
+        self.log.info("VM is in state: [%s]", status["status"])
+
+    async def show_name(self):
+        """Show qemu version"""
+        name = await self.qmp.execute("query-name")
+        if name:
+            self.log.info("VM Name: [%s]", name["name"])
+
+    def show_version(self):
+        """Show name of VM; if setn"""
+        hv_version = self.qmp._greeting._raw["QMP"] # pylint: disable=W0212
+        qemu = hv_version["version"]["qemu"]
+        self.log.info(
+            "Qemu version: [%s.%s.%s] [%s]",
+            qemu["major"],
+            qemu["micro"],
+            qemu["minor"],
+            hv_version["version"]["package"],
+        )
+
     @staticmethod
     def transaction_action(action, **kwargs):
         """Return transaction action object"""

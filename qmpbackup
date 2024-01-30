@@ -200,24 +200,17 @@ async def main():
         log.fatal("Can't connect QMP socket [%s]: %s", argv.socket, errmsg)
         sys.exit(1)
 
-    status = await qmp.execute("query-status")
-    if status["running"] is False and not status["status"] in ("prelaunch", "paused"):
-        log.fatal("VM not ready for backup, state: [%s]", status)
-        sys.exit(1)
-
-    log.info("VM is in state: [%s]", status["status"])
-
     qemu_client = QmpCommon(qmp)
 
-    hv_version = qmp._greeting._raw["QMP"]
-    qemu = hv_version["version"]["qemu"]
-    log.info(
-        "Qemu version: [%s.%s.%s] [%s]",
-        qemu["major"],
-        qemu["micro"],
-        qemu["minor"],
-        hv_version["version"]["package"],
-    )
+    try:
+        await qemu_client.show_vm_state()
+    except RuntimeError as errmsg:
+        log.fatal(errmsg)
+        sys.exit(1)
+
+    qemu_client = QmpCommon(qmp)
+    qemu_client.show_version()
+    await qemu_client.show_name()
 
     excluded_disks = None
     included_disks = None
