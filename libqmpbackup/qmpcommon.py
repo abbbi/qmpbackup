@@ -41,7 +41,7 @@ class QmpCommon:
 
     def show_version(self):
         """Show name of VM; if setn"""
-        hv_version = self.qmp._greeting._raw["QMP"] # pylint: disable=W0212
+        hv_version = self.qmp._greeting._raw["QMP"]  # pylint: disable=W0212
         qemu = hv_version["version"]["qemu"]
         self.log.info(
             "Qemu version: [%s.%s.%s] [%s]",
