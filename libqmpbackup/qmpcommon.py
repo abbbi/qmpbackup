@@ -76,9 +76,6 @@ class QmpCommon:
         operation"""
         self.log.info("Prepare backup target devices")
         for device in devices:
-            if device.backing_image is True:
-                continue
-
             target = target_files[device.node]
             targetdev = f"qmpbackup-{device.node}"
 
@@ -123,9 +120,6 @@ class QmpCommon:
             targetdev = f"qmpbackup-{device.node}"
             bitmap = f"{bitmap_prefix}-{device.node}"
             job_id = f"{device.node}"
-
-            if device.backing_image is True:
-                continue
 
             if (
                 not device.has_bitmap

@@ -37,9 +37,6 @@ def save_info(backupdir, blockdev):
     for dev in blockdev:
         infofile = f"{backupdir}/{dev.node}.config"
 
-        if dev.backing_image is True:
-            continue
-
         info = get_info(dev.filename)
         try:
             with open(infofile, "wb+") as info_file:
@@ -88,8 +85,6 @@ def create(argv, backupdir, blockdev):
     dev_target = {}
     timestamp = int(time())
     for dev in blockdev:
-        if dev.backing_image is True:
-            continue
         targetdir = f"{backupdir}/{dev.node}/"
         os.makedirs(targetdir, exist_ok=True)
         filename = (

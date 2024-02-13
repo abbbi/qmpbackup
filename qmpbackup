@@ -288,8 +288,6 @@ async def main():
 
         for device in blockdev:
             tdir = f"{backupdir}/{device.node}"
-            if device.backing_image is True:
-                continue
             if (
                 device.has_bitmap is False
                 and argv.level == "inc"
