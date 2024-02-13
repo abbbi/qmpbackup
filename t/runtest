@@ -58,7 +58,7 @@ qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)" -daemonize -display no
     -chardev socket,path=$AGENT_SOCKET,server=on,wait=off,id=qga0 \
     -device virtio-serial \
     -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
-    -drive id=OpenCoreBoot,if=none,format=qcow2,snapshot=on,file=/tmp/snapshot.qcow2 \
+    -drive id=snapshot,if=none,format=qcow2,snapshot=on,file=/tmp/snapshot.qcow2 \
     -pidfile ${PIDFILE}
 
 # wait until qemu agent is reachable within booted Vm, then continue

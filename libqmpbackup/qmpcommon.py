@@ -96,8 +96,6 @@ class QmpCommon:
         operation"""
         self.log.info("Cleanup added backup target devices")
         for device in devices:
-            if device.backing_image is True:
-                continue
             targetdev = f"qmpbackup-{device.node}"
 
             await self.qmp.execute(
