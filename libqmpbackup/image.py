@@ -36,13 +36,19 @@ def save_info(backupdir, blockdev):
     """Save qcow image information"""
     for dev in blockdev:
         infofile = f"{backupdir}/{dev.node}.config"
+
+        if not os.path.exists(dev.filename):
+            log.warning(
+                "Unable to save image file info: not existent: skipping: [%s]",
+                dev.filename,
+            )
+            continue
+
         info = get_info(dev.filename)
         try:
             with open(infofile, "wb+") as info_file:
                 info_file.write(info)
                 log.info("Saved image info: [%s]", infofile)
-        except FileNotFoundError:
-            log.warning("Unable to query image config from file: [%s]", dev.filename)
         except IOError as errmsg:
             raise RuntimeError(f"Unable to store qcow config: [{errmsg}]") from errmsg
         except Exception as errmsg:
