@@ -289,11 +289,10 @@ async def main():
         for device in blockdev:
             tdir = f"{backupdir}/{device.node}"
             if device.backing_image is True:
-                log.error(
-                    'Active backing image for disk "%s", please commit any snapshots before starting a new chain.',
+                log.info(
+                    'Active backing image for disk "%s"',
                     device.node,
                 )
-                sys.exit(1)
             if (
                 device.has_bitmap is False
                 and argv.level == "inc"
