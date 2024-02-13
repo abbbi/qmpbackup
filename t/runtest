@@ -15,6 +15,7 @@ cleanup() {
     rm -f /tmp/disk1.qcow2
     rm -f /tmp/disk2.qcow2
     rm -f /tmp/disk3.qcow2
+    rm -f /tmp/snapshot.qcow2
     rm -f /tmp/qemu.pid
 }
 trap cleanup EXIT
