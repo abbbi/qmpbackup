@@ -36,6 +36,7 @@ def save_info(backupdir, blockdev):
     """Save qcow image information"""
     for dev in blockdev:
         infofile = f"{backupdir}/{dev.node}.config"
+
         info = get_info(dev.filename)
         try:
             with open(infofile, "wb+") as info_file:

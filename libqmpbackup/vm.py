@@ -66,8 +66,11 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks):
         try:
             backing_image = inserted["image"]["backing-image"]
             backing_image = True
+            filename = inserted["image"]["backing-image"]["filename"]
+            diskformat = inserted["image"]["backing-image"]["format"]
         except KeyError:
-            pass
+            filename = inserted["image"]["filename"]
+            diskformat = inserted["image"]["format"]
 
         if included_disks and not device["device"] in included_disks:
             log.info(
@@ -89,8 +92,8 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks):
         blockdevs.append(
             BlockDev(
                 device["device"],
-                inserted["image"]["format"],
-                inserted["image"]["filename"],
+                diskformat,
+                filename,
                 backing_image,
                 has_bitmap,
                 bitmaps,
