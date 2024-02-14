@@ -27,6 +27,7 @@ project:
 - [Excluding disks from backup](#excluding-disks-from-backup)
 - [Filesystem Freeze](#filesystem-freeze)
 - [Backup Offline virtual machines](#backup-offline-virtual-machines)
+- [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
 - [Restore](#restore)
 - [Misc commands and options](#misc-commands-and-options)
   - [Compressing backups](#compressing-backups)
@@ -156,6 +157,15 @@ fully operational state, it is sufficient to bring up the QEMU process in
 ```
  qemu-system-<arch> -S <options>
 ```
+
+UEFI / BIOS (pflash devices)
+-----------------------------
+
+If the virtual machine uses UEFI, it usually has attached pflash devices
+pointing to the UEFI firmware and variables files. These are included in the
+backup by default and can be copied from the backup folder.
+
+
 
 Restore
 -------
