@@ -161,9 +161,9 @@ fully operational state, it is sufficient to bring up the QEMU process in
 UEFI / BIOS (pflash devices)
 -----------------------------
 
-If the virtual machine uses UEFI, it usually has attached pflash devices
-pointing to the UEFI firmware and variables files. These are included in the
-backup by default and can be copied from the backup folder.
+If the virtual machine uses UEFI, it usually has attached `pflash` devices
+pointing to the UEFI firmware and variables files. These will be included in
+the backup by default.
 
 
 
