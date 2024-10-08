@@ -17,7 +17,6 @@ import asyncio
 import signal
 import argparse
 from datetime import datetime
-from time import time
 from dataclasses import asdict
 from qemu.qmp import protocol, QMPClient
 from qemu.qmp.error import QMPError

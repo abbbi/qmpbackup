@@ -12,7 +12,6 @@
  the LICENSE file in the top-level directory.
 """
 import os
-import shutil
 import json
 import logging
 import subprocess
