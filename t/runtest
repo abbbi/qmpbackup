@@ -104,9 +104,11 @@ rm -rf /tmp/nosubdir_backup/
 
 
 # no-timestamp and no-subdir/no-symlink option
-../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/nosubdir_timestamp_backup/ --no-subdir --no-symlink --no-timestamp --quiesce
-no_exist_files /tmp/nosubdir_timestamp_backup/COPY*
-no_exist_files /tmp/nosubdir_timestamp_backup/COPY*
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/nosubdir_timestamp_backup/ --no-subdir --no-symlink --no-timestamp --quiesce
+no_exist_files /tmp/nosubdir_timestamp_backup/FULL*
+no_exist_files /tmp/nosubdir_timestamp_backup/FULL*
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level inc --target /tmp/nosubdir_timestamp_backup/ --no-subdir --no-symlink --no-timestamp --quiesce
+exist_files /tmp/nosubdir_timestamp_backup/INC*
 rm -rf /tmp/nosubdir_timestamp_backup/
 
 # compress option

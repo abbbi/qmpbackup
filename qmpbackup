@@ -339,7 +339,7 @@ async def main():
 
                 log.info("Auto backup mode set to: %s", argv.level)
             if argv.level == "inc":
-                if not lib.has_full(tdir):
+                if not lib.has_full(tdir) and argv.no_symlink is False:
                     log.info(
                         "No full backup found in [%s]: Execute full backup first.", tdir
                     )
