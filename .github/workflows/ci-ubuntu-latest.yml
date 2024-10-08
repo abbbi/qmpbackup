@@ -16,12 +16,12 @@ jobs:
         sudo apt-get install codespell -y
         codespell README.md
         codespell qmpbackup
-        codespell qmprebase
+        codespell qmprestore
         codespell libqmpbackup/
     - name: Python code format test
       run: |
         sudo pip3 install black==22.3
-        black --check qmprebase
+        black --check qmprestore
         black --check qmpbackup
         black --check .
     - name: Install QEMU
@@ -37,4 +37,4 @@ jobs:
     - name: Execute
       run: |
         qmpbackup -h
-        qmprebase -h
+        qmprestore -h
