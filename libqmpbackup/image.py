@@ -53,7 +53,7 @@ def _get_options_cmd(backupdir, dev):
     """Read options to apply for backup target image from
     qcow image info json output"""
     opt = []
-    with open(f"{backupdir}/{dev.node}.config", "rb") as config_file:
+    with open(os.path.join(backupdir, f"{dev.node}.config"), "rb") as config_file:
         qcow_config = json.loads(config_file.read().decode())
 
     try:
@@ -87,7 +87,7 @@ def create(argv, backupdir, blockdev):
     timestamp = int(time())
     for dev in blockdev:
         if argv.no_subdir is True:
-            targetdir = f"{backupdir}/"
+            targetdir = backupdir
         else:
             targetdir = os.path.join(backupdir, dev.node)
         os.makedirs(targetdir, exist_ok=True)
@@ -186,12 +186,12 @@ def merge(argv):
 
         log.debug('"%s" is based on "%s"', image, images[idx])
 
-        tgtfile = f"{targetdir}/{os.path.basename(image)}"
+        tgtfile = os.path.join(targetdir, os.path.basename(image))
         if not os.path.exists(tgtfile):
             if not clone(image, tgtfile):
                 return False
 
-        tgtfile = f"{targetdir}/{os.path.basename(images[idx])}"
+        tgtfile = os.path.join(targetdir, os.path.basename(images[idx]))
         if not os.path.exists(tgtfile):
             if not clone(images[idx], tgtfile):
                 return False
@@ -214,7 +214,7 @@ def merge(argv):
             if image != argv.targetfile:
                 log.info(
                     "Remove temporary file after merge: [%s]",
-                    f"{targetdir}/{os.path.basename(image)}",
+                    os.path.join(targetdir, os.path.basename(image)),
                 )
         except subprocess.CalledProcessError as errmsg:
             log.error("Error while rollback: %s", errmsg)
