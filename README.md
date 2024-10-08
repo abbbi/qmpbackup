@@ -28,7 +28,8 @@ project:
 - [Filesystem Freeze](#filesystem-freeze)
 - [Backup Offline virtual machines](#backup-offline-virtual-machines)
 - [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
-- [Restore](#restore)
+- [Rebasing the images](#rebasing-the-images)
+- [Restore with merge](#restore-with-merge)
 - [Misc commands and options](#misc-commands-and-options)
   - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
@@ -167,11 +168,11 @@ the backup by default.
 
 
 
-Restore
+Rebasing the images
 -------
 
 Restoring your data is a matter of rebasing the created qcow images by
-using standard tools such as *qemu-img* or *qmprebase*.
+using standard tools such as *qemu-img* or *qmprestore*.
 
 A image backup based on a backup folder containing the following backups:
 
@@ -182,14 +183,14 @@ A image backup based on a backup folder containing the following backups:
 └── INC-1706260647-disk1.qcow2
 ```
 
-can be rolled back by using *qmprebase*, it uses common QEMU tools to check
+can be rolled back by using *qmprestore*, it uses common QEMU tools to check
 consistency and does a rollback of your image file:
 
 ```
- qmprebase  rebase --dir /tmp/backup/ide0-hd0
+ qmprestore rebase --dir /tmp/backup/ide0-hd0
 ```
 
-During rebase, the saveset chain is merged into your FULL image which then
+During restore, the saveset chain is merged into your FULL image which then
 contains the latest state and can be booted via QEMU again.
 
 `Note:` It makes sense to copy the existing backup directory to a temporary
@@ -199,8 +200,19 @@ Using the `--until` option rollback to a specific incremental point in
 time is possible:
 
 ```
- qmprebase  rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
+ qmprestore rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
 ```
+
+Restore with merge
+-------
+
+It is also possible to restore and rebase the backup files into a new target
+file image, without altering the original backup files:
+
+```
+ qmprestore merge --dir /tmp/backup/ide0-hd0/ --targetfile /tmp/restore/disk1.qcow2
+```
+
 
 Misc commands and options
 --------------------------

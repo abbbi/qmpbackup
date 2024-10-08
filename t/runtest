@@ -89,6 +89,20 @@ rm -rf /tmp/copy_backup
 exist_files /tmp/backup//ide0-hd0/FULL*
 exist_files /tmp/backup//ide0-hd1/FULL*
 
+# no-subdir option
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/nosubdir_backup/ --no-subdir --quiesce
+exist_files /tmp/nosubdir_backup/*disk1.qcow2
+exist_files /tmp/nosubdir_backup/*disk2.qcow2
+rm -rf /tmp/nosubdir_backup/
+
+
+# no-timestamp and no-subdir option
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/nosubdir_timestamp_backup/ --no-subdir --no-timestamp --quiesce
+exist_files /tmp/nosubdir_timestamp_backup/disk1.qcow2
+exist_files /tmp/nosubdir_timestamp_backup/disk2.qcow2
+rm -rf /tmp/nosubdir_timestamp_backup/
+
+
 
 # compress option
 rm -rf /tmp/compressed_backup/
@@ -161,23 +175,29 @@ rm -rf /tmp/partial_backup
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --include ide0-hd1 --target /tmp/partial_backup/ --quiesce
 touch /tmp/partial_backup/ide0-hd1/FULL-bar.partial
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level inc --include ide0-hd1 --target /tmp/partial_backup/ --quiesce && exit 1
-../qmprebase rebase --dir /tmp/partial_backup/ide0-hd1/ --dry-run && exit 1
+../qmprestore rebase --dir /tmp/partial_backup/ide0-hd1/ --dry-run && exit 1
 
 echo "------------------------------------------------"
-echo "Executing qmprebase tests"
+echo "Executing qmprestore tests"
 echo "------------------------------------------------"
+RESTORED_FILE="/tmp/restore/restore.qcow2"
 rm -rf /tmp/restore
-cp -a /tmp/backup/ /tmp/restore
-../qmprebase rebase --dir /tmp/restore/ide0-hd0/ --dry-run
-../qmprebase rebase --dir /tmp/restore/ide0-hd0/
 
-echo "rollback OK"
-RESTORED_FILE=$(echo /tmp/restore/ide0-hd0/FULL*)
+# merge must not alter original files
+md5sum /tmp/backup/ide0-hd0/* > /tmp/sum
+../qmprestore merge --dir /tmp/backup/ide0-hd0/ --targetfile /tmp/restore/restore.qcow2
+echo "merge OK"
+md5sum /tmp/backup/ide0-hd0/* > /tmp/sum_after_restore
+
+echo "check if merge has altered original files"
+diff /tmp/sum /tmp/sum_after_restore  || exit 1
+echo "OK"
+
 qemu-img info "${RESTORED_FILE}" > /dev/null
 
 ORIGINAL_FILE=$(echo /tmp/backup/ide0-hd0/FULL*)
 echo "------------------------------------------------------"
-echo "Check restored image for contents of both inc backups "
+echo "Check restored image for contents of all inc backups "
 echo "------------------------------------------------------"
 qemu-img info "${RESTORED_FILE}" > /dev/null
 # between full and inc backup, additional data was changed

@@ -12,10 +12,12 @@
  the LICENSE file in the top-level directory.
 """
 import os
+import shutil
 import json
 import logging
 import subprocess
 from time import time
+from libqmpbackup import lib
 
 log = logging.getLogger(__name__)
 
@@ -85,11 +87,15 @@ def create(argv, backupdir, blockdev):
     dev_target = {}
     timestamp = int(time())
     for dev in blockdev:
-        targetdir = f"{backupdir}/{dev.node}/"
+        if argv.no_subdir is True:
+            targetdir = f"{backupdir}/"
+        else:
+            targetdir = f"{backupdir}/{dev.node}/"
         os.makedirs(targetdir, exist_ok=True)
-        filename = (
-            f"{argv.level.upper()}-{timestamp}-{os.path.basename(dev.filename)}.partial"
-        )
+        if argv.no_timestamp and argv.level in ("copy", "full"):
+            filename = f"{os.path.basename(dev.filename)}.partial"
+        else:
+            filename = f"{argv.level.upper()}-{timestamp}-{os.path.basename(dev.filename)}.partial"
         target = f"{targetdir}/{filename}"
         if dev.format != "raw":
             opt = opt + _get_options_cmd(backupdir, dev)
@@ -121,42 +127,105 @@ def create(argv, backupdir, blockdev):
     return dev_target
 
 
-def rebase(directory, dry_run, until):
-    """Rebase and commit all images in a directory"""
+def clone(image, targetfile):
+    """Copy base image for restore into new image file"""
+    if os.path.exists(targetfile):
+        log.error("Target file [%s] already exists, won't overwrite", targetfile)
+        return False
+
+    log.info("Copy source image [%s] to image file: [%s]", image, targetfile)
+
     try:
-        os.chdir(directory)
-    except FileNotFoundError as errmsg:
+        lib.copyfile(image, targetfile)
+    except RuntimeError as errmsg:
         log.error(errmsg)
         return False
 
-    image_files = filter(os.path.isfile, os.listdir(directory))
-    images = [os.path.join(directory, f) for f in image_files]
-    images_flat = [os.path.basename(f) for f in images]
-    if until is not None and until not in images_flat:
-        log.error(
-            "Image file specified by --until option [%s] does not exist in backup directory",
-            until,
-        )
+    return True
+
+
+def _check(image):
+    """before rebase we check consistency of all files"""
+    check_cmd = f"qemu-img check '{image}'"
+    try:
+        log.info(check_cmd)
+        subprocess.check_output(check_cmd, shell=True)
+    except subprocess.CalledProcessError as errmsg:
+        raise RuntimeError(
+            f"Error during consistentcy check check: {errmsg}"
+        ) from errmsg
+
+
+def merge(argv):
+    """Merge all files into new base image"""
+    try:
+        images, images_flat = lib.get_images(argv)
+    except RuntimeError as errmsg:
+        log.error(errmsg)
         return False
 
-    # sort files by creation date
-    images.sort(key=os.path.getmtime)
-    images_flat.sort(key=os.path.getmtime)
+    idx = len(images) - 1
+    if argv.until is not None:
+        sidx = images_flat.index(argv.until)
 
-    if dry_run:
-        log.info("Dry run activated, not applying any changes")
+    targetdir = os.path.dirname(argv.targetfile)
+    if not clone(images[0], argv.targetfile):
+        return False
+    images[0] = argv.targetfile
+
+    for image in reversed(images):
+        idx = idx - 1
+        if argv.until is not None and idx >= sidx:
+            log.info("Skipping checkpoint: %s as requested with --until option", image)
+            continue
+
+        if images.index(image) == 0 or argv.targetfile in images[images.index(image)]:
+            log.info(
+                "Rollback of latest [FULL]<-[INC] chain complete, ignoring older chains"
+            )
+            break
+
+        log.info('"%s" is based on "%s"', image, images[idx])
+        tgtfile = f"{targetdir}/{os.path.basename(image)}"
+        if not os.path.exists(tgtfile):
+            if not clone(image, tgtfile):
+                return False
+
+        tgtfile = f"{targetdir}/{os.path.basename(images[idx])}"
+        if not os.path.exists(tgtfile):
+            if not clone(images[idx], tgtfile):
+                return False
+
+        try:
+            rebase_cmd = f'qemu-img rebase -f qcow2 -F qcow2 -b "{targetdir}/{os.path.basename(images[idx])}" "{targetdir}/{os.path.basename(image)}" -u'
+            log.info(rebase_cmd)
+            subprocess.check_output(rebase_cmd, shell=True)
+            commit_cmd = f"qemu-img commit -b '{targetdir}/{os.path.basename(images[idx])}' '{targetdir}/{os.path.basename(image)}'"
+            log.info(commit_cmd)
+            subprocess.check_output(commit_cmd, shell=True)
+            if image != argv.targetfile:
+                log.info(
+                    "Remove temporary file after merge: [%s]",
+                    f"{targetdir}/{os.path.basename(image)}",
+                )
+        except subprocess.CalledProcessError as errmsg:
+            log.error("Error while rollback: %s", errmsg)
+            return False
+
+    return True
+
+
+def rebase(argv):
+    """Rebase all images in a directory without merging
+    the data back into the base image"""
+    try:
+        images, images_flat = lib.get_images(argv)
+    except RuntimeError as errmsg:
+        log.error(errmsg)
+        return False
 
     if len(images) == 0:
         log.error("No image files found in specified directory")
-        return False
-
-    if ".partial" in " ".join(images_flat):
-        log.error("Partial backup file found, backup chain might be broken.")
-        log.error("Consider removing file before attempting to rebase.")
-        return False
-
-    if "FULL-" not in images[0]:
-        log.error("First image file is not a FULL base image")
         return False
 
     if "FULL-" in images[-1]:
@@ -165,11 +234,17 @@ def rebase(directory, dry_run, until):
 
     idx = len(images) - 1
 
-    if until is not None:
-        sidx = images_flat.index(until)
+    try:
+        _check(images[0])
+    except RuntimeError as errmsg:
+        log.error(errmsg)
+        return False
+
+    if argv.until is not None:
+        sidx = images_flat.index(argv.until)
     for image in reversed(images):
         idx = idx - 1
-        if until is not None and idx >= sidx:
+        if argv.until is not None and idx >= sidx:
             log.info("Skipping checkpoint: %s as requested with --until option", image)
             continue
 
@@ -181,30 +256,21 @@ def rebase(directory, dry_run, until):
 
         log.debug('"%s" is based on "%s"', images[idx], image)
 
-        # before rebase we check consistency of all files
-        check_cmd = f"qemu-img check '{image}'"
         try:
-            log.info(check_cmd)
-            if not dry_run:
-                subprocess.check_output(check_cmd, shell=True)
-        except subprocess.CalledProcessError as errmsg:
-            log.error("Error while file check: %s", errmsg)
+            _check(image)
+        except RuntimeError as errmsg:
+            log.error(errmsg)
             return False
 
         try:
             rebase_cmd = (
                 f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[idx]}" "{image}" -u'
             )
-            if not dry_run:
-                subprocess.check_output(rebase_cmd, shell=True)
             log.info(rebase_cmd)
-            commit_cmd = f"qemu-img commit '{image}'"
-            log.info(commit_cmd)
-            if not dry_run:
-                subprocess.check_output(commit_cmd, shell=True)
-                os.remove(image)
+            if not argv.dry_run:
+                subprocess.check_output(rebase_cmd, shell=True)
         except subprocess.CalledProcessError as errmsg:
-            log.error("Error while rollback: %s", errmsg)
+            log.error("Error while rebase: %s", errmsg)
             return False
 
     return True

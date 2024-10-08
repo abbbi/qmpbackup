@@ -13,6 +13,7 @@
 """
 import os
 import sys
+import shutil
 from json import dumps as json_dumps
 from glob import glob
 import logging
@@ -102,3 +103,40 @@ def connect_qaagent(socket):
         return False
 
     return qga
+
+
+def get_images(argv):
+    """get images within backup folder"""
+    os.chdir(argv.dir)
+    image_files = filter(os.path.isfile, os.listdir(argv.dir))
+    images = [os.path.join(argv.dir, f) for f in image_files]
+    images_flat = [os.path.basename(f) for f in images]
+    if argv.until is not None and argv.until not in images_flat:
+        raise RuntimeError(
+            f"Image file specified by --until option [{argv.until}] does not exist in backup directory"
+        )
+
+    # sort files by creation date
+    images.sort(key=os.path.getmtime)
+    images_flat.sort(key=os.path.getmtime)
+
+    if len(images) == 0:
+        raise RuntimeError("No image files found in specified directory")
+
+    if ".partial" in " ".join(images_flat):
+        raise RuntimeError(
+            "Partial backup file found, backup chain might be broken."
+            "Consider removing file before attempting to rebase."
+        )
+    if "FULL-" not in images[0]:
+        raise RuntimeError("Unable to find base FULL image in target folder.")
+
+    return images, images_flat
+
+
+def copyfile(src, target):
+    """Copy file"""
+    try:
+        shutil.copyfile(src, target)
+    except shutil.Error as errmsg:
+        raise RuntimeError(f"Error during file copy: {errmsg}") from errmsg

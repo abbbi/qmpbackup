@@ -17,6 +17,7 @@ import asyncio
 import signal
 import argparse
 from datetime import datetime
+from time import time
 from dataclasses import asdict
 from qemu.qmp import protocol, QMPClient
 from qemu.qmp.error import QMPError
@@ -129,6 +130,18 @@ async def main():
             "If combined with backup level 'auto' this will "
             "create monthly backup chains."
         ),
+        required=False,
+    )
+    parser_backup.add_argument(
+        "--no-subdir",
+        action="store_true",
+        help="Use flat directory structure for storing the backup files",
+        required=False,
+    )
+    parser_backup.add_argument(
+        "--no-timestamp",
+        action="store_true",
+        help="Dont use timestamp for backup files",
         required=False,
     )
     parser_backup.add_argument(
@@ -287,7 +300,9 @@ async def main():
             sys.exit(1)
 
         for device in blockdev:
-            tdir = f"{backupdir}/{device.node}"
+            tdir = f"{backupdir}"
+            if not argv.no_subdir:
+                tdir = f"{backupdir}/{device.node}"
             if (
                 device.has_bitmap is False
                 and argv.level == "inc"
@@ -295,8 +310,8 @@ async def main():
             ):
                 log.error(
                     "[%s:%s] Incremental backup requested but no active bitmap has been found.",
-                    dev.node,
-                    dev.filename,
+                    device.node,
+                    device.filename,
                 )
                 sys.exit(1)
             if argv.level == "auto":
@@ -380,6 +395,11 @@ async def main():
             except OSError as errmsg:
                 log.error("Unable to rename files: %s", errmsg)
                 sys.exit(1)
+
+            if argv.level in ("copy", "full") and argv.no_timestamp:
+                short = os.path.basename(new_filename)
+                tgtdir = os.path.dirname(new_filename)
+                os.symlink(new_filename, f"{tgtdir}/{argv.level.upper()}-{short}")
 
 
 if __name__ == "__main__":
