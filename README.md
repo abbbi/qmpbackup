@@ -190,11 +190,11 @@ consistency and does a rollback of your image file:
  qmprestore rebase --dir /tmp/backup/ide0-hd0
 ```
 
-During restore, the saveset chain is merged into your FULL image which then
-contains the latest state and can be booted via QEMU again.
+After rebase you will find an symlink `/tmp/backup/image`, which points to the
+latest image to use with qemu or other tools.
 
 `Note:` It makes sense to copy the existing backup directory to a temporary
-folder before rebasing, to not alter your existing backups.
+folder before rebasing, if you do not want to alter your existing backups.
 
 Using the `--until` option rollback to a specific incremental point in 
 time is possible:
@@ -202,9 +202,6 @@ time is possible:
 ```
  qmprestore rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
 ```
-
-After the rebase you will find an symlink `/tmp/backup/image`, which points to
-the latest image to use with qemu or other tools.
 
 Restore with merge
 -------
