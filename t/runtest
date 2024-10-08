@@ -33,6 +33,13 @@ exist_files() {
         exit 1
     fi
 }
+no_exist_files() {
+    if ls "${1}" 1> /dev/null 2>&1; then
+        echo "backup files do not exist"
+        exit 1
+    fi
+}
+
 
 
 echo "Downloading image"
@@ -96,13 +103,11 @@ exist_files /tmp/nosubdir_backup/*disk2.qcow2
 rm -rf /tmp/nosubdir_backup/
 
 
-# no-timestamp and no-subdir option
-../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/nosubdir_timestamp_backup/ --no-subdir --no-timestamp --quiesce
-exist_files /tmp/nosubdir_timestamp_backup/disk1.qcow2
-exist_files /tmp/nosubdir_timestamp_backup/disk2.qcow2
+# no-timestamp and no-subdir/no-symlink option
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/nosubdir_timestamp_backup/ --no-subdir --no-symlink --no-timestamp --quiesce
+no_exist_files /tmp/nosubdir_timestamp_backup/COPY*
+no_exist_files /tmp/nosubdir_timestamp_backup/COPY*
 rm -rf /tmp/nosubdir_timestamp_backup/
-
-
 
 # compress option
 rm -rf /tmp/compressed_backup/

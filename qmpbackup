@@ -145,6 +145,13 @@ async def main():
         required=False,
     )
     parser_backup.add_argument(
+        "--no-symlink",
+        action="store_true",
+        help="Dont create symlinks to full backups",
+        required=False,
+        default=False,
+    )
+    parser_backup.add_argument(
         "--quiesce",
         action="store_true",
         help="Use Qemu Agent to quiesce filesystem",
@@ -395,6 +402,9 @@ async def main():
             except OSError as errmsg:
                 log.error("Unable to rename files: %s", errmsg)
                 sys.exit(1)
+
+            if argv.no_symlink is True:
+                continue
 
             if argv.level in ("copy", "full") and argv.no_timestamp:
                 short = os.path.basename(new_filename)
