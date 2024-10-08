@@ -113,7 +113,8 @@ def get_images(argv):
     images_flat = [os.path.basename(f) for f in images]
     if argv.until is not None and argv.until not in images_flat:
         raise RuntimeError(
-            f"Image file specified by --until option [{argv.until}] does not exist in backup directory"
+            "Image file specified by --until option "
+            f"[{argv.until}] does not exist in backup directory"
         )
 
     # sort files by creation date

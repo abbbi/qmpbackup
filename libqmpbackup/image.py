@@ -184,7 +184,8 @@ def merge(argv):
             )
             break
 
-        log.info('"%s" is based on "%s"', image, images[idx])
+        log.debug('"%s" is based on "%s"', image, images[idx])
+
         tgtfile = f"{targetdir}/{os.path.basename(image)}"
         if not os.path.exists(tgtfile):
             if not clone(image, tgtfile):
@@ -196,10 +197,18 @@ def merge(argv):
                 return False
 
         try:
-            rebase_cmd = f'qemu-img rebase -f qcow2 -F qcow2 -b "{targetdir}/{os.path.basename(images[idx])}" "{targetdir}/{os.path.basename(image)}" -u'
+            rebase_cmd = (
+                "qemu-img rebase -f qcow2 -F qcow2 -b "
+                f'"{targetdir}/{os.path.basename(images[idx])}" '
+                f'"{targetdir}/{os.path.basename(image)}" -u'
+            )
             log.info(rebase_cmd)
             subprocess.check_output(rebase_cmd, shell=True)
-            commit_cmd = f"qemu-img commit -b '{targetdir}/{os.path.basename(images[idx])}' '{targetdir}/{os.path.basename(image)}'"
+            commit_cmd = (
+                "qemu-img commit -b "
+                f'"{targetdir}/{os.path.basename(images[idx])}" '
+                f'"{targetdir}/{os.path.basename(image)}"'
+            )
             log.info(commit_cmd)
             subprocess.check_output(commit_cmd, shell=True)
             if image != argv.targetfile:
@@ -223,12 +232,8 @@ def rebase(argv):
         log.error(errmsg)
         return False
 
-    if len(images) == 0:
-        log.error("No image files found in specified directory")
-        return False
-
     if "FULL-" in images[-1]:
-        log.error("No incremental images found, nothing to commit")
+        log.error("No incremental images found, nothing to rebase.")
         return False
 
     idx = len(images) - 1
@@ -253,7 +258,7 @@ def rebase(argv):
             )
             break
 
-        log.debug('"%s" is based on "%s"', images[idx], image)
+        log.debug('"%s" is based on "%s"', image, images[idx])
 
         try:
             _check(image)
