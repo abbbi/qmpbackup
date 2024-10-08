@@ -36,7 +36,7 @@ def get_info(filename):
 def save_info(backupdir, blockdev):
     """Save qcow image information"""
     for dev in blockdev:
-        infofile = f"{backupdir}/{dev.node}.config"
+        infofile = os.path.join(backupdir, f"{dev.node}.config")
 
         info = get_info(dev.filename)
         try:
@@ -89,13 +89,13 @@ def create(argv, backupdir, blockdev):
         if argv.no_subdir is True:
             targetdir = f"{backupdir}/"
         else:
-            targetdir = f"{backupdir}/{dev.node}/"
+            targetdir = os.path.join(backupdir, dev.node)
         os.makedirs(targetdir, exist_ok=True)
         if argv.no_timestamp and argv.level in ("copy", "full"):
             filename = f"{os.path.basename(dev.filename)}.partial"
         else:
             filename = f"{argv.level.upper()}-{timestamp}-{os.path.basename(dev.filename)}.partial"
-        target = f"{targetdir}/{filename}"
+        target = os.path.join(targetdir, filename)
         if dev.format != "raw":
             opt = opt + _get_options_cmd(backupdir, dev)
 
