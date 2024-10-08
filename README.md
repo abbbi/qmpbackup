@@ -203,6 +203,9 @@ time is possible:
  qmprestore rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
 ```
 
+After the rebase you will find an symlink `/tmp/backup/image`, which points to
+the latest image to use with qemu or other tools.
+
 Restore with merge
 -------
 

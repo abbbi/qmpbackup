@@ -226,6 +226,11 @@ def merge(argv):
 def rebase(argv):
     """Rebase all images in a directory without merging
     the data back into the base image"""
+    link = os.path.join(argv.dir, "image")
+    if os.path.exists(link):
+        log.error("Directory has already been rebased: [%s]", link)
+        return False
+
     try:
         images, images_flat = lib.get_images(argv)
     except RuntimeError as errmsg:
@@ -246,6 +251,7 @@ def rebase(argv):
 
     if argv.until is not None:
         sidx = images_flat.index(argv.until)
+
     for image in reversed(images):
         idx = idx - 1
         if argv.until is not None and idx >= sidx:
@@ -256,6 +262,7 @@ def rebase(argv):
             log.info(
                 "Rollback of latest [FULL]<-[INC] chain complete, ignoring older chains"
             )
+            log.info("You can use [%s] to access the latest image data.", link)
             break
 
         log.debug('"%s" is based on "%s"', image, images[idx])
@@ -276,5 +283,11 @@ def rebase(argv):
         except subprocess.CalledProcessError as errmsg:
             log.error("Error while rebase: %s", errmsg)
             return False
+
+    if not argv.dry_run:
+        try:
+            os.symlink(images[-1], "image")
+        except OSError as errmsg:
+            logging.warning("Unable to create symlink to latest image: [%s]", errmsg)
 
     return True
