@@ -80,7 +80,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks):
             log.info(
                 "Device not in included disk list, ignoring: [%s:%s]",
                 device["device"],
-                base_filename,
+                filename,
             )
             continue
 
@@ -88,7 +88,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks):
             logging.info(
                 "Excluding device from backup: [%s:%s]",
                 device["device"],
-                base_filename,
+                filename,
             )
             continue
 
