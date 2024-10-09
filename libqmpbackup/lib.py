@@ -22,9 +22,14 @@ from libqmpbackup.qaclient import QemuGuestAgentClient
 log = logging.getLogger(__name__)
 
 
-def has_full(directory):
-    """Check if directory contains full backup"""
-    if len(glob(f"{directory}/FULL*")) == 0:
+def has_full(directory, filename):
+    """Check if directory contains full backup, either by searching
+    for files beginning with FULL* or the file name of the disk
+    itself (if --no-symlink/--no-subdir is used)
+    """
+    if len(glob(f"{directory}/FULL*")) == 0 and not os.path.exists(
+        os.path.join(directory, os.path.basename(filename))
+    ):
         return False
 
     return True

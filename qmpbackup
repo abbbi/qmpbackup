@@ -294,7 +294,7 @@ async def main():
         backupdir = argv.target
         if argv.monthly:
             monthdir = datetime.today().strftime("%Y-%m")
-            backupdir = f"{backupdir}/{monthdir}"
+            backupdir = os.path.join(backupdir, monthdir)
             if not os.path.exists(backupdir):
                 log.info("New monthly directory will be created: %s", backupdir)
                 new_monthly = True
@@ -306,9 +306,9 @@ async def main():
             sys.exit(1)
 
         for device in blockdev:
-            tdir = f"{backupdir}"
+            tdir = backupdir
             if not argv.no_subdir:
-                tdir = f"{backupdir}/{device.node}"
+                tdir = os.path.join(backupdir, device.node)
             if (
                 device.has_bitmap is False
                 and argv.level == "inc"
@@ -323,7 +323,7 @@ async def main():
             if argv.level == "auto":
                 if (
                     device.has_bitmap
-                    and not lib.has_full(tdir)
+                    and not lib.has_full(tdir, device.filename)
                     and new_monthly is False
                 ):
                     log.error(
@@ -338,9 +338,11 @@ async def main():
 
                 log.info("Auto backup mode set to: %s", argv.level)
             if argv.level == "inc":
-                if not lib.has_full(tdir) and argv.no_symlink is False:
-                    log.info(
-                        "No full backup found in [%s]: Execute full backup first.", tdir
+                if not lib.has_full(tdir, device.filename):
+                    log.error(
+                        "No full backup found for device [%s] in [%s]: Execute full backup first.",
+                        device.filename,
+                        tdir,
                     )
                     sys.exit(1)
                 if lib.check_for_partial(backupdir, device.node):
