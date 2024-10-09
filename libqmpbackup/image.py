@@ -36,7 +36,7 @@ def get_info(filename):
 def save_info(backupdir, blockdev):
     """Save qcow image information"""
     for dev in blockdev:
-        infofile = os.path.join(backupdir, f"{dev.node}.config")
+        infofile = os.path.join(backupdir, f"{os.path.basename(dev.filename)}.config")
 
         info = get_info(dev.filename)
         try:
@@ -53,7 +53,9 @@ def _get_options_cmd(backupdir, dev):
     """Read options to apply for backup target image from
     qcow image info json output"""
     opt = []
-    with open(os.path.join(backupdir, f"{dev.node}.config"), "rb") as config_file:
+    with open(
+        os.path.join(backupdir, f"{os.path.basename(dev.filename)}.config"), "rb"
+    ) as config_file:
         qcow_config = json.loads(config_file.read().decode())
 
     try:
