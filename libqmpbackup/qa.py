@@ -111,7 +111,7 @@ class QEMUMonitorProtocol:
         """Execute command"""
         ret = self.cmd(cmd, kwds)
         if "error" in ret:
-            raise Exception(ret["error"]["desc"])
+            raise RuntimeError(ret["error"]["desc"])
         return ret["return"]
 
     def close(self):
