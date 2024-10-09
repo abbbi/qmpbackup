@@ -340,16 +340,16 @@ async def main():
             if argv.level == "inc":
                 if not lib.has_full(tdir, device.filename):
                     log.error(
-                        "No full backup found for device [%s] in [%s]: Execute full backup first.",
-                        device.filename,
+                        "No full backup found for device [%s:%s] in [%s]: Execute full backup first.",
+                        device.node,
+                        os.path.basename(device.filename),
                         tdir,
                     )
                     sys.exit(1)
-                if lib.check_for_partial(backupdir, device.node):
+                if lib.has_partial(tdir):
                     log.error(
-                        "Partial backup found in [%s/%s], possible broken backup chain. Execute new full backup",
-                        backupdir,
-                        device.node,
+                        "Partial backup found in [%s], possible broken backup chain. Execute new full backup",
+                        tdir,
                     )
                     sys.exit(1)
 

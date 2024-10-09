@@ -56,11 +56,10 @@ def json_pp(json):
     return json_dumps(json, indent=4, sort_keys=True)
 
 
-def check_for_partial(backupdir, node):
+def has_partial(backupdir):
     """Check if partial backup exists in target directory"""
-    targetdir = f"{backupdir}/{node}"
-    if os.path.exists(targetdir):
-        if len(glob(f"{targetdir}/*.partial")) > 0:
+    if os.path.exists(backupdir):
+        if len(glob(f"{backupdir}/*.partial")) > 0:
             return True
 
     return False
