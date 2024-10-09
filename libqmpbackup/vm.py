@@ -44,7 +44,6 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks):
             continue
 
         inserted = device["inserted"]
-        base_filename = os.path.basename(inserted["image"]["filename"])
         if (
             inserted["drv"] == "raw"
             and not argv.include_raw
@@ -53,7 +52,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks):
             log.warning(
                 "Excluding device with raw format from backup: [%s:%s]",
                 device["device"],
-                base_filename,
+                inserted["image"]["filename"],
             )
             continue
 
