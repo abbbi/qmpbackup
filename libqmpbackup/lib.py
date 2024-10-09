@@ -47,7 +47,7 @@ def setup_log(debug, logfile=None):
     if logfile:
         logpath = os.path.dirname(logfile)
         if logpath != "":
-            os.makedirs(os.path.dirname(logfile), exist_ok=True)
+            os.makedirs(logpath, exist_ok=True)
         handler.append(logging.FileHandler(logfile, mode="a"))
     logging.basicConfig(format=log_format, level=loglevel, handlers=handler)
     return logging.getLogger(__name__)
