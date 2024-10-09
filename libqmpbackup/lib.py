@@ -45,7 +45,9 @@ def setup_log(debug, logfile=None):
     handler = []
     handler.append(logging.StreamHandler(stream=sys.stdout))
     if logfile:
-        os.makedirs(os.path.basename(logfile), exist_ok=True)
+        logpath = os.path.dirname(logfile)
+        if logpath != "":
+            os.makedirs(os.path.dirname(logfile), exist_ok=True)
         handler.append(logging.FileHandler(logfile, mode="a"))
     logging.basicConfig(format=log_format, level=loglevel, handlers=handler)
     return logging.getLogger(__name__)
@@ -72,15 +74,15 @@ def check_bitmap_state(node, bitmaps):
     frozen  -> backup in progress
     disabled-> migration might be going on
     """
+    status = False
     for bitmap in bitmaps:
-        log.debug("Existing Bitmaps and states: %s", json_pp(bitmap))
-        match = f"qmpbackup-{node}"
+        log.debug("Bitmap information: %s", json_pp(bitmap))
         try:
             status = "active" in bitmap["status"]
         except KeyError:
             status = bitmap["recording"]
 
-        if bitmap["name"] == match and status is True:
+        if bitmap["name"] == f"qmpbackup-{node}" and status is True:
             return True
 
     return status

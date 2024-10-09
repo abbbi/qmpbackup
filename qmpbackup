@@ -340,6 +340,13 @@ async def main():
 
                 log.info("Auto backup mode set to: %s", argv.level)
             if argv.level == "inc":
+                if lib.check_bitmap_state(device.node, device.bitmaps) is False:
+                    log.error(
+                        "Bitmap for device [%s:%s] is not in state for backup.",
+                        device.node,
+                        os.path.basename(device.filename),
+                    )
+                    sys.exit(1)
                 if not lib.has_full(tdir, device.filename):
                     log.error(
                         "No full backup found for device [%s:%s] in [%s]: Execute full backup first.",
