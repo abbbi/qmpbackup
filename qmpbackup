@@ -301,6 +301,7 @@ async def main():
                 log.info("New monthly directory will be created: %s", backupdir)
                 new_monthly = True
 
+        log.info("Backup target directory: %s", backupdir)
         try:
             os.makedirs(backupdir, exist_ok=True)
         except OSError as errmsg:
@@ -361,8 +362,6 @@ async def main():
                         tdir,
                     )
                     sys.exit(1)
-
-        log.info("Backup target directory: %s", backupdir)
 
         try:
             image.save_info(backupdir, blockdev)
