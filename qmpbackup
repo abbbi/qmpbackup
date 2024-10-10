@@ -340,6 +340,7 @@ async def main():
                 )
                 sys.exit(1)
             if argv.level == "auto":
+                TODO: fixup
                 if (
                     device.has_bitmap
                     and not lib.has_full(tdir, device.filename)
