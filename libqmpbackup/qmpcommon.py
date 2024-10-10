@@ -91,7 +91,7 @@ class QmpCommon:
     async def remove_target_devices(self, devices):
         """Cleanup named devices after executing blockdev-backup
         operation"""
-        self.log.info("Cleanup added backup target devices")
+        self.log.info("Removing backup target devices from virtual machine")
         for device in devices:
             targetdev = f"qmpbackup-{device.node}"
 
