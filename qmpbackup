@@ -270,7 +270,11 @@ async def main():
             log.info("Including raw devices in backup operation.")
         if argv.level == "full":
             if os.path.exists(os.path.join(argv.target, "uuid")):
-                uuid = lib.get_uuid(argv.target)
+                try:
+                    uuid = lib.get_uuid(argv.target)
+                except RuntimeError as errmsg:
+                    log.error("Unable to get backup uuid: [%s]", errmsg)
+                    sys.exit(1)
             else:
                 try:
                     uuid = lib.save_uuid(argv.target)
