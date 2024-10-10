@@ -308,6 +308,13 @@ async def main():
             log.error("Unable to create target dir: %s", errmsg)
             sys.exit(1)
 
+        if argv.level == "full":
+            try:
+                uuid = lib.save_uuid(backupdir)
+            except RuntimeError as errmsg:
+                log.error("Unable to store backup uuid: [%s]", errmsg)
+                sys.exit(1)
+
         for device in blockdev:
             tdir = backupdir
             if not argv.no_subdir:
@@ -341,7 +348,27 @@ async def main():
 
                 log.info("Auto backup mode set to: %s", argv.level)
             if argv.level == "inc":
-                if lib.check_bitmap_state(device.node, device.bitmaps) is False:
+                if not lib.has_full(tdir, device.filename):
+                    log.error(
+                        "No full backup found for device [%s:%s] in [%s]: Execute full backup first.",
+                        device.node,
+                        os.path.basename(device.filename),
+                        tdir,
+                    )
+                    sys.exit(1)
+
+                try:
+                    uuid = lib.get_uuid(backupdir)
+                except RuntimeError as errmsg:
+                    log.error("Unable to get UUID for incremental backup: [%s]", errmsg)
+                    sys.exit(1)
+
+                if not lib.check_bitmap_uuid(device.bitmaps, uuid):
+                    log.error("Unable to find any bitmap with uuid: [%s]", uuid)
+                    log.error("Incremental backup is executed to wrong directory")
+                    sys.exit(1)
+
+                if not lib.check_bitmap_state(device.node, device.bitmaps):
                     log.error(
                         "Bitmap for device [%s:%s] is not in state for backup.",
                         device.node,
@@ -378,7 +405,7 @@ async def main():
 
         try:
             await qemu_client.prepare_target_devices(blockdev, target_files)
-            await qemu_client.backup(argv, blockdev, qga)
+            await qemu_client.backup(argv, blockdev, qga, uuid)
         except QMPError as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)

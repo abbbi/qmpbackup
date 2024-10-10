@@ -14,6 +14,7 @@
 import os
 import sys
 import shutil
+import uuid
 from json import dumps as json_dumps
 from glob import glob
 import logging
@@ -65,6 +66,16 @@ def has_partial(backupdir):
             return True
 
     return False
+
+
+def check_bitmap_uuid(bitmaps, backup_uuid):
+    """Check if the UUID of the backup target folder matches the
+    bitmap uuid"""
+    for bitmap in bitmaps:
+        if not bitmap["name"].endswith(backup_uuid):
+            return False
+
+    return True
 
 
 def check_bitmap_state(node, bitmaps):
@@ -147,3 +158,41 @@ def copyfile(src, target):
         shutil.copyfile(src, target)
     except shutil.Error as errmsg:
         raise RuntimeError(f"Error during file copy: {errmsg}") from errmsg
+
+
+def save_uuid(target):
+    """Create an unique uuid that is written to the backup traget file and
+    added to the generated bitmap name. So later incremental backups can
+    check if the backup target directory is matching the backup chain"""
+    uuidfile = os.path.join(target, "uuid")
+    backup_uuid = uuid.uuid4()
+    try:
+        with open(uuidfile, "w+", encoding="utf-8") as info_file:
+            info_file.write(str(backup_uuid))
+            log.info("Backup UUID: [%s]", backup_uuid)
+    except IOError as errmsg:
+        raise RuntimeError(f"Unable to store qcow config: [{errmsg}]") from errmsg
+    except Exception as errmsg:
+        raise RuntimeError(errmsg) from errmsg
+
+    return str(backup_uuid)
+
+
+def get_uuid(target):
+    """Read UUID to check if current existing bitmap chain matches the
+    backup target folder during incremental backup"""
+    uuidfile = os.path.join(target, "uuid")
+    try:
+        with open(uuidfile, "r", encoding="utf-8") as uuid_file:
+            backup_uuid = uuid_file.read()
+            log.info(
+                "Current Backup UUID: [%s] for folder [%s]",
+                backup_uuid,
+                target,
+            )
+    except IOError as errmsg:
+        raise RuntimeError(f"Unable to store qcow config: [{errmsg}]") from errmsg
+    except Exception as errmsg:
+        raise RuntimeError(errmsg) from errmsg
+
+    return str(backup_uuid)
