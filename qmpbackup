@@ -236,12 +236,27 @@ async def main():
     included_disks = None
     uuid = None
     if action == "backup":
-        log.info("Backup target directory: %s", argv.target)
+        if argv.monthly:
+            monthdir = datetime.today().strftime("%Y-%m")
+            backupdir = os.path.join(argv.target, monthdir)
+            if not os.path.exists(backupdir):
+                log.info("New monthly directory will be created: %s", backupdir)
+                new_monthly = True
+            argv.target = backupdir
+
         try:
             os.makedirs(argv.target, exist_ok=True)
         except OSError as errmsg:
             log.error("Unable to create target dir: %s", errmsg)
             sys.exit(1)
+
+        log.info("Backup target directory: %s", argv.target)
+        if argv.level == "auto":
+            if new_monthly is True:
+                argv.level = "full"
+            else:
+                argv.level = "inc"
+            log.info("Auto backup mode set to: %s", argv.level)
 
         if argv.exclude is not None:
             excluded_disks = argv.exclude.split(",")
@@ -317,13 +332,6 @@ async def main():
             )
 
         backupdir = argv.target
-        if argv.monthly:
-            monthdir = datetime.today().strftime("%Y-%m")
-            backupdir = os.path.join(backupdir, monthdir)
-            if not os.path.exists(backupdir):
-                log.info("New monthly directory will be created: %s", backupdir)
-                new_monthly = True
-
         for device in blockdev:
             tdir = backupdir
             if not argv.no_subdir:
@@ -339,24 +347,6 @@ async def main():
                     device.filename,
                 )
                 sys.exit(1)
-            if argv.level == "auto":
-                TODO: fixup
-                if (
-                    device.has_bitmap
-                    and not lib.has_full(tdir, device.filename)
-                    and new_monthly is False
-                ):
-                    log.error(
-                        "Bitmap exists, but target directory does not contain full backup."
-                    )
-                    sys.exit(1)
-
-                if device.has_bitmap is False or new_monthly is True:
-                    argv.level = "full"
-                else:
-                    argv.level = "inc"
-
-                log.info("Auto backup mode set to: %s", argv.level)
             if argv.level == "inc":
                 if not lib.has_full(tdir, device.filename):
                     log.error(
