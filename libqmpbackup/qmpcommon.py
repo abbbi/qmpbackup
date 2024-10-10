@@ -139,7 +139,8 @@ class QmpCommon:
 
             if device.has_bitmap and argv.level in ("full") and device.format != "raw":
                 self.log.info(
-                    "Clearing existing bitmap for device: [%s:%s]",
+                    "Clearing existing bitmap [%s] for device: [%s:%s]",
+                    bitmap,
                     device.node,
                     os.path.basename(device.filename),
                 )

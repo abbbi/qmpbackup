@@ -234,7 +234,15 @@ async def main():
 
     excluded_disks = None
     included_disks = None
+    uuid = None
     if action == "backup":
+        log.info("Backup target directory: %s", argv.target)
+        try:
+            os.makedirs(argv.target, exist_ok=True)
+        except OSError as errmsg:
+            log.error("Unable to create target dir: %s", errmsg)
+            sys.exit(1)
+
         if argv.exclude is not None:
             excluded_disks = argv.exclude.split(",")
             log.debug("Excluded disks: %s", excluded_disks)
@@ -245,6 +253,21 @@ async def main():
             log.info("Enabling compress option for backup operation.")
         if argv.include_raw:
             log.info("Including raw devices in backup operation.")
+        if argv.level == "full":
+            if os.path.exists(os.path.join(argv.target, "uuid")):
+                uuid = lib.get_uuid(argv.target)
+            else:
+                try:
+                    uuid = lib.save_uuid(argv.target)
+                except RuntimeError as errmsg:
+                    log.error("Unable to store backup uuid: [%s]", errmsg)
+                    sys.exit(1)
+        if argv.level == "inc":
+            try:
+                uuid = lib.get_uuid(argv.target)
+            except RuntimeError as errmsg:
+                log.error("Unable to get UUID for incremental backup: [%s]", errmsg)
+                sys.exit(1)
 
     if action == "info":
         argv.include_raw = True
@@ -252,7 +275,7 @@ async def main():
         argv.include_raw = False
 
     blockdev = vm.get_block_devices(
-        await qemu_client.do_query_block(), argv, excluded_disks, included_disks
+        await qemu_client.do_query_block(), argv, excluded_disks, included_disks, uuid
     )
 
     loop = asyncio.get_event_loop()
@@ -301,20 +324,6 @@ async def main():
                 log.info("New monthly directory will be created: %s", backupdir)
                 new_monthly = True
 
-        log.info("Backup target directory: %s", backupdir)
-        try:
-            os.makedirs(backupdir, exist_ok=True)
-        except OSError as errmsg:
-            log.error("Unable to create target dir: %s", errmsg)
-            sys.exit(1)
-
-        if argv.level == "full":
-            try:
-                uuid = lib.save_uuid(backupdir)
-            except RuntimeError as errmsg:
-                log.error("Unable to store backup uuid: [%s]", errmsg)
-                sys.exit(1)
-
         for device in blockdev:
             tdir = backupdir
             if not argv.no_subdir:
@@ -356,18 +365,10 @@ async def main():
                         tdir,
                     )
                     sys.exit(1)
-
-                try:
-                    uuid = lib.get_uuid(backupdir)
-                except RuntimeError as errmsg:
-                    log.error("Unable to get UUID for incremental backup: [%s]", errmsg)
-                    sys.exit(1)
-
                 if not lib.check_bitmap_uuid(device.bitmaps, uuid):
                     log.error("Unable to find any bitmap with uuid: [%s]", uuid)
                     log.error("Incremental backup is executed to wrong directory")
                     sys.exit(1)
-
                 if not lib.check_bitmap_state(device.node, device.bitmaps):
                     log.error(
                         "Bitmap for device [%s:%s] is not in state for backup.",
@@ -419,7 +420,11 @@ async def main():
 
         if argv.level == "copy":
             blockdev = vm.get_block_devices(
-                await qemu_client.do_query_block(), argv, excluded_disks, included_disks
+                await qemu_client.do_query_block(),
+                argv,
+                excluded_disks,
+                included_disks,
+                uuid,
             )
             log.info("Removing non-persistent bitmaps used for copy backup.")
             await qemu_client.remove_bitmaps(blockdev, prefix="qmpbackup-copy")

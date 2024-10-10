@@ -72,10 +72,10 @@ def check_bitmap_uuid(bitmaps, backup_uuid):
     """Check if the UUID of the backup target folder matches the
     bitmap uuid"""
     for bitmap in bitmaps:
-        if not bitmap["name"].endswith(backup_uuid):
-            return False
+        if bitmap["name"].endswith(backup_uuid):
+            return True
 
-    return True
+    return False
 
 
 def check_bitmap_state(node, bitmaps):
@@ -171,7 +171,7 @@ def save_uuid(target):
             info_file.write(str(backup_uuid))
             log.info("Backup UUID: [%s]", backup_uuid)
     except IOError as errmsg:
-        raise RuntimeError(f"Unable to store qcow config: [{errmsg}]") from errmsg
+        raise RuntimeError(f"Unable to store uuid: [{errmsg}]") from errmsg
     except Exception as errmsg:
         raise RuntimeError(errmsg) from errmsg
 
@@ -191,7 +191,7 @@ def get_uuid(target):
                 target,
             )
     except IOError as errmsg:
-        raise RuntimeError(f"Unable to store qcow config: [{errmsg}]") from errmsg
+        raise RuntimeError(f"Failed to read file [{uuidfile}]") from errmsg
     except Exception as errmsg:
         raise RuntimeError(errmsg) from errmsg
 
