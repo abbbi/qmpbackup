@@ -102,7 +102,7 @@ class QmpCommon:
                 },
             )
 
-    def prepare_transaction(self, argv, devices):
+    def prepare_transaction(self, argv, devices, uuid):
         """Prepare transaction steps"""
         sync = "full"
         if argv.level == "inc":
@@ -118,7 +118,7 @@ class QmpCommon:
         actions = []
         for device in devices:
             targetdev = f"qmpbackup-{device.node}"
-            bitmap = f"{bitmap_prefix}-{device.node}"
+            bitmap = f"{bitmap_prefix}-{device.node}-{uuid}"
             job_id = f"{device.node}"
 
             if (
@@ -139,7 +139,8 @@ class QmpCommon:
 
             if device.has_bitmap and argv.level in ("full") and device.format != "raw":
                 self.log.info(
-                    "Clearing existing bitmap for device: [%s:%s]",
+                    "Clearing existing bitmap [%s] for device: [%s:%s]",
+                    bitmap,
                     device.node,
                     os.path.basename(device.filename),
                 )
@@ -182,10 +183,10 @@ class QmpCommon:
 
         return actions
 
-    async def backup(self, argv, devices, qga):
+    async def backup(self, argv, devices, qga, uuid):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        actions = self.prepare_transaction(argv, devices)
+        actions = self.prepare_transaction(argv, devices, uuid)
         listener = EventListener(
             (
                 "BLOCK_JOB_COMPLETED",

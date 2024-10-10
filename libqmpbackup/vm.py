@@ -29,7 +29,7 @@ class BlockDev:
     virtual_size: int
 
 
-def get_block_devices(blockinfo, argv, excluded_disks, included_disks):
+def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
     """Get a list of block devices that we can create a bitmap for,
     currently we only get inserted qcow based images
     """
@@ -62,8 +62,13 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks):
         if "dirty-bitmaps" in device:
             bitmaps = device["dirty-bitmaps"]
 
-        if len(bitmaps) > 0:
-            has_bitmap = True
+        if len(bitmaps) > 0 and uuid is not None:
+            for bmap in bitmaps:
+                if uuid in bmap["name"]:
+                    has_bitmap = True
+        else:
+            if len(bitmaps) > 0:
+                has_bitmap = True
 
         try:
             backing_image = inserted["image"]["backing-image"]
