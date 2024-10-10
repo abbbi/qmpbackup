@@ -85,6 +85,7 @@ rm -rf /tmp/backup_no_agent
 rm -f /tmp/backup.log
 ../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET --logfile /tmp/backup.log backup --level full --exclude ide0-hd0 --target /tmp/backup_no_agent/ --quiesce
 [ -e /tmp/backup.log ]
+[ -e /tmp/backup_no_agent/uuid ]
 grep Arguments /tmp/backup.log > /dev/null
 grep INFO /tmp/backup.log > /dev/null
 
