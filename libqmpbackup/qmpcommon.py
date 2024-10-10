@@ -74,7 +74,7 @@ class QmpCommon:
     async def prepare_target_devices(self, devices, target_files):
         """Create the required target devices for blockev-backup
         operation"""
-        self.log.info("Prepare backup target devices")
+        self.log.info("Attach backup target devices to virtual machine")
         for device in devices:
             target = target_files[device.node]
             targetdev = f"qmpbackup-{device.node}"
@@ -138,7 +138,11 @@ class QmpCommon:
                 )
 
             if device.has_bitmap and argv.level in ("full") and device.format != "raw":
-                self.log.info("Clearing existing bitmap for device: [%s]", device.node)
+                self.log.info(
+                    "Clearing existing bitmap for device: [%s:%s]",
+                    device.node,
+                    os.path.basename(device.filename),
+                )
                 actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
             compress = argv.compress
