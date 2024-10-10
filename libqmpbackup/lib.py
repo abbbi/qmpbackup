@@ -161,7 +161,7 @@ def copyfile(src, target):
 
 
 def save_uuid(target):
-    """Create an unique uuid that is written to the backup traget file and
+    """Create an unique uuid that is written to the backup target file and
     added to the generated bitmap name. So later incremental backups can
     check if the backup target directory is matching the backup chain"""
     uuidfile = os.path.join(target, "uuid")
