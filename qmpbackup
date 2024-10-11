@@ -362,11 +362,10 @@ async def main():
                     sys.exit(1)
                 if not lib.check_bitmap_uuid(device.bitmaps, uuid):
                     log.error("Unable to find any bitmap with uuid: [%s]", uuid)
-                    log.error("Incremental backup is executed to wrong directory")
                     sys.exit(1)
                 if not lib.check_bitmap_state(device.node, device.bitmaps):
                     log.error(
-                        "Bitmap for device [%s:%s] is not in state for backup.",
+                        "Bitmap for device [%s:%s] is not in state ready for backup.",
                         device.node,
                         os.path.basename(device.filename),
                     )
