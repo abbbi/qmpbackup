@@ -143,7 +143,7 @@ def get_images(argv):
 
     if ".partial" in " ".join(images_flat):
         raise RuntimeError(
-            "Partial backup file found, backup chain might be broken."
+            "Partial backup file found, backup chain might be broken. "
             "Consider removing file before attempting to rebase."
         )
     if "FULL-" not in images[0]:

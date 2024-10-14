@@ -8,6 +8,7 @@
  the COPYING file in the top-level directory.
 
 """
+
 import random
 import libqmpbackup.qa as qmp
 

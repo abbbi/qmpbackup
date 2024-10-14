@@ -221,7 +221,7 @@ class QmpCommon:
         """Return list of attached block devices"""
         return await self.qmp.execute("query-block")
 
-    async def remove_bitmaps(self, blockdev, prefix="qmpbackup"):
+    async def remove_bitmaps(self, blockdev, prefix="qmpbackup", uuid=""):
         """Remove existing bitmaps for block devices"""
         for dev in blockdev:
             if not dev.has_bitmap:
@@ -232,7 +232,18 @@ class QmpCommon:
                 bitmap_name = bitmap["name"]
                 self.log.debug("Bitmap name: %s", bitmap_name)
                 if prefix not in bitmap_name:
-                    self.log.debug("Ignoring bitmap: %s", bitmap_name)
+                    self.log.debug(
+                        "Ignoring bitmap: [%s] not matching prefix [%s]",
+                        prefix,
+                        bitmap_name,
+                    )
+                    continue
+                if uuid != "" and not bitmap_name.endswith(uuid):
+                    self.log.debug(
+                        "Ignoring bitmap: [%s] not matching uuid [%s]",
+                        bitmap_name,
+                        uuid,
+                    )
                     continue
                 self.log.info("Removing bitmap: %s", bitmap_name)
                 await self.qmp.execute(
@@ -246,9 +257,11 @@ class QmpCommon:
             for job in jobs:
                 if job["device"] == device.node:
                     prog = [
-                        round(job["offset"] / job["len"] * 100)
-                        if job["offset"] != 0
-                        else 0
+                        (
+                            round(job["offset"] / job["len"] * 100)
+                            if job["offset"] != 0
+                            else 0
+                        )
                     ]
                     self.log.info(
                         "[%s:%s] Wrote Offset: %s%% (%s of %s)",

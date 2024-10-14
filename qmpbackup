@@ -185,8 +185,15 @@ async def main():
     parser_cleanup.add_argument(
         "--remove-bitmap",
         action="store_true",
-        help="remove existent bitmaps for all devices",
+        help="remove all existent bitmaps for all devices",
         required=True,
+    )
+    parser_cleanup.add_argument(
+        "--uuid",
+        help="remove bitmaps matching uuid",
+        type=str,
+        required=False,
+        default="",
     )
     parser_info = subparsers.add_parser("info", help="print info about VM")
     parser_info.set_defaults(which="info")
@@ -326,8 +333,12 @@ async def main():
                 log.info("%s", lib.json_pp(dev.bitmaps))
 
     if action == "cleanup":
-        log.info("Removing all existent bitmaps.")
-        await qemu_client.remove_bitmaps(blockdev)
+        if argv.uuid != "":
+            log.info("Removing bitmaps matching uuid [%s]", argv.uuid)
+            await qemu_client.remove_bitmaps(blockdev, uuid=argv.uuid)
+        else:
+            log.info("Removing all existent bitmaps.")
+            await qemu_client.remove_bitmaps(blockdev)
 
     if action == "backup":
         if argv.quiesce and not argv.agentsocket:
