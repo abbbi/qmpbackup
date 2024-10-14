@@ -152,9 +152,7 @@ def _check(image):
         log.info(check_cmd)
         subprocess.check_output(check_cmd, shell=True)
     except subprocess.CalledProcessError as errmsg:
-        raise RuntimeError(
-            f"Error during consistentcy check check: {errmsg}"
-        ) from errmsg
+        raise RuntimeError(f"Error during consistency check: {errmsg}") from errmsg
 
 
 def merge(argv):
@@ -215,11 +213,11 @@ def merge(argv):
             subprocess.check_output(commit_cmd, shell=True)
             if image != argv.targetfile:
                 log.info(
-                    "Remove temporary file after merge: [%s]",
+                    "Removing temporary file after merge: [%s]",
                     os.path.join(targetdir, os.path.basename(image)),
                 )
         except subprocess.CalledProcessError as errmsg:
-            log.error("Error while rollback: %s", errmsg)
+            log.error("Error during rebase: %s", errmsg)
             return False
 
     return True
