@@ -20,7 +20,7 @@ jobs:
         codespell libqmpbackup/
     - name: Python code format test
       run: |
-        sudo pip3 install black==22.3
+        sudo pip3 install black==24.10.0
         black --check qmprestore
         black --check qmpbackup
         black --check .
