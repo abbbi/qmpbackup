@@ -65,7 +65,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
 
         if len(bitmaps) > 0 and uuid is not None:
             for bmap in bitmaps:
-                if uuid in bmap["name"]:
+                if bmap["name"].endswith(uuid):
                     has_bitmap = True
                     break
         else:
