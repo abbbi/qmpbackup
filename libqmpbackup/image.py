@@ -152,7 +152,7 @@ def _check(image):
         log.info(check_cmd)
         subprocess.check_output(check_cmd, shell=True)
     except subprocess.CalledProcessError as errmsg:
-        raise RuntimeError(f"Error during consistency check: {errmsg}") from errmsg
+        raise RuntimeError(f"Consistency check failed: {errmsg}") from errmsg
 
 
 def merge(argv):
@@ -217,7 +217,7 @@ def merge(argv):
                     os.path.join(targetdir, os.path.basename(image)),
                 )
         except subprocess.CalledProcessError as errmsg:
-            log.error("Error during rebase: %s", errmsg)
+            log.error("Rebase or commit command failed: [%s]", errmsg)
             return False
 
     return True
@@ -281,7 +281,7 @@ def rebase(argv):
             if not argv.dry_run:
                 subprocess.check_output(rebase_cmd, shell=True)
         except subprocess.CalledProcessError as errmsg:
-            log.error("Error while rebase: %s", errmsg)
+            log.error("Rebase command failed: [%s]", errmsg)
             return False
 
     if not argv.dry_run:

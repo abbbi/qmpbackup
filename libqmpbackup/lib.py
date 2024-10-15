@@ -157,7 +157,9 @@ def copyfile(src, target):
     try:
         shutil.copyfile(src, target)
     except shutil.Error as errmsg:
-        raise RuntimeError(f"Error during file copy: {errmsg}") from errmsg
+        raise RuntimeError(
+            f"Failed to copy file [{src}] to [{target}]: {errmsg}"
+        ) from errmsg
 
 
 def save_uuid(target):
