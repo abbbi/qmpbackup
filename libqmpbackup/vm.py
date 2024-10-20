@@ -90,7 +90,8 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                     filename = encoded_name["file"]["next"]["filename"]
                 except KeyError:
                     log.warning(
-                        "Json encoded filename setting found but no filename property set"
+                        "Json encoded setting found but no filename property set for device: [%s]",
+                        device["device"],
                     )
             except json.decoder.JSONDecodeError as errmsg:
                 log.error("Unable to decode filename json: %s", errmsg)
