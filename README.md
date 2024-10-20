@@ -71,11 +71,14 @@ Usage
 In order to create a full backup use the following command:
 
 ```
- qmpbackup --socket /path/socket backup --level full --target /tmp/backup/
+# remove already existant bitmaps from prior full backups:
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps
+# create a new full backup to an empty directory:
+ qmpbackup --socket /path/to/socket backup --level full --target /tmp/backup/
 ```
 
-the command will create a new dirty bitmap and backup the virtual machines
-disks to ```/tmp/backup/<disk-id>/FULL-<timestamp>```. It ensures
+the command will create a new unique dirty bitmap and backup the virtual
+machines disks to ```/tmp/backup/<disk-id>/FULL-<timestamp>```. It ensures
 consistency by creating the bitmap and backup within one QMP transaction.
 
 Multiple disks attached to the virtual machine are backed up concurrently.
@@ -260,6 +263,9 @@ In order to remove existing dirty-bitmaps use:
 ```
  qmpbackup --socket /tmp/vm cleanup --remove-bitmaps
 ```
+
+If you create a new backup chain (new full backup to an empty
+directory) you should cleanup old bitmaps before.
 
 ### Speed limit
 
