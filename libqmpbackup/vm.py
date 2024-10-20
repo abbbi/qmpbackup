@@ -11,6 +11,7 @@
  the LICENSE file in the top-level directory.
 """
 
+import json
 import logging
 from dataclasses import dataclass
 
@@ -80,6 +81,19 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
         except KeyError:
             filename = inserted["image"]["filename"]
             diskformat = inserted["image"]["format"]
+
+        if filename.startswith("json:"):
+            log.debug("Filename setting is json encoded..")
+            try:
+                encoded_name = json.loads(filename[5:])
+                try:
+                    filename = encoded_name["file"]["next"]["filename"]
+                except KeyError:
+                    log.warning(
+                        "Json encoded filename setting found but no filename property set"
+                    )
+            except json.decoder.JSONDecodeError as errmsg:
+                log.error("Unable to decode filename json: %s", errmsg)
 
         if included_disks and not device["device"] in included_disks:
             log.info(
