@@ -71,7 +71,7 @@ Usage
 In order to create a full backup use the following command:
 
 ```
-# remove already existant bitmaps from prior full backups:
+# remove already existent bitmaps from prior full backups:
  qmpbackup --socket /path/to/socket cleanup --remove-bitmaps
 # create a new full backup to an empty directory:
  qmpbackup --socket /path/to/socket backup --level full --target /tmp/backup/
