@@ -171,12 +171,15 @@ def copyfile(src, target):
         ) from errmsg
 
 
-def save_uuid(target):
+def save_uuid(target, use_uuid=""):
     """Create an unique uuid that is written to the backup target file and
     added to the generated bitmap name. So later incremental backups can
     check if the backup target directory is matching the backup chain"""
     uuidfile = os.path.join(target, "uuid")
-    backup_uuid = uuid.uuid4()
+    if use_uuid == "":
+        backup_uuid = uuid.uuid4()
+    else:
+        backup_uuid = use_uuid
     try:
         with open(uuidfile, "w+", encoding="utf-8") as info_file:
             info_file.write(str(backup_uuid))

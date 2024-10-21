@@ -109,6 +109,31 @@ There is also the `auto` backup level which combines the `full` and `inc`
 backup levels. If there's no existing bitmap for the VM, `full` will run. If a
 bitmap exists, `inc` will be used.
 
+Backup chains / unique bitmap names
+-----
+
+By default a new full backup to an empty directory will create a new unique id
+for the bitmap that is used to start a new backup chain.
+
+This way you can create multiple backup chains, each of them using an
+unique bitmap to track the changes.
+
+The `qmpbackup` utility will not cleanup those bitmaps by default if you can
+cleanup bitmaps that are not required via:
+
+```
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps --uuid <uuid>
+```
+
+Alternatively you specify the uuid to be used for the bitmap names during the
+first full backup you create. This way the bitmaps will be re-used and must not
+be cleaned:
+
+```
+ qmpbackup --socket /tmp/socket backup -l full -t /tmp/myuuid --uuid testme
+```
+
 Monthly Backups
 -----------------
 Using the `--monthly` flag with the `backup` command, backups will be placed in
