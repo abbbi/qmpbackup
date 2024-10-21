@@ -45,6 +45,13 @@ parser_snapshot.add_argument(
     help="do not run commands, only show them",
     required=False,
 )
+parser_snapshot.add_argument(
+    "--filter",
+    type=str,
+    help="only process images matching string",
+    required=False,
+    default="",
+)
 parser_merge.set_defaults(which="merge")
 parser_merge.add_argument(
     "--dir", type=str, help="directory which contains images", required=True
@@ -61,6 +68,13 @@ parser_merge.add_argument(
     help="point in time restore until specified backup file",
     required=False,
 )
+parser_merge.add_argument(
+    "--filter",
+    type=str,
+    help="only process images matching string",
+    required=False,
+    default="",
+)
 parser_rebase.add_argument(
     "--until",
     type=str,
@@ -72,6 +86,13 @@ parser_rebase.add_argument(
     action="store_true",
     help="do not run commands, only show them",
     required=False,
+)
+parser_rebase.add_argument(
+    "--filter",
+    type=str,
+    help="only process images matching string",
+    required=False,
+    default="",
 )
 
 argv = parser.parse_args()
@@ -88,6 +109,9 @@ log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 if not os.path.exists(argv.dir):
     log.error("Specified target folder does not exist: [%s]", argv.dir)
     sys.exit(1)
+
+if argv.filter != "":
+    log.info("Filter images in [%s] based on string: [%s]", argv.dir, argv.filter)
 
 if action in ("rebase", "snapshotrebase"):
     if argv.dry_run:
