@@ -342,15 +342,17 @@ def snapshot_rebase(argv):
                 f'qemu-img snapshot -c "{os.path.basename(image)}" "{images[0]}"'
             )
             log.info(snapshot_cmd)
-            rebase_cmd = f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}"'
+            rebase_cmd = (
+                f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}" -u'
+            )
             log.info(rebase_cmd)
             commit_cmd = "qemu-img commit -b " f'"{images[0]}" ' f'"{image}"'
             log.info(commit_cmd)
             # subprocess.check_output(commit_cmd, shell=True)
             if not argv.dry_run:
-                subprocess.check_output(snapshot_cmd, shell=True)
                 subprocess.check_output(rebase_cmd, shell=True)
                 subprocess.check_output(commit_cmd, shell=True)
+                subprocess.check_output(snapshot_cmd, shell=True)
         except subprocess.CalledProcessError as errmsg:
             log.error("Rebase command failed: [%s]", errmsg)
             return False
