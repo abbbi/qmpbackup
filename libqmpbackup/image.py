@@ -322,12 +322,11 @@ def snapshot_rebase(argv):
     if argv.until is not None:
         sidx = images_flat.index(argv.until)
 
-    print(images[1:])
     snapshot_cmd = f'qemu-img snapshot -c "FULL-BACKUP" "{images[0]}"'
+    log.info(snapshot_cmd)
     try:
         if not argv.dry_run:
-            # subprocess.check_output(snapshot_cmd, shell=True)
-            log.info(snapshot_cmd)
+            subprocess.check_output(snapshot_cmd, shell=True)
     except subprocess.CalledProcessError as errmsg:
         log.error("Rebase command failed: [%s]", errmsg)
         return False
@@ -353,7 +352,7 @@ def snapshot_rebase(argv):
 
         try:
             snapshot_cmd = (
-                f'qemu-img snapshot -c "INC-{os.path.basename(image[idx])}" "{image}"'
+                f'qemu-img snapshot -c "{os.path.basename(image)}" "{images[0]}"'
             )
             log.info(snapshot_cmd)
             rebase_cmd = (
@@ -363,12 +362,16 @@ def snapshot_rebase(argv):
             commit_cmd = "qemu-img commit -b " f'"{images[0]}" ' f'"{image}"'
             log.info(commit_cmd)
             # subprocess.check_output(commit_cmd, shell=True)
-            # if not argv.dry_run:
-            #   subprocess.check_output(snapshot_cmd, shell=True)
-            #   subprocess.check_output(rebase_cmd, shell=True)
-            #   subprocess.check_output(commit_cmd, shell=True)
+            if not argv.dry_run:
+                subprocess.check_output(snapshot_cmd, shell=True)
+                subprocess.check_output(rebase_cmd, shell=True)
+                subprocess.check_output(commit_cmd, shell=True)
         except subprocess.CalledProcessError as errmsg:
             log.error("Rebase command failed: [%s]", errmsg)
             return False
+
+        if not argv.dry_run:
+            log.info("Removing: [%s]", image)
+            os.remove(image)
 
     return True
