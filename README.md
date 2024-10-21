@@ -127,12 +127,13 @@ cleanup bitmaps that are not required via:
  qmpbackup --socket /path/to/socket cleanup --remove-bitmaps --uuid <uuid>
 ```
 
-Alternatively you specify the uuid to be used for the bitmap names during the
-first full backup you create. This way the bitmaps will be re-used and must not
-be cleaned:
+Alternatively you can specify the uuid to be used for the bitmap names during
+the first full backup you create. This way the bitmaps will be re-used and must
+not be cleaned:
 
 ```
- qmpbackup --socket /tmp/socket backup -l full -t /tmp/myuuid --uuid testme
+ qmpbackup --socket /tmp/socket backup -l full -t /tmp/backup --uuid testme
+ qmpbackup --socket /tmp/socket backup -l inc -t /tmp/backup
 ```
 
 Monthly Backups
