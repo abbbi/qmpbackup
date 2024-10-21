@@ -311,8 +311,6 @@ def snapshot_rebase(argv):
         log.error("No incremental images found, nothing to rebase.")
         return False
 
-    idx = len(images) - 1
-
     try:
         _check(images[0])
     except RuntimeError as errmsg:
@@ -321,6 +319,7 @@ def snapshot_rebase(argv):
 
     if argv.until is not None:
         sidx = images_flat.index(argv.until)
+        print(sidx)
 
     snapshot_cmd = f'qemu-img snapshot -c "FULL-BACKUP" "{images[0]}"'
     log.info(snapshot_cmd)
@@ -332,18 +331,6 @@ def snapshot_rebase(argv):
         return False
 
     for image in images[1:]:
-        idx = idx - 1
-        if argv.until is not None and idx >= sidx:
-            log.info("Skipping checkpoint: %s as requested with --until option", image)
-            continue
-
-        if images.index(image) == 0 or "FULL-" in images[images.index(image)]:
-            log.info(
-                "Rollback of latest [FULL]<-[INC] chain complete, ignoring older chains"
-            )
-            log.info("You can use [%s] to access the latest image data.", link)
-            break
-
         try:
             _check(image)
         except RuntimeError as errmsg:
@@ -373,5 +360,11 @@ def snapshot_rebase(argv):
         if not argv.dry_run:
             log.info("Removing: [%s]", image)
             os.remove(image)
+
+        if argv.until is not None and os.path.basename(image) == argv.until:
+            log.info(
+                "Stopping at checkpoint: %s as requested with --until option", image
+            )
+            break
 
     return True
