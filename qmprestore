@@ -85,10 +85,11 @@ log = lib.setup_log(False)
 
 log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 
-if action in ("rebase", "merge", "snapshotrebase"):
-    if not os.path.exists(argv.dir):
-        log.error("Specified target folder does not exist: [%s]", argv.dir)
-        sys.exit(1)
+if not os.path.exists(argv.dir):
+    log.error("Specified target folder does not exist: [%s]", argv.dir)
+    sys.exit(1)
+
+if action in ("rebase", "snapshotrebase"):
     if argv.dry_run:
         log.info("Dry run activated, not applying any changes")
 
