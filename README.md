@@ -23,6 +23,7 @@ project:
 - [Installation](#installation)
 - [Prerequisites](#prerequisites)
 - [Usage](#usage)
+- [Backup chains / unique bitmap names](#backup-chains--unique-bitmap-names)
 - [Monthly Backups](#monthly-backups)
 - [Excluding disks from backup](#excluding-disks-from-backup)
 - [Filesystem Freeze](#filesystem-freeze)
