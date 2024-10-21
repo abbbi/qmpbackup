@@ -291,3 +291,84 @@ def rebase(argv):
             logging.warning("Unable to create symlink to latest image: [%s]", errmsg)
 
     return True
+
+
+def snapshot_rebase(argv):
+    """Rebase the images, commit all changes but create a snapshot
+    prior"""
+    link = os.path.join(argv.dir, "image")
+    if os.path.exists(link):
+        log.error("Directory has already been rebased: [%s]", link)
+        return False
+
+    try:
+        images, images_flat = lib.get_images(argv)
+    except RuntimeError as errmsg:
+        log.error(errmsg)
+        return False
+
+    if "FULL-" in images[-1]:
+        log.error("No incremental images found, nothing to rebase.")
+        return False
+
+    idx = len(images) - 1
+
+    try:
+        _check(images[0])
+    except RuntimeError as errmsg:
+        log.error(errmsg)
+        return False
+
+    if argv.until is not None:
+        sidx = images_flat.index(argv.until)
+
+    print(images[1:])
+    snapshot_cmd = f'qemu-img snapshot -c "FULL-BACKUP" "{images[0]}"'
+    try:
+        if not argv.dry_run:
+            # subprocess.check_output(snapshot_cmd, shell=True)
+            log.info(snapshot_cmd)
+    except subprocess.CalledProcessError as errmsg:
+        log.error("Rebase command failed: [%s]", errmsg)
+        return False
+
+    for image in images[1:]:
+        idx = idx - 1
+        if argv.until is not None and idx >= sidx:
+            log.info("Skipping checkpoint: %s as requested with --until option", image)
+            continue
+
+        if images.index(image) == 0 or "FULL-" in images[images.index(image)]:
+            log.info(
+                "Rollback of latest [FULL]<-[INC] chain complete, ignoring older chains"
+            )
+            log.info("You can use [%s] to access the latest image data.", link)
+            break
+
+        try:
+            _check(image)
+        except RuntimeError as errmsg:
+            log.error(errmsg)
+            return False
+
+        try:
+            snapshot_cmd = (
+                f'qemu-img snapshot -c "INC-{os.path.basename(image[idx])}" "{image}"'
+            )
+            log.info(snapshot_cmd)
+            rebase_cmd = (
+                f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}" -u'
+            )
+            log.info(rebase_cmd)
+            commit_cmd = "qemu-img commit -b " f'"{images[0]}" ' f'"{image}"'
+            log.info(commit_cmd)
+            # subprocess.check_output(commit_cmd, shell=True)
+            # if not argv.dry_run:
+            #   subprocess.check_output(snapshot_cmd, shell=True)
+            #   subprocess.check_output(rebase_cmd, shell=True)
+            #   subprocess.check_output(commit_cmd, shell=True)
+        except subprocess.CalledProcessError as errmsg:
+            log.error("Rebase command failed: [%s]", errmsg)
+            return False
+
+    return True
