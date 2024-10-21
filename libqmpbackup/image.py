@@ -296,13 +296,8 @@ def rebase(argv):
 def snapshot_rebase(argv):
     """Rebase the images, commit all changes but create a snapshot
     prior"""
-    link = os.path.join(argv.dir, "image")
-    if os.path.exists(link):
-        log.error("Directory has already been rebased: [%s]", link)
-        return False
-
     try:
-        images, images_flat = lib.get_images(argv)
+        images, _ = lib.get_images(argv)
     except RuntimeError as errmsg:
         log.error(errmsg)
         return False
@@ -316,10 +311,6 @@ def snapshot_rebase(argv):
     except RuntimeError as errmsg:
         log.error(errmsg)
         return False
-
-    if argv.until is not None:
-        sidx = images_flat.index(argv.until)
-        print(sidx)
 
     snapshot_cmd = f'qemu-img snapshot -c "FULL-BACKUP" "{images[0]}"'
     log.info(snapshot_cmd)
