@@ -28,8 +28,9 @@ project:
 - [Filesystem Freeze](#filesystem-freeze)
 - [Backup Offline virtual machines](#backup-offline-virtual-machines)
 - [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
-- [Rebasing the images](#rebasing-the-images)
-- [Restore with merge](#restore-with-merge)
+- [Restoring / Rebasing the images](#restoring--rebasing-the-images)
+- [Restore / Rebase with merge](#restore--rebase-with-merge)
+- [Restore / Rebase with snapshots](#restore--rebase-with-snapshots)
 - [Misc commands and options](#misc-commands-and-options)
   - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
@@ -171,7 +172,7 @@ the backup by default.
 
 
 
-Rebasing the images
+Restoring / Rebasing the images
 -------
 
 Restoring your data is a matter of rebasing the created qcow images by
@@ -206,7 +207,7 @@ time is possible:
  qmprestore rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
 ```
 
-Restore with merge
+Restore / Rebase with merge
 -------
 
 It is also possible to restore and rebase the backup files into a new target
@@ -216,6 +217,27 @@ file image, without altering the original backup files:
  qmprestore merge --dir /tmp/backup/ide0-hd0/ --targetfile /tmp/restore/disk1.qcow2
 ```
 
+Restore / Rebase with snapshots
+-------
+
+Using the `snapshotrebase` functionality it is possible to rebase/commit the
+images back into an full backup, but additionally the rebase process will
+create an internal snapshot for the qemu image, for each incremental backup
+applied.
+
+This way it is easily possible to switch between the backup states after
+rebasing.
+
+```
+ qmprestore snapshotrebase --dir /tmp/backup/ide0-hd0/
+ [..]
+ qemu-img snapshot -l /tmp/backup/ide0-hd0/FULL-1706260639-disk1.qcow2
+ Snapshot list:
+ ID        TAG               VM SIZE                DATE     VM CLOCK     ICOUNT
+ 1         FULL-BACKUP           0 B 2024-10-21 12:50:45 00:00:00.000          0
+ 2         INC-1729507368-disk1.qcow2      0 B 2024-10-21 12:50:45 00:00:00.000          0
+ 3         INC-1729507369-disk1.qcow2      0 B 2024-10-21 12:50:45 00:00:00.000          0
+```
 
 Misc commands and options
 --------------------------
