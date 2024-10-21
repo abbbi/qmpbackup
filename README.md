@@ -62,7 +62,7 @@ The virtual machine must be reachable via QMP protocol on a unix socket,
 usually this happens by starting the virtual machine via:
 
 ```
- qemu-system-<arch> <options> -qmp unix:/path/socket,server,nowait
+ qemu-system-<arch> <options> -qmp unix:/path/to/socket,server,nowait
 ```
 
 *qmpbackup* uses this socket to pass required commands to the virtual machine.
@@ -98,7 +98,7 @@ Second step is to change some data within your virtual machine and let
 *qmpbackup* create an incremental backup for you, this works by:
 
 ```
- qmpbackup --socket /path/socket backup --level inc --target /tmp/backup/
+ qmpbackup --socket /path/to/socket backup --level inc --target /tmp/backup/
 ```
 
 The changed delta since your last full (or inc) backup will be dumped to
@@ -132,8 +132,8 @@ the first full backup you create. This way the bitmaps will be re-used and must
 not be cleaned:
 
 ```
- qmpbackup --socket /tmp/socket backup -l full -t /tmp/backup --uuid testme
- qmpbackup --socket /tmp/socket backup -l inc -t /tmp/backup
+ qmpbackup --socket /path/to/socket backup -l full -t /tmp/backup --uuid testme
+ qmpbackup --socket /path/to/socket backup -l inc -t /tmp/backup
 ```
 
 Monthly Backups
@@ -144,7 +144,7 @@ level, backups will be created in monthly backup chains.
 
 Executing the backup and the date being 2021-11, the following command: 
 
-`qmpbackup --socket /path/socket backup --level auto --monthly --target /tmp/backup`
+`qmpbackup --socket /path/to/socket backup --level auto --monthly --target /tmp/backup`
 
 will place backups in the following backup path: `/tmp/backup/2021-11/`
 
@@ -168,7 +168,7 @@ Guest Agent socket (*--agent-socket*)  and request filesystem quiesce via
 *--quiesce* option:
 
 ```
-  qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
+  qmpbackup --socket /path/to/socket --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
 ```
 
 Use the following options to QEMU to enable an guest agent socket:
@@ -276,13 +276,13 @@ during the `blockdev-backup` operation. This can save quite some storage space o
 the created target images, but may slow down the backup operation.
 
 ```
- qmpbackup --socket /tmp/vm backup [..] --compress
+ qmpbackup --socket /path/to/socket backup [..] --compress
 ```
 
 ### List devices suitable for backup
 
 ```
- qmpbackup --socket /tmp/vm info --show blockdev
+ qmpbackup --socket /path/to/socket info --show blockdev
 ```
 
 ### Including raw devices
@@ -302,7 +302,7 @@ complete image will be backed up.
 To query existing bitmaps information use:
 
 ```
- qmpbackup --socket /tmp/vm info --show bitmaps
+ qmpbackup --socket /path/to/socket info --show bitmaps
 ```
 
 ### Cleanup bitmaps
@@ -310,7 +310,7 @@ To query existing bitmaps information use:
 In order to remove existing dirty-bitmaps use:
 
 ```
- qmpbackup --socket /tmp/vm cleanup --remove-bitmaps
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps
 ```
 
 If you create a new backup chain (new full backup to an empty
@@ -322,7 +322,7 @@ You can set an speed limit (bytes per second) for all backup operations to
 limit throughput:
 
 ```
- qmpbackup --socket /tmp/vm backup [..] --speed-limit 2000000
+ qmpbackup --socket /path/to/socket backup [..] --speed-limit 2000000
 ```
 
 
