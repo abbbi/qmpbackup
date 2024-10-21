@@ -343,7 +343,7 @@ def snapshot_rebase(argv):
             )
             log.info(snapshot_cmd)
             rebase_cmd = (
-                f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}" -u'
+                f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}"'
             )
             log.info(rebase_cmd)
             commit_cmd = "qemu-img commit -b " f'"{images[0]}" ' f'"{image}"'
