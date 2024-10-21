@@ -307,7 +307,7 @@ def snapshot_rebase(argv):
         log.error(errmsg)
         return False
 
-    if "FULL-" in images[-1]:
+    if "FULL-" in images[-1] or len(images) == 1:
         log.error("No incremental images found, nothing to rebase.")
         return False
 
