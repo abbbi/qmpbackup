@@ -23,12 +23,13 @@ project:
 - [Installation](#installation)
 - [Prerequisites](#prerequisites)
 - [Usage](#usage)
-- [Backup chains / unique bitmap names](#backup-chains--unique-bitmap-names)
+- [Backup](#backup)
+  - [Backup chains / unique bitmap names](#backup-chains--unique-bitmap-names)
   - [Monthly Backups](#monthly-backups)
-- [Excluding disks from backup](#excluding-disks-from-backup)
-- [Filesystem Freeze](#filesystem-freeze)
-- [Backup Offline virtual machines](#backup-offline-virtual-machines)
-- [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
+  - [Excluding disks from backup](#excluding-disks-from-backup)
+  - [Filesystem Freeze](#filesystem-freeze)
+  - [Offline virtual machines](#offline-virtual-machines)
+  - [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
 - [Restore](#restore)
   - [Regular Rebase](#regular-rebase)
   - [Rebase into a new image](#rebase-into-a-new-image)
@@ -108,7 +109,9 @@ There is also the `auto` backup level which combines the `full` and `inc`
 backup levels. If there's no existing bitmap for the VM, `full` will run. If a
 bitmap exists, `inc` will be used.
 
-# Backup chains / unique bitmap names
+# Backup
+
+## Backup chains / unique bitmap names
 
 By default a new full backup to an empty directory will create a new unique id
 for the bitmap that is used to start a new backup chain.
@@ -148,7 +151,7 @@ will place backups in the following backup path: `/tmp/backup/2021-11/`
 When the date changes to 2021-12 and *qmpbackup* is executed, backups will be
 placed in `/tmp/backup/2021-12/` and a new full backup will be created.
 
-# Excluding disks from backup
+## Excluding disks from backup
 
 Disks can be excluded from the backup by using the *--exclude* option, the name
 must match the devices "node" name (use the *info --show blockdev* option to
@@ -156,7 +159,7 @@ get a list of attached block devices considered for backup)
 
 If only specific disks should be saved, use the *--include* option.
 
-# Filesystem Freeze
+## Filesystem Freeze
 
 In case the virtual machine has an guest agent installed you can set the QEMU
 Guest Agent socket (*--agent-socket*)  and request filesystem quiesce via
@@ -174,7 +177,7 @@ Use the following options to QEMU to enable an guest agent socket:
    -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
 ```
 
-# Backup Offline virtual machines
+## Offline virtual machines
 
 If you want to backup virtual machines without the virtual machine being in
 fully operational state, it is sufficient to bring up the QEMU process in
@@ -184,7 +187,7 @@ fully operational state, it is sufficient to bring up the QEMU process in
  qemu-system-<arch> -S <options>
 ```
 
-# UEFI / BIOS (pflash devices)
+## UEFI / BIOS (pflash devices)
 
 If the virtual machine uses UEFI, it usually has attached `pflash` devices
 pointing to the UEFI firmware and variables files. These will be included in
