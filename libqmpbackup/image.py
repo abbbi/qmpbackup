@@ -15,6 +15,7 @@ import os
 import json
 import logging
 import subprocess
+import datetime
 from time import time
 from libqmpbackup import lib
 
@@ -328,10 +329,13 @@ def snapshot_rebase(argv):
             log.error(errmsg)
             return False
 
+        timestamp = int(os.path.basename(image).split("-")[1])
+        snapshot_name = datetime.datetime.fromtimestamp(timestamp).strftime(
+            "%Y-%m-%d-%H:%M:%S"
+        )
+
         try:
-            snapshot_cmd = (
-                f'qemu-img snapshot -c "{os.path.basename(image)}" "{images[0]}"'
-            )
+            snapshot_cmd = f'qemu-img snapshot -c "{snapshot_name}" "{images[0]}"'
             log.info(snapshot_cmd)
             rebase_cmd = (
                 f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}" -u'
