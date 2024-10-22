@@ -126,7 +126,11 @@ def get_images(argv):
     """get images within backup folder"""
     os.chdir(argv.dir)
     image_files = filter(os.path.isfile, os.listdir(argv.dir))
-    images = [os.path.join(argv.dir, f) for f in image_files]
+    images = [
+        os.path.join(argv.dir, f)
+        for f in image_files
+        if not (f.endswith(".config") or f == "uuid")
+    ]
     images_flat = [os.path.basename(f) for f in images]
     if argv.until is not None and argv.until not in images_flat:
         raise RuntimeError(
@@ -146,8 +150,13 @@ def get_images(argv):
             "Partial backup file found, backup chain might be broken. "
             "Consider removing file before attempting to rebase."
         )
-    if "FULL-" not in images[0]:
-        raise RuntimeError("Unable to find base FULL image in target folder.")
+    if argv.filter == "":
+        if "FULL-" not in images[0]:
+            raise RuntimeError("Unable to find base FULL image in target folder.")
+
+    if argv.filter != "":
+        images = [x for x in images if argv.filter in x]
+        images_flat = [x for x in images_flat if argv.filter in x]
 
     return images, images_flat
 
@@ -162,12 +171,15 @@ def copyfile(src, target):
         ) from errmsg
 
 
-def save_uuid(target):
+def save_uuid(target, use_uuid=""):
     """Create an unique uuid that is written to the backup target file and
     added to the generated bitmap name. So later incremental backups can
     check if the backup target directory is matching the backup chain"""
     uuidfile = os.path.join(target, "uuid")
-    backup_uuid = uuid.uuid4()
+    if use_uuid == "":
+        backup_uuid = uuid.uuid4()
+    else:
+        backup_uuid = use_uuid
     try:
         with open(uuidfile, "w+", encoding="utf-8") as info_file:
             info_file.write(str(backup_uuid))

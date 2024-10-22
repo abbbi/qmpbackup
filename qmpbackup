@@ -180,6 +180,13 @@ async def main():
         help="Include raw images in backup.",
         required=False,
     )
+    parser_backup.add_argument(
+        "--uuid",
+        help="use specified uuid for bitmap",
+        type=str,
+        required=False,
+        default="",
+    )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
     parser_cleanup.add_argument(
@@ -284,7 +291,7 @@ async def main():
                     sys.exit(1)
             else:
                 try:
-                    uuid = lib.save_uuid(argv.target)
+                    uuid = lib.save_uuid(argv.target, argv.uuid)
                 except RuntimeError as errmsg:
                     log.error("Unable to store backup uuid: [%s]", errmsg)
                     sys.exit(1)

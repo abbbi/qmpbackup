@@ -15,6 +15,7 @@ import os
 import json
 import logging
 import subprocess
+import datetime
 from time import time
 from libqmpbackup import lib
 
@@ -289,5 +290,76 @@ def rebase(argv):
             os.symlink(images[-1], "image")
         except OSError as errmsg:
             logging.warning("Unable to create symlink to latest image: [%s]", errmsg)
+
+    return True
+
+
+def snapshot_rebase(argv):
+    """Rebase the images, commit all changes but create a snapshot
+    prior"""
+    try:
+        images, _ = lib.get_images(argv)
+    except RuntimeError as errmsg:
+        log.error(errmsg)
+        return False
+
+    if "FULL-" in images[-1] or len(images) == 1:
+        log.error("No incremental images found, nothing to rebase.")
+        return False
+
+    try:
+        _check(images[0])
+    except RuntimeError as errmsg:
+        log.error(errmsg)
+        return False
+
+    snapshot_cmd = f'qemu-img snapshot -c "FULL-BACKUP" "{images[0]}"'
+    log.info(snapshot_cmd)
+    try:
+        if not argv.dry_run:
+            subprocess.check_output(snapshot_cmd, shell=True)
+    except subprocess.CalledProcessError as errmsg:
+        log.error("Rebase command failed: [%s]", errmsg)
+        return False
+
+    for image in images[1:]:
+        try:
+            _check(image)
+        except RuntimeError as errmsg:
+            log.error(errmsg)
+            return False
+
+        timestamp = int(os.path.basename(image).split("-")[1])
+        snapshot_name = datetime.datetime.fromtimestamp(timestamp).strftime(
+            "%Y-%m-%d-%H:%M:%S"
+        )
+
+        try:
+            snapshot_cmd = f'qemu-img snapshot -c "{snapshot_name}" "{images[0]}"'
+            log.info(snapshot_cmd)
+            rebase_cmd = (
+                f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}" -u'
+            )
+            log.info(rebase_cmd)
+            commit_cmd = "qemu-img commit -b " f'"{images[0]}" ' f'"{image}"'
+            log.info(commit_cmd)
+            # subprocess.check_output(commit_cmd, shell=True)
+            if not argv.dry_run:
+                subprocess.check_output(rebase_cmd, shell=True)
+                subprocess.check_output(commit_cmd, shell=True)
+                subprocess.check_output(snapshot_cmd, shell=True)
+        except subprocess.CalledProcessError as errmsg:
+            log.error("Rebase command failed: [%s]", errmsg)
+            return False
+
+        if not argv.dry_run:
+            log.info("Removing: [%s]", image)
+            os.remove(image)
+
+        if argv.until is not None and os.path.basename(image) == argv.until:
+            log.info(
+                "Stopping at checkpoint: %s as requested with --until option", image
+            )
+            break
 
     return True

@@ -23,13 +23,15 @@ project:
 - [Installation](#installation)
 - [Prerequisites](#prerequisites)
 - [Usage](#usage)
+- [Backup chains / unique bitmap names](#backup-chains--unique-bitmap-names)
 - [Monthly Backups](#monthly-backups)
 - [Excluding disks from backup](#excluding-disks-from-backup)
 - [Filesystem Freeze](#filesystem-freeze)
 - [Backup Offline virtual machines](#backup-offline-virtual-machines)
 - [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
-- [Rebasing the images](#rebasing-the-images)
-- [Restore with merge](#restore-with-merge)
+- [Restoring / Rebasing the images](#restoring--rebasing-the-images)
+- [Restore / Rebase with merge](#restore--rebase-with-merge)
+- [Restore / Rebase with snapshots](#restore--rebase-with-snapshots)
 - [Misc commands and options](#misc-commands-and-options)
   - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
@@ -60,7 +62,7 @@ The virtual machine must be reachable via QMP protocol on a unix socket,
 usually this happens by starting the virtual machine via:
 
 ```
- qemu-system-<arch> <options> -qmp unix:/path/socket,server,nowait
+ qemu-system-<arch> <options> -qmp unix:/path/to/socket,server,nowait
 ```
 
 *qmpbackup* uses this socket to pass required commands to the virtual machine.
@@ -96,7 +98,7 @@ Second step is to change some data within your virtual machine and let
 *qmpbackup* create an incremental backup for you, this works by:
 
 ```
- qmpbackup --socket /path/socket backup --level inc --target /tmp/backup/
+ qmpbackup --socket /path/to/socket backup --level inc --target /tmp/backup/
 ```
 
 The changed delta since your last full (or inc) backup will be dumped to
@@ -108,6 +110,32 @@ There is also the `auto` backup level which combines the `full` and `inc`
 backup levels. If there's no existing bitmap for the VM, `full` will run. If a
 bitmap exists, `inc` will be used.
 
+Backup chains / unique bitmap names
+-----
+
+By default a new full backup to an empty directory will create a new unique id
+for the bitmap that is used to start a new backup chain.
+
+This way you can create multiple backup chains, each of them using an
+unique bitmap to track the changes.
+
+The `qmpbackup` utility will not cleanup those bitmaps by default if you can
+cleanup bitmaps that are not required via:
+
+```
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps --uuid <uuid>
+```
+
+Alternatively you can specify the uuid to be used for the bitmap names during
+the first full backup you create. This way the bitmaps will be re-used and must
+not be cleaned:
+
+```
+ qmpbackup --socket /path/to/socket backup -l full -t /tmp/backup --uuid testme
+ qmpbackup --socket /path/to/socket backup -l inc -t /tmp/backup
+```
+
 Monthly Backups
 -----------------
 Using the `--monthly` flag with the `backup` command, backups will be placed in
@@ -116,7 +144,7 @@ level, backups will be created in monthly backup chains.
 
 Executing the backup and the date being 2021-11, the following command: 
 
-`qmpbackup --socket /path/socket backup --level auto --monthly --target /tmp/backup`
+`qmpbackup --socket /path/to/socket backup --level auto --monthly --target /tmp/backup`
 
 will place backups in the following backup path: `/tmp/backup/2021-11/`
 
@@ -140,7 +168,7 @@ Guest Agent socket (*--agent-socket*)  and request filesystem quiesce via
 *--quiesce* option:
 
 ```
-  qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
+  qmpbackup --socket /path/to/socket --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
 ```
 
 Use the following options to QEMU to enable an guest agent socket:
@@ -171,7 +199,7 @@ the backup by default.
 
 
 
-Rebasing the images
+Restoring / Rebasing the images
 -------
 
 Restoring your data is a matter of rebasing the created qcow images by
@@ -206,7 +234,7 @@ time is possible:
  qmprestore rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
 ```
 
-Restore with merge
+Restore / Rebase with merge
 -------
 
 It is also possible to restore and rebase the backup files into a new target
@@ -216,6 +244,27 @@ file image, without altering the original backup files:
  qmprestore merge --dir /tmp/backup/ide0-hd0/ --targetfile /tmp/restore/disk1.qcow2
 ```
 
+Restore / Rebase with snapshots
+-------
+
+Using the `snapshotrebase` functionality it is possible to rebase/commit the
+images back into an full backup, but additionally the rebase process will
+create an internal snapshot for the qemu image, for each incremental backup
+applied.
+
+This way it is easily possible to switch between the backup states after
+rebasing.
+
+```
+ qmprestore snapshotrebase --dir /tmp/backup/ide0-hd0/
+ [..]
+ qemu-img snapshot -l /tmp/backup/ide0-hd0/FULL-1706260639-disk1.qcow2
+ Snapshot list:
+ ID        TAG               VM SIZE                DATE     VM CLOCK     ICOUNT
+ 1         FULL-BACKUP           0 B 2024-10-21 12:50:45 00:00:00.000          0
+ 2         2024-10-21-12:42:48      0 B 2024-10-22 09:23:39 00:00:00.000       0
+ 3         2024-10-21-12:42:49      0 B 2024-10-22 09:23:39 00:00:00.000       0
+```
 
 Misc commands and options
 --------------------------
@@ -227,13 +276,13 @@ during the `blockdev-backup` operation. This can save quite some storage space o
 the created target images, but may slow down the backup operation.
 
 ```
- qmpbackup --socket /tmp/vm backup [..] --compress
+ qmpbackup --socket /path/to/socket backup [..] --compress
 ```
 
 ### List devices suitable for backup
 
 ```
- qmpbackup --socket /tmp/vm info --show blockdev
+ qmpbackup --socket /path/to/socket info --show blockdev
 ```
 
 ### Including raw devices
@@ -253,7 +302,7 @@ complete image will be backed up.
 To query existing bitmaps information use:
 
 ```
- qmpbackup --socket /tmp/vm info --show bitmaps
+ qmpbackup --socket /path/to/socket info --show bitmaps
 ```
 
 ### Cleanup bitmaps
@@ -261,7 +310,7 @@ To query existing bitmaps information use:
 In order to remove existing dirty-bitmaps use:
 
 ```
- qmpbackup --socket /tmp/vm cleanup --remove-bitmaps
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps
 ```
 
 If you create a new backup chain (new full backup to an empty
@@ -273,7 +322,7 @@ You can set an speed limit (bytes per second) for all backup operations to
 limit throughput:
 
 ```
- qmpbackup --socket /tmp/vm backup [..] --speed-limit 2000000
+ qmpbackup --socket /path/to/socket backup [..] --speed-limit 2000000
 ```
 
 
