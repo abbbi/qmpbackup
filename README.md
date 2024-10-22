@@ -24,27 +24,27 @@ project:
 - [Prerequisites](#prerequisites)
 - [Usage](#usage)
 - [Backup chains / unique bitmap names](#backup-chains--unique-bitmap-names)
-- [Monthly Backups](#monthly-backups)
+  - [Monthly Backups](#monthly-backups)
 - [Excluding disks from backup](#excluding-disks-from-backup)
 - [Filesystem Freeze](#filesystem-freeze)
 - [Backup Offline virtual machines](#backup-offline-virtual-machines)
 - [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
-- [Restoring / Rebasing the images](#restoring--rebasing-the-images)
-- [Restore / Rebase with merge](#restore--rebase-with-merge)
-- [Restore / Rebase with snapshots](#restore--rebase-with-snapshots)
+- [Restore](#restore)
+  - [Regular Rebase](#regular-rebase)
+  - [Rebase into a new image](#rebase-into-a-new-image)
+  - [Rebase with adding snapshots](#rebase-with-adding-snapshots)
 - [Misc commands and options](#misc-commands-and-options)
   - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
   - [Including raw devices](#including-raw-devices)
-  - [List existing bitmaps](#list-existing-bitmaps)
+    - [List existing bitmaps](#list-existing-bitmaps)
   - [Cleanup bitmaps](#cleanup-bitmaps)
   - [Speed limit](#speed-limit)
 - [Limitations](#limitations)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-Installation
--------------
+# Installation
 
 *qmpbackup* makes use of [qemu.qmp](https://gitlab.com/jsnow/qemu.qmp)
 
@@ -55,8 +55,7 @@ Installation
  python3 setup.py install
 ```
 
-Prerequisites
--------------
+# Prerequisites
 
 The virtual machine must be reachable via QMP protocol on a unix socket,
 usually this happens by starting the virtual machine via:
@@ -67,8 +66,7 @@ usually this happens by starting the virtual machine via:
 
 *qmpbackup* uses this socket to pass required commands to the virtual machine.
 
-Usage
------
+# Usage
 
 In order to create a full backup use the following command:
 
@@ -110,8 +108,7 @@ There is also the `auto` backup level which combines the `full` and `inc`
 backup levels. If there's no existing bitmap for the VM, `full` will run. If a
 bitmap exists, `inc` will be used.
 
-Backup chains / unique bitmap names
------
+# Backup chains / unique bitmap names
 
 By default a new full backup to an empty directory will create a new unique id
 for the bitmap that is used to start a new backup chain.
@@ -136,8 +133,8 @@ not be cleaned:
  qmpbackup --socket /path/to/socket backup -l inc -t /tmp/backup
 ```
 
-Monthly Backups
------------------
+## Monthly Backups
+
 Using the `--monthly` flag with the `backup` command, backups will be placed in
 monthly folders in a YYYY-MM format.  The above combined with the `auto` backup
 level, backups will be created in monthly backup chains.
@@ -151,8 +148,7 @@ will place backups in the following backup path: `/tmp/backup/2021-11/`
 When the date changes to 2021-12 and *qmpbackup* is executed, backups will be
 placed in `/tmp/backup/2021-12/` and a new full backup will be created.
 
-Excluding disks from backup
------------------
+# Excluding disks from backup
 
 Disks can be excluded from the backup by using the *--exclude* option, the name
 must match the devices "node" name (use the *info --show blockdev* option to
@@ -160,8 +156,7 @@ get a list of attached block devices considered for backup)
 
 If only specific disks should be saved, use the *--include* option.
 
-Filesystem Freeze
------------------
+# Filesystem Freeze
 
 In case the virtual machine has an guest agent installed you can set the QEMU
 Guest Agent socket (*--agent-socket*)  and request filesystem quiesce via
@@ -179,8 +174,7 @@ Use the following options to QEMU to enable an guest agent socket:
    -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
 ```
 
-Backup Offline virtual machines
--------------------------------
+# Backup Offline virtual machines
 
 If you want to backup virtual machines without the virtual machine being in
 fully operational state, it is sufficient to bring up the QEMU process in
@@ -190,20 +184,25 @@ fully operational state, it is sufficient to bring up the QEMU process in
  qemu-system-<arch> -S <options>
 ```
 
-UEFI / BIOS (pflash devices)
------------------------------
+# UEFI / BIOS (pflash devices)
 
 If the virtual machine uses UEFI, it usually has attached `pflash` devices
 pointing to the UEFI firmware and variables files. These will be included in
 the backup by default.
 
 
+# Restore
 
-Restoring / Rebasing the images
--------
+Restoring your data is a matter of rebasing the created qcow images by using
+standard tools such as *qemu-img* or *qmprestore*. There are three major
+features implemented within the restore command: rebase, merge and
+snapshotrebase.
 
-Restoring your data is a matter of rebasing the created qcow images by
-using standard tools such as *qemu-img* or *qmprestore*.
+The `rebase` and `snapshotrebase` commands will alter the directory
+in-place: this means your backup files will be changed.
+
+The `merge` functionality will merge the data into a separate, new qcow file
+outside of your backup folder.
 
 A image backup based on a backup folder containing the following backups:
 
@@ -214,8 +213,12 @@ A image backup based on a backup folder containing the following backups:
 └── INC-1706260647-disk1.qcow2
 ```
 
-can be rolled back by using *qmprestore*, it uses common QEMU tools to check
-consistency and does a rollback of your image file:
+can be recovered the following ways:
+
+## Regular Rebase
+
+
+A regular rebase will update the backing image for each backup file in-place:
 
 ```
  qmprestore rebase --dir /tmp/backup/ide0-hd0
@@ -234,8 +237,7 @@ time is possible:
  qmprestore rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
 ```
 
-Restore / Rebase with merge
--------
+## Rebase into a new image 
 
 It is also possible to restore and rebase the backup files into a new target
 file image, without altering the original backup files:
@@ -244,8 +246,7 @@ file image, without altering the original backup files:
  qmprestore merge --dir /tmp/backup/ide0-hd0/ --targetfile /tmp/restore/disk1.qcow2
 ```
 
-Restore / Rebase with snapshots
--------
+## Rebase with adding snapshots
 
 Using the `snapshotrebase` functionality it is possible to rebase/commit the
 images back into an full backup, but additionally the rebase process will
@@ -266,10 +267,9 @@ rebasing.
  3         2024-10-21-12:42:49      0 B 2024-10-22 09:23:39 00:00:00.000       0
 ```
 
-Misc commands and options
---------------------------
+# Misc commands and options
 
-### Compressing backups
+## Compressing backups
 
 The `--compress` option can be used to enable compression for target files
 during the `blockdev-backup` operation. This can save quite some storage space on
@@ -279,13 +279,13 @@ the created target images, but may slow down the backup operation.
  qmpbackup --socket /path/to/socket backup [..] --compress
 ```
 
-### List devices suitable for backup
+## List devices suitable for backup
 
 ```
  qmpbackup --socket /path/to/socket info --show blockdev
 ```
 
-### Including raw devices
+## Including raw devices
 
 Attached raw devices (format: raw) do not support incremental backup. The
 only way to create backups for these devices is to create a complete full
@@ -305,7 +305,7 @@ To query existing bitmaps information use:
  qmpbackup --socket /path/to/socket info --show bitmaps
 ```
 
-### Cleanup bitmaps
+## Cleanup bitmaps
 
 In order to remove existing dirty-bitmaps use:
 
@@ -316,7 +316,7 @@ In order to remove existing dirty-bitmaps use:
 If you create a new backup chain (new full backup to an empty
 directory) you should cleanup old bitmaps before.
 
-### Speed limit
+## Speed limit
 
 You can set an speed limit (bytes per second) for all backup operations to
 limit throughput:
@@ -325,9 +325,7 @@ limit throughput:
  qmpbackup --socket /path/to/socket backup [..] --speed-limit 2000000
 ```
 
-
-Limitations
------------
+# Limitations
 
 1) Using the QMP protocol it cannot be used together with libvirt as libvirt
 exclusively uses the virtual machines monitor socket. See
