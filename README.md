@@ -38,7 +38,7 @@ project:
   - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
   - [Including raw devices (lvm, zfs, ceph)](#including-raw-devices-lvm-zfs-ceph)
-    - [List existing bitmaps](#list-existing-bitmaps)
+  - [List existing bitmaps](#list-existing-bitmaps)
   - [Cleanup bitmaps](#cleanup-bitmaps)
   - [Speed limit](#speed-limit)
 - [Limitations](#limitations)
@@ -300,7 +300,7 @@ By default `qmpbackup` will ignore such devices, but you can use the
 Of course, if you create an incremental backup for these devices, the complete
 image will be backed up.
 
-### List existing bitmaps
+## List existing bitmaps
 
 To query existing bitmaps information use:
 
