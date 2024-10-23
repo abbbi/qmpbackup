@@ -92,8 +92,6 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                         log.info("Ceph device found, using image name")
                         filename = encoded_name["file"][0]["image"]
                 except KeyError:
-                    pass
-                else:
                     try:
                         filename = encoded_name["file"]["next"]["filename"]
                     except KeyError:
