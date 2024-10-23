@@ -11,6 +11,7 @@
  the LICENSE file in the top-level directory.
 """
 
+import os
 import json
 import logging
 from dataclasses import dataclass
@@ -90,7 +91,9 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                     driver = encoded_name["file"]["driver"]
                     if driver == "rbd":
                         log.info("Ceph device found, using image name")
-                        filename = encoded_name["file"]["image"]
+                        filename = os.path.join(
+                            "/dev/rdb", encoded_name["file"]["image"]
+                        )
                 except KeyError:
                     try:
                         filename = encoded_name["file"]["next"]["filename"]
