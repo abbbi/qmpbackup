@@ -39,6 +39,10 @@ def save_info(backupdir, blockdev):
     for dev in blockdev:
         infofile = os.path.join(backupdir, f"{os.path.basename(dev.filename)}.config")
 
+        if dev.driver == "rbd":
+            log.info("Skip saving image information for RBD device: [%s]", dev.filename)
+            continue
+
         info = get_info(dev.filename)
         try:
             with open(infofile, "wb+") as info_file:
