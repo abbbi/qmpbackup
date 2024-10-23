@@ -30,6 +30,7 @@ class BlockDev:
     has_bitmap: bool
     bitmaps: list
     virtual_size: int
+    driver: str
 
 
 def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
@@ -41,6 +42,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
         bitmaps = None
         has_bitmap = False
         backing_image = False
+        driver = None
         if "inserted" not in device:
             log.debug("Ignoring non-inserted device: %s", device)
             continue
@@ -91,9 +93,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                     driver = encoded_name["file"]["driver"]
                     if driver == "rbd":
                         log.info("Ceph device found, using image name")
-                        filename = os.path.join(
-                            "/dev/rdb", encoded_name["file"]["image"]
-                        )
+                        filename = encoded_name["file"]["image"]
                 except KeyError:
                     try:
                         filename = encoded_name["file"]["next"]["filename"]
@@ -137,6 +137,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 has_bitmap,
                 bitmaps,
                 inserted["image"]["virtual-size"],
+                driver,
             )
         )
 
