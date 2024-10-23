@@ -288,17 +288,17 @@ the created target images, but may slow down the backup operation.
  qmpbackup --socket /path/to/socket info --show blockdev
 ```
 
-## Including raw devices
+## Including raw devices (lvm, zfs, ceph)
 
 Attached raw devices (format: raw) do not support incremental backup. The
 only way to create backups for these devices is to create a complete full
-backup.
+or copy backup.
 
 By default `qmpbackup` will ignore such devices, but you can use the
 `--include-raw` option to create a backup for those devices too.
 
-Of course, if you create an incremental backup for these devices, the
-complete image will be backed up.
+Of course, if you create an incremental backup for these devices, the complete
+image will be backed up.
 
 ### List existing bitmaps
 
