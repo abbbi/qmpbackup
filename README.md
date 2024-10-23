@@ -37,7 +37,7 @@ project:
 - [Misc commands and options](#misc-commands-and-options)
   - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
-  - [Including raw devices](#including-raw-devices)
+  - [Including raw devices (lvm, zfs, ceph)](#including-raw-devices-lvm-zfs-ceph)
     - [List existing bitmaps](#list-existing-bitmaps)
   - [Cleanup bitmaps](#cleanup-bitmaps)
   - [Speed limit](#speed-limit)
