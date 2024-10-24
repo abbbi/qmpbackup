@@ -259,7 +259,9 @@ async def main():
 
         log.info("Backup target directory: %s", argv.target)
         if argv.level == "auto":
-            if new_monthly is True:
+            if new_monthly is True or not os.path.exists(
+                os.path.join(argv.target, "uuid")
+            ):
                 argv.level = "full"
             else:
                 argv.level = "inc"

@@ -124,6 +124,12 @@ exist_files /tmp/raw_backup//ide1-hd0/FULL*
 rm -rf /tmp/raw_backup/
 
 
+# auto backup to empty directory must execute FULL backup
+rm -rf /tmp/empty
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --target /tmp/empty/ --quiesce
+exist_files /tmp/empty//ide0-hd0/FULL*
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --target /tmp/empty/ --quiesce
+exist_files /tmp/empty//ide0-hd0/INC*
 
 # create /tmp/incdata1 within the guest, execute further
 # incremental backups
