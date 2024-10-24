@@ -20,11 +20,37 @@ from libqmpbackup import lib
 
 parser = argparse.ArgumentParser(prog=sys.argv[0])
 subparsers = parser.add_subparsers(help="sub-command help")
+parser_snapshot = subparsers.add_parser("snapshotrebase", help="snapshotrebase")
 parser_rebase = subparsers.add_parser("rebase", help="rebase")
 parser_merge = subparsers.add_parser("merge", help="merge")
+
 parser_rebase.set_defaults(which="rebase")
 parser_rebase.add_argument(
     "--dir", type=str, help="directory which contains images", required=True
+)
+
+parser_snapshot.set_defaults(which="snapshotrebase")
+parser_snapshot.add_argument(
+    "--dir", type=str, help="directory which contains images", required=True
+)
+parser_snapshot.add_argument(
+    "--until",
+    type=str,
+    help="point in time restore until specified backup file",
+    required=False,
+)
+parser_snapshot.add_argument(
+    "--dry-run",
+    action="store_true",
+    help="do not run commands, only show them",
+    required=False,
+)
+parser_snapshot.add_argument(
+    "--filter",
+    type=str,
+    help="only process images matching string",
+    required=False,
+    default="",
 )
 parser_merge.set_defaults(which="merge")
 parser_merge.add_argument(
@@ -42,6 +68,13 @@ parser_merge.add_argument(
     help="point in time restore until specified backup file",
     required=False,
 )
+parser_merge.add_argument(
+    "--filter",
+    type=str,
+    help="only process images matching string",
+    required=False,
+    default="",
+)
 parser_rebase.add_argument(
     "--until",
     type=str,
@@ -53,6 +86,13 @@ parser_rebase.add_argument(
     action="store_true",
     help="do not run commands, only show them",
     required=False,
+)
+parser_rebase.add_argument(
+    "--filter",
+    type=str,
+    help="only process images matching string",
+    required=False,
+    default="",
 )
 
 argv = parser.parse_args()
@@ -66,10 +106,16 @@ log = lib.setup_log(False)
 
 log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 
-if action in ("rebase", "merge"):
-    if not os.path.exists(argv.dir):
-        log.error("Specified target folder does not exist: [%s]", argv.dir)
-        sys.exit(1)
+if not os.path.exists(argv.dir):
+    log.error("Specified target folder does not exist: [%s]", argv.dir)
+    sys.exit(1)
+
+if argv.filter != "":
+    log.info("Filter images in [%s] based on string: [%s]", argv.dir, argv.filter)
+
+if action in ("rebase", "snapshotrebase"):
+    if argv.dry_run:
+        log.info("Dry run activated, not applying any changes")
 
 if action == "merge":
     log.info("Merging images in source folder: [%s] to [%s]", argv.dir, argv.targetfile)
@@ -84,9 +130,14 @@ if action == "merge":
 
 if action == "rebase":
     log.info("Rebasing images in source folder: [%s]", argv.dir)
-    if argv.dry_run:
-        log.info("Dry run activated, not applying any changes")
     if image.rebase(argv):
+        log.info("Image file rebase successful.")
+        sys.exit(0)
+    sys.exit(1)
+
+if action == "snapshotrebase":
+    log.info("Rebasing using snapshot images in source folder: [%s]", argv.dir)
+    if image.snapshot_rebase(argv):
         log.info("Image file rebase successful.")
         sys.exit(0)
     sys.exit(1)

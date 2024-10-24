@@ -11,6 +11,7 @@
  the LICENSE file in the top-level directory.
 """
 
+import os
 import json
 import logging
 from dataclasses import dataclass
@@ -29,6 +30,7 @@ class BlockDev:
     has_bitmap: bool
     bitmaps: list
     virtual_size: int
+    driver: str
 
 
 def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
@@ -40,6 +42,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
         bitmaps = None
         has_bitmap = False
         backing_image = False
+        driver = None
         if "inserted" not in device:
             log.debug("Ignoring non-inserted device: %s", device)
             continue
@@ -87,13 +90,19 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
             try:
                 encoded_name = json.loads(filename[5:])
                 try:
-                    filename = encoded_name["file"]["next"]["filename"]
+                    driver = encoded_name["file"]["driver"]
+                    if driver == "rbd":
+                        log.info("Ceph device found, using image name")
+                        filename = encoded_name["file"]["image"]
                 except KeyError:
-                    log.warning(
-                        "Json encoded setting found but no filename property set for device: [%s]",
-                        device["device"],
-                    )
-                    continue
+                    try:
+                        filename = encoded_name["file"]["next"]["filename"]
+                    except KeyError:
+                        log.warning(
+                            "Json encoded setting found but no filename property set for device: [%s]",
+                            device["device"],
+                        )
+                        continue
             except json.decoder.JSONDecodeError as errmsg:
                 log.warning(
                     "Unable to decode filename json for device [%s]: %s",
@@ -128,6 +137,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 has_bitmap,
                 bitmaps,
                 inserted["image"]["virtual-size"],
+                driver,
             )
         )
 

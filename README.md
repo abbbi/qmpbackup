@@ -23,17 +23,21 @@ project:
 - [Installation](#installation)
 - [Prerequisites](#prerequisites)
 - [Usage](#usage)
-- [Monthly Backups](#monthly-backups)
-- [Excluding disks from backup](#excluding-disks-from-backup)
-- [Filesystem Freeze](#filesystem-freeze)
-- [Backup Offline virtual machines](#backup-offline-virtual-machines)
-- [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
-- [Rebasing the images](#rebasing-the-images)
-- [Restore with merge](#restore-with-merge)
+- [Backup](#backup)
+  - [Backup chains / unique bitmap names](#backup-chains--unique-bitmap-names)
+  - [Monthly Backups](#monthly-backups)
+  - [Excluding disks from backup](#excluding-disks-from-backup)
+  - [Filesystem Freeze](#filesystem-freeze)
+  - [Offline virtual machines](#offline-virtual-machines)
+  - [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
+- [Restore](#restore)
+  - [Regular Rebase](#regular-rebase)
+  - [Rebase into a new image](#rebase-into-a-new-image)
+  - [Rebase with adding snapshots](#rebase-with-adding-snapshots)
 - [Misc commands and options](#misc-commands-and-options)
   - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
-  - [Including raw devices](#including-raw-devices)
+  - [Including raw devices (lvm, zfs, ceph)](#including-raw-devices-lvm-zfs-ceph)
   - [List existing bitmaps](#list-existing-bitmaps)
   - [Cleanup bitmaps](#cleanup-bitmaps)
   - [Speed limit](#speed-limit)
@@ -41,8 +45,7 @@ project:
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-Installation
--------------
+# Installation
 
 *qmpbackup* makes use of [qemu.qmp](https://gitlab.com/jsnow/qemu.qmp)
 
@@ -53,20 +56,18 @@ Installation
  python3 setup.py install
 ```
 
-Prerequisites
--------------
+# Prerequisites
 
 The virtual machine must be reachable via QMP protocol on a unix socket,
 usually this happens by starting the virtual machine via:
 
 ```
- qemu-system-<arch> <options> -qmp unix:/path/socket,server,nowait
+ qemu-system-<arch> <options> -qmp unix:/path/to/socket,server,nowait
 ```
 
 *qmpbackup* uses this socket to pass required commands to the virtual machine.
 
-Usage
------
+# Usage
 
 In order to create a full backup use the following command:
 
@@ -96,7 +97,7 @@ Second step is to change some data within your virtual machine and let
 *qmpbackup* create an incremental backup for you, this works by:
 
 ```
- qmpbackup --socket /path/socket backup --level inc --target /tmp/backup/
+ qmpbackup --socket /path/to/socket backup --level inc --target /tmp/backup/
 ```
 
 The changed delta since your last full (or inc) backup will be dumped to
@@ -108,23 +109,49 @@ There is also the `auto` backup level which combines the `full` and `inc`
 backup levels. If there's no existing bitmap for the VM, `full` will run. If a
 bitmap exists, `inc` will be used.
 
-Monthly Backups
------------------
+# Backup
+
+## Backup chains / unique bitmap names
+
+By default a new full backup to an empty directory will create a new unique id
+for the bitmap that is used to start a new backup chain.
+
+This way you can create multiple backup chains, each of them using an
+unique bitmap to track the changes.
+
+The `qmpbackup` utility will not cleanup those bitmaps by default if you can
+cleanup bitmaps that are not required via:
+
+```
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps --uuid <uuid>
+```
+
+Alternatively you can specify the uuid to be used for the bitmap names during
+the first full backup you create. This way the bitmaps will be re-used and must
+not be cleaned:
+
+```
+ qmpbackup --socket /path/to/socket backup -l full -t /tmp/backup --uuid testme
+ qmpbackup --socket /path/to/socket backup -l inc -t /tmp/backup
+```
+
+## Monthly Backups
+
 Using the `--monthly` flag with the `backup` command, backups will be placed in
 monthly folders in a YYYY-MM format.  The above combined with the `auto` backup
 level, backups will be created in monthly backup chains.
 
 Executing the backup and the date being 2021-11, the following command: 
 
-`qmpbackup --socket /path/socket backup --level auto --monthly --target /tmp/backup`
+`qmpbackup --socket /path/to/socket backup --level auto --monthly --target /tmp/backup`
 
 will place backups in the following backup path: `/tmp/backup/2021-11/`
 
 When the date changes to 2021-12 and *qmpbackup* is executed, backups will be
 placed in `/tmp/backup/2021-12/` and a new full backup will be created.
 
-Excluding disks from backup
------------------
+## Excluding disks from backup
 
 Disks can be excluded from the backup by using the *--exclude* option, the name
 must match the devices "node" name (use the *info --show blockdev* option to
@@ -132,15 +159,14 @@ get a list of attached block devices considered for backup)
 
 If only specific disks should be saved, use the *--include* option.
 
-Filesystem Freeze
------------------
+## Filesystem Freeze
 
 In case the virtual machine has an guest agent installed you can set the QEMU
 Guest Agent socket (*--agent-socket*)  and request filesystem quiesce via
 *--quiesce* option:
 
 ```
-  qmpbackup --socket /tmp/vm --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
+  qmpbackup --socket /path/to/socket --agent-socket /tmp/qga.sock backup --level full --target /tmp/ --quisce
 ```
 
 Use the following options to QEMU to enable an guest agent socket:
@@ -151,8 +177,7 @@ Use the following options to QEMU to enable an guest agent socket:
    -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
 ```
 
-Backup Offline virtual machines
--------------------------------
+## Offline virtual machines
 
 If you want to backup virtual machines without the virtual machine being in
 fully operational state, it is sufficient to bring up the QEMU process in
@@ -162,20 +187,25 @@ fully operational state, it is sufficient to bring up the QEMU process in
  qemu-system-<arch> -S <options>
 ```
 
-UEFI / BIOS (pflash devices)
------------------------------
+## UEFI / BIOS (pflash devices)
 
 If the virtual machine uses UEFI, it usually has attached `pflash` devices
 pointing to the UEFI firmware and variables files. These will be included in
 the backup by default.
 
 
+# Restore
 
-Rebasing the images
--------
+Restoring your data is a matter of rebasing the created qcow images by using
+standard tools such as *qemu-img* or *qmprestore*. There are three major
+features implemented within the restore command: rebase, merge and
+snapshotrebase.
 
-Restoring your data is a matter of rebasing the created qcow images by
-using standard tools such as *qemu-img* or *qmprestore*.
+The `rebase` and `snapshotrebase` commands will alter the directory
+in-place: this means your backup files will be changed.
+
+The `merge` functionality will merge the data into a separate, new qcow file
+outside of your backup folder.
 
 A image backup based on a backup folder containing the following backups:
 
@@ -186,8 +216,12 @@ A image backup based on a backup folder containing the following backups:
 └── INC-1706260647-disk1.qcow2
 ```
 
-can be rolled back by using *qmprestore*, it uses common QEMU tools to check
-consistency and does a rollback of your image file:
+can be recovered the following ways:
+
+## Regular Rebase
+
+
+A regular rebase will update the backing image for each backup file in-place:
 
 ```
  qmprestore rebase --dir /tmp/backup/ide0-hd0
@@ -206,8 +240,7 @@ time is possible:
  qmprestore rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
 ```
 
-Restore with merge
--------
+## Rebase into a new image 
 
 It is also possible to restore and rebase the backup files into a new target
 file image, without altering the original backup files:
@@ -216,69 +249,86 @@ file image, without altering the original backup files:
  qmprestore merge --dir /tmp/backup/ide0-hd0/ --targetfile /tmp/restore/disk1.qcow2
 ```
 
+## Rebase with adding snapshots
 
-Misc commands and options
---------------------------
+Using the `snapshotrebase` functionality it is possible to rebase/commit the
+images back into an full backup, but additionally the rebase process will
+create an internal snapshot for the qemu image, for each incremental backup
+applied.
 
-### Compressing backups
+This way it is easily possible to switch between the backup states after
+rebasing.
+
+```
+ qmprestore snapshotrebase --dir /tmp/backup/ide0-hd0/
+ [..]
+ qemu-img snapshot -l /tmp/backup/ide0-hd0/FULL-1706260639-disk1.qcow2
+ Snapshot list:
+ ID        TAG               VM SIZE                DATE     VM CLOCK     ICOUNT
+ 1         FULL-BACKUP           0 B 2024-10-21 12:50:45 00:00:00.000          0
+ 2         2024-10-21-12:42:48      0 B 2024-10-22 09:23:39 00:00:00.000       0
+ 3         2024-10-21-12:42:49      0 B 2024-10-22 09:23:39 00:00:00.000       0
+```
+
+# Misc commands and options
+
+## Compressing backups
 
 The `--compress` option can be used to enable compression for target files
 during the `blockdev-backup` operation. This can save quite some storage space on
 the created target images, but may slow down the backup operation.
 
 ```
- qmpbackup --socket /tmp/vm backup [..] --compress
+ qmpbackup --socket /path/to/socket backup [..] --compress
 ```
 
-### List devices suitable for backup
+## List devices suitable for backup
 
 ```
- qmpbackup --socket /tmp/vm info --show blockdev
+ qmpbackup --socket /path/to/socket info --show blockdev
 ```
 
-### Including raw devices
+## Including raw devices (lvm, zfs, ceph)
 
 Attached raw devices (format: raw) do not support incremental backup. The
 only way to create backups for these devices is to create a complete full
-backup.
+or copy backup.
 
 By default `qmpbackup` will ignore such devices, but you can use the
 `--include-raw` option to create a backup for those devices too.
 
-Of course, if you create an incremental backup for these devices, the
-complete image will be backed up.
+Of course, if you create an incremental backup for these devices, the complete
+image will be backed up.
 
-### List existing bitmaps
+## List existing bitmaps
 
 To query existing bitmaps information use:
 
 ```
- qmpbackup --socket /tmp/vm info --show bitmaps
+ qmpbackup --socket /path/to/socket info --show bitmaps
 ```
 
-### Cleanup bitmaps
+## Cleanup bitmaps
 
 In order to remove existing dirty-bitmaps use:
 
 ```
- qmpbackup --socket /tmp/vm cleanup --remove-bitmaps
+ qmpbackup --socket /path/to/socket cleanup --remove-bitmaps
 ```
 
 If you create a new backup chain (new full backup to an empty
 directory) you should cleanup old bitmaps before.
 
-### Speed limit
+## Speed limit
 
 You can set an speed limit (bytes per second) for all backup operations to
 limit throughput:
 
 ```
- qmpbackup --socket /tmp/vm backup [..] --speed-limit 2000000
+ qmpbackup --socket /path/to/socket backup [..] --speed-limit 2000000
 ```
 
-
-Limitations
------------
+# Limitations
 
 1) Using the QMP protocol it cannot be used together with libvirt as libvirt
 exclusively uses the virtual machines monitor socket. See
