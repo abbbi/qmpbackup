@@ -199,16 +199,22 @@ cp -a /tmp/backup/ide0-hd0/ /tmp/rebase
 ../qmprestore rebase --dir /tmp/rebase
 virt-ls /tmp/rebase/image /tmp | grep incdata3
 
-
 echo "------------------------------------------------"
 echo "Executing qmprestore tests: snapshotrebase"
 echo "------------------------------------------------"
 rm -rf /tmp/snaprebase
 cp -a /tmp/backup/ide0-hd0/ /tmp/snaprebase
 ../qmprestore snapshotrebase --dir /tmp/snaprebase
-qemu-img info $(find /tmp/snaprebase/  -type f) | grep "Snapshot" || exit 1
+qemu-img info "$(find /tmp/snaprebase/  -type f)" | grep "Snapshot" || exit 1
 rm -rf /tmp/snaprebase
 
+echo "------------------------------------------------"
+echo "Executing qmprestore tests: commit"
+echo "------------------------------------------------"
+rm -rf /tmp/commitrebase
+cp -a /tmp/backup/ide0-hd0/ /tmp/commitrebase
+../qmprestore snapshotrebase --dir /tmp/commitrebase
+virt-ls -a "$(find /tmp/commitrebase/  -type f)" /tmp | grep incdata3
 
 echo "------------------------------------------------"
 echo "Executing qmprestore tests: merge"
