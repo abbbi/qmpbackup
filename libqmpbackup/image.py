@@ -347,7 +347,6 @@ def snapshot_rebase(argv):
             log.info(rebase_cmd)
             commit_cmd = "qemu-img commit -b " f'"{images[0]}" ' f'"{image}"'
             log.info(commit_cmd)
-            # subprocess.check_output(commit_cmd, shell=True)
             if not argv.dry_run:
                 subprocess.check_output(rebase_cmd, shell=True)
                 subprocess.check_output(commit_cmd, shell=True)
@@ -401,7 +400,6 @@ def commit(argv):
             log.info(rebase_cmd)
             commit_cmd = "qemu-img commit -b " f'"{images[0]}" ' f'"{image}"'
             log.info(commit_cmd)
-            # subprocess.check_output(commit_cmd, shell=True)
             if not argv.dry_run:
                 subprocess.check_output(rebase_cmd, shell=True)
                 subprocess.check_output(commit_cmd, shell=True)
