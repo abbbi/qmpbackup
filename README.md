@@ -32,6 +32,7 @@ project:
   - [UEFI / BIOS (pflash devices)](#uefi--bios-pflash-devices)
 - [Restore](#restore)
   - [Regular Rebase](#regular-rebase)
+  - [Rebase with commit](#rebase-with-commit)
   - [Rebase into a new image](#rebase-into-a-new-image)
   - [Rebase with adding snapshots](#rebase-with-adding-snapshots)
 - [Misc commands and options](#misc-commands-and-options)
@@ -239,6 +240,21 @@ time is possible:
 ```
  qmprestore rebase --dir /tmp/backup/ide0-hd0 --until INC-1480542701
 ```
+
+## Rebase with commit
+
+If you want to rebase and actually commit back the changes to the images use:
+
+```
+ qmprestore commit --dir /tmp/backup/ide0-hd0
+```
+
+After rebase you will find the merged image file with all changes committed
+in the target folder.
+
+`Note:` It makes sense to copy the existing backup directory to a temporary
+folder before rebasing, if you do not want to alter your existing backups.
+
 
 ## Rebase into a new image 
 

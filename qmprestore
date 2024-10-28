@@ -167,7 +167,7 @@ if action == "snapshotrebase":
     sys.exit(1)
 
 if action == "commit":
-    log.info("Rebasing and committing  images in source folder: [%s]", argv.dir)
+    log.info("Rebasing and committing images in source folder: [%s]", argv.dir)
     if image.commit(argv):
         log.info("Image file rebase and commit successful.")
         sys.exit(0)
