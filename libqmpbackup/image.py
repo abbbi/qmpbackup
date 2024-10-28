@@ -367,3 +367,56 @@ def snapshot_rebase(argv):
             break
 
     return True
+
+
+def commit(argv):
+    """Rebase and commit all changes"""
+    try:
+        images, _ = lib.get_images(argv)
+    except RuntimeError as errmsg:
+        log.error(errmsg)
+        return False
+
+    if "FULL-" in images[-1] or len(images) == 1:
+        log.error("No incremental images found, nothing to rebase.")
+        return False
+
+    try:
+        _check(images[0])
+    except RuntimeError as errmsg:
+        log.error(errmsg)
+        return False
+
+    for image in images[1:]:
+        try:
+            _check(image)
+        except RuntimeError as errmsg:
+            log.error(errmsg)
+            return False
+
+        try:
+            rebase_cmd = (
+                f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}" -u'
+            )
+            log.info(rebase_cmd)
+            commit_cmd = "qemu-img commit -b " f'"{images[0]}" ' f'"{image}"'
+            log.info(commit_cmd)
+            # subprocess.check_output(commit_cmd, shell=True)
+            if not argv.dry_run:
+                subprocess.check_output(rebase_cmd, shell=True)
+                subprocess.check_output(commit_cmd, shell=True)
+        except subprocess.CalledProcessError as errmsg:
+            log.error("Rebase command failed: [%s]", errmsg)
+            return False
+
+        if not argv.dry_run:
+            log.info("Removing: [%s]", image)
+            os.remove(image)
+
+        if argv.until is not None and os.path.basename(image) == argv.until:
+            log.info(
+                "Stopping at checkpoint: %s as requested with --until option", image
+            )
+            break
+
+    return True
