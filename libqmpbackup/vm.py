@@ -95,10 +95,12 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                     if driver == "rbd":
                         log.info("Ceph device found, using image name")
                         filename = encoded_name["file"]["image"]
+                        log.debug("RBD image name: [%s]", filename)
                 except KeyError:
                     log.debug("Non RBD Device detected, use filename setting.")
                     try:
                         filename = encoded_name["file"]["next"]["filename"]
+                        log.debug("Filename detected: [%s]", filename)
                     except KeyError:
                         log.warning(
                             "Json encoded setting found but no filename property set for device: [%s]",
