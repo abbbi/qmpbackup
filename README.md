@@ -80,7 +80,7 @@ In order to create a full backup use the following command:
 ```
 
 the command will create a new unique dirty bitmap and backup the virtual
-machines disks to ```/tmp/backup/<disk-id>/FULL-<timestamp>```. It ensures
+machines disks to ```/tmp/backup/<disk-bus-id>/FULL-<timestamp>```. It ensures
 consistency by creating the bitmap and backup within one QMP transaction.
 
 Multiple disks attached to the virtual machine are backed up concurrently.
@@ -102,7 +102,7 @@ Second step is to change some data within your virtual machine and let
 ```
 
 The changed delta since your last full (or inc) backup will be dumped to
-`/tmp/backup/<disk-id>INC-<timestamp>`, the dirty-bitmap is automatically
+`/tmp/backup/<disk-bus-id>/INC-<timestamp>`, the dirty-bitmap is automatically
 cleared after this and you can continue creating further incremental backups by
 re-issuing the command likewise.
 
