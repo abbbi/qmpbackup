@@ -160,6 +160,21 @@ def _check(image):
         raise RuntimeError(f"Consistency check failed: {errmsg}") from errmsg
 
 
+def _snapshot_exists(snapshot, image):
+    """before rebase we check consistency of all files"""
+    check_cmd = f"qemu-img snapshot -l '{image}'"
+    try:
+        log.info(check_cmd)
+        output = subprocess.check_output(check_cmd, shell=True)
+    except subprocess.CalledProcessError as errmsg:
+        raise RuntimeError(f"Consistency check failed: {errmsg}") from errmsg
+
+    if snapshot in output.decode():
+        return True
+
+    return False
+
+
 def merge(argv):
     """Merge all files into new base image"""
     try:
@@ -317,14 +332,17 @@ def snapshot_rebase(argv):
         log.error(errmsg)
         return False
 
-    snapshot_cmd = f'qemu-img snapshot -c "FULL-BACKUP" "{images[0]}"'
-    log.info(snapshot_cmd)
-    try:
-        if not argv.dry_run:
-            subprocess.check_output(snapshot_cmd, shell=True)
-    except subprocess.CalledProcessError as errmsg:
-        log.error("Rebase command failed: [%s]", errmsg)
-        return False
+    if not _snapshot_exists("FULL-BACKUP", images[0]):
+        snapshot_cmd = f'qemu-img snapshot -c "FULL-BACKUP" "{images[0]}"'
+        log.info(snapshot_cmd)
+        try:
+            if not argv.dry_run:
+                subprocess.check_output(snapshot_cmd, shell=True)
+        except subprocess.CalledProcessError as errmsg:
+            log.error("Rebase command failed: [%s]", errmsg)
+            return False
+    else:
+        log.info("Skip creation of already existant full backup snapshot")
 
     for image in images[1:]:
         try:
