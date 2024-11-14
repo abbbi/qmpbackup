@@ -161,7 +161,7 @@ def _check(image):
 
 
 def _snapshot_exists(snapshot, image):
-    """before rebase we check consistency of all files"""
+    """before rebase we check if an snapshot already exists"""
     check_cmd = f"qemu-img snapshot -l '{image}'"
     try:
         log.info(check_cmd)

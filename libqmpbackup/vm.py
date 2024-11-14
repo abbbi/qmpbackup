@@ -11,7 +11,6 @@
  the LICENSE file in the top-level directory.
 """
 
-import os
 import json
 import logging
 from dataclasses import dataclass
