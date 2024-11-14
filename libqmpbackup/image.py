@@ -342,7 +342,7 @@ def snapshot_rebase(argv):
             log.error("Rebase command failed: [%s]", errmsg)
             return False
     else:
-        log.info("Skip creation of already existant full backup snapshot")
+        log.info("Skip creation of already existent full backup snapshot")
 
     for image in images[1:]:
         try:
