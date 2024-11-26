@@ -54,7 +54,7 @@ project:
  python3 -m venv venv
  source venv/bin/activate
  pip3 install -r requirements.txt
- python3 setup.py install
+ python3 setup.py install (alternatively use: `python -m pip install .` on systems deprecating setuptools)
 ```
 
 # Prerequisites
