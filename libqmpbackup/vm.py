@@ -68,9 +68,15 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
 
         if len(bitmaps) > 0 and uuid is not None:
             for bmap in bitmaps:
-                if bmap["name"].endswith(uuid):
-                    has_bitmap = True
-                    break
+                try:
+                    if bmap["name"].endswith(uuid):
+                        has_bitmap = True
+                        break
+                except KeyError:
+                    log.warning(
+                        "Qemu returned bitmap without name, ignoring entry: [%s]", bmap
+                    )
+                    continue
         else:
             if len(bitmaps) > 0:
                 has_bitmap = True
