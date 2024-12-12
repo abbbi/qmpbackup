@@ -18,7 +18,7 @@ import signal
 import argparse
 from datetime import datetime
 from dataclasses import asdict
-from qemu.qmp import protocol, QMPClient
+from qemu.qmp import protocol, QMPClient, qmp_client
 from qemu.qmp.error import QMPError
 
 from libqmpbackup.qmpcommon import QmpCommon
@@ -48,9 +48,13 @@ async def stop_jobs(blockdev, log, qmp, signal):
     for job in jobs:
         for dev in blockdev:
             if job["device"] == dev.node and job["type"] == "backup":
-                await qmp.execute(
-                    "block-job-cancel", arguments={"device": dev.node, "force": True}
-                )
+                try:
+                    await qmp.execute(
+                        "block-job-cancel",
+                        arguments={"device": dev.node, "force": True},
+                    )
+                except qmp_client.ExecuteError as err:
+                    log.info(err)
 
 
 async def main():
