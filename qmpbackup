@@ -246,7 +246,6 @@ async def main():
         log.fatal(errmsg)
         sys.exit(1)
 
-    qemu_client = QmpCommon(qmp)
     qemu_client.show_version()
     await qemu_client.show_name()
 
