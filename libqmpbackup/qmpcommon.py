@@ -198,24 +198,31 @@ class QmpCommon:
             )
         )
         with self.qmp.listen(listener):
+            finished_devices = []
             await self.qmp.execute("transaction", arguments={"actions": actions})
             if qga is not False:
                 fs.thaw(qga)
             async for event in listener:
                 if event["event"] == "BLOCK_JOB_COMPLETED":
-                    self.log.info("Saved all disks")
-                    break
+                    finished_devices.append(event["data"]["device"])
+                    self.log.info(
+                        "Backup for device [%s] finished", event["data"]["device"]
+                    )
                 if event["event"] in ("BLOCK_JOB_ERROR", "BLOCK_JOB_CANCELLED"):
                     raise RuntimeError(
-                        f"Error during backup operation: {event['event']}"
+                        f"Error during backup operation: [{event['event']}] for device: [{event['data']['device']}]"
                     )
+                if event["event"] == "JOB_STATUS_CHANGE":
+                    await self.show_progress(devices)
 
-                while True:
-                    jobs = await self.qmp.execute("query-block-jobs")
-                    if not jobs:
-                        break
-                    self.progress(jobs, devices)
-                    sleep(1)
+                if len(finished_devices) == len(devices):
+                    self.log.info("Saved all disks")
+                    return
+
+    async def show_progress(self, devices):
+        jobs = await self.qmp.execute("query-block-jobs")
+        print(jobs)
+        self.progress(jobs, devices)
 
     async def do_query_block(self):
         """Return list of attached block devices"""

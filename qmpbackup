@@ -433,6 +433,9 @@ async def main():
         except QMPError as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
+        except RuntimeError as errmsg:
+            log.fatal(errmsg)
+            sys.exit(1)
         finally:
             try:
                 await qemu_client.remove_target_devices(blockdev)
