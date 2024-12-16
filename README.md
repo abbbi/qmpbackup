@@ -68,6 +68,9 @@ usually this happens by starting the virtual machine via:
 
 *qmpbackup* uses this socket to pass required commands to the virtual machine.
 
+`Note:` Use a dedicated socket for backup operations if possible, as qmp
+sockets only allow one connection at a time.
+
 # Usage
 
 In order to create a full backup use the following command:
