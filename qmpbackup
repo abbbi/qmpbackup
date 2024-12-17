@@ -42,7 +42,7 @@ async def stop_jobs(blockdev, log, qmp, signal):
     log.error("Caught signal: %s", signal)
     log.error("Stopping backup jobs")
     SIGNAL_CATCHED = True
-    jobs = await qmp.execute("query-block-jobs")
+    jobs = await qmp._execute("query-block-jobs")
     if len(jobs) == 0:
         log.info("No running jobs found")
     for job in jobs:
@@ -52,14 +52,14 @@ async def stop_jobs(blockdev, log, qmp, signal):
             job_id = f"qmpbackup.{dev.node}.{os.path.basename(dev.filename)}"
             try:
                 if job["status"] == "concluded":
-                    await qmp.execute(
+                    await qmp._execute(
                         "block-job-dismiss",
                         arguments={
                             "id": job_id,
                         },
                     )
                 else:
-                    await qmp.execute(
+                    await qmp._execute(
                         "block-job-cancel",
                         arguments={
                             "device": job_id,
@@ -204,6 +204,13 @@ async def main():
         required=False,
         default="",
     )
+    parser_backup.add_argument(
+        "--refresh-rate",
+        help="How often to check for block jobs (seconds)",
+        type=int,
+        required=False,
+        default=1,
+    )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
     parser_cleanup.add_argument(
@@ -244,14 +251,7 @@ async def main():
 
     new_monthly = False
     qmp = QMPClient()
-    log.info("Connecting QMP socket: [%s]", argv.socket)
-    try:
-        await qmp.connect(argv.socket)
-    except protocol.ConnectError as errmsg:
-        log.fatal("Can't connect QMP socket [%s]: %s", argv.socket, errmsg)
-        sys.exit(1)
-
-    qemu_client = QmpCommon(qmp)
+    qemu_client = QmpCommon(qmp, argv.socket)
 
     try:
         await qemu_client.show_vm_state()
@@ -465,8 +465,6 @@ async def main():
             )
             log.info("Removing non-persistent bitmaps used for copy backup.")
             await qemu_client.remove_bitmaps(blockdev, prefix="qmpbackup-copy")
-
-        await qmp.disconnect()
 
         if SIGNAL_CATCHED is True:
             log.error("Backup aborted by signal.")

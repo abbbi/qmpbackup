@@ -9,25 +9,43 @@
  the LICENSE file in the top-level directory.
 """
 import os
+import sys
 import logging
 from time import sleep
-import asyncio
-from qemu.qmp import EventListener
+from qemu.qmp import protocol
 from libqmpbackup import fs
 
 
 class QmpCommon:
     """Common functions"""
 
-    def __init__(self, qmp):
+    def __init__(self, qmp, socket):
         self.qmp = qmp
         self.log = logging.getLogger(__name__)
-        self.finished_devices = []
+        self.socket = socket
+
+    async def _connect(self):
+        self.log.debug("Connecting QMP socket: [%s]", self.socket)
+        try:
+            await self.qmp.connect(self.socket)
+        except protocol.ConnectError as errmsg:
+            self.log.fatal("Can't connect QMP socket [%s]: %s", self.socket, errmsg)
+            sys.exit(1)
+
+    async def _disconnect(self):
+        self.log.debug("Disconnect QMP socket: [%s]", self.socket)
+        await self.qmp.disconnect()
+
+    async def _execute(self, *args, **kwargs):
+        await self._connect()
+        res = await self.qmp.execute(*args, **kwargs)
+        await self._disconnect()
+        return res
 
     async def show_vm_state(self):
         """Show and check if virtual machine is in required
         state"""
-        status = await self.qmp.execute("query-status")
+        status = await self._execute("query-status")
         if status["running"] is False and not status["status"] in (
             "prelaunch",
             "paused",
@@ -37,7 +55,7 @@ class QmpCommon:
 
     async def show_name(self):
         """Show qemu version"""
-        name = await self.qmp.execute("query-name")
+        name = await self._execute("query-name")
         if name:
             self.log.info("VM Name: [%s]", name["name"])
 
@@ -81,7 +99,7 @@ class QmpCommon:
             target = target_files[device.node]
             targetdev = f"qmpbackup-{device.node}"
 
-            await self.qmp.execute(
+            await self._execute(
                 "blockdev-add",
                 arguments={
                     "driver": device.format,
@@ -97,7 +115,7 @@ class QmpCommon:
         for device in devices:
             targetdev = f"qmpbackup-{device.node}"
 
-            await self.qmp.execute(
+            await self._execute(
                 "blockdev-del",
                 arguments={
                     "node-name": targetdev,
@@ -192,13 +210,12 @@ class QmpCommon:
         watch for block status"""
         finished = 0
         actions = self.prepare_transaction(argv, devices, uuid)
-        await self.qmp.execute("transaction", arguments={"actions": actions})
-        task = asyncio.create_task(self.progress(), name="progress")
+        await self._execute("transaction", arguments={"actions": actions})
         if qga is not False:
             fs.thaw(qga)
 
         while True:
-            jobs = await self.qmp.execute("query-block-jobs")
+            jobs = await self._execute("query-block-jobs")
             for job in jobs:
                 if not job["type"] == "backup":
                     continue
@@ -219,19 +236,34 @@ class QmpCommon:
                     )
 
                 if job["status"] == "concluded" and job["offset"] == job["len"]:
-                    await self.qmp.execute(
+                    await self._execute(
                         "block-job-dismiss", arguments={"id": job["device"]}
                     )
                     finished += 1
                     self.log.info("Block job [%s] finished", job["device"])
                     if len(devices) == finished:
-                        task.done()
                         self.log.info("All backups finished")
                         return
 
+                prog = [
+                    (
+                        round(job["offset"] / job["len"] * 100)
+                        if job["offset"] != 0
+                        else 0
+                    )
+                ]
+                self.log.info(
+                    "[%s] Wrote Offset: %s%% (%s of %s)",
+                    job["device"],
+                    prog[0],
+                    job["offset"],
+                    job["len"],
+                )
+            sleep(argv.refresh_rate)
+
     async def do_query_block(self):
         """Return list of attached block devices"""
-        return await self.qmp.execute("query-block")
+        return await self._execute("query-block")
 
     async def remove_bitmaps(self, blockdev, prefix="qmpbackup", uuid=""):
         """Remove existing bitmaps for block devices"""
@@ -258,34 +290,7 @@ class QmpCommon:
                     )
                     continue
                 self.log.info("Removing bitmap: %s", bitmap_name)
-                await self.qmp.execute(
+                await self._execute(
                     "block-dirty-bitmap-remove",
                     arguments={"node": dev.node, "name": bitmap_name},
-                )
-
-    async def progress(self):
-        """Report progress for active block job"""
-        while True:
-            sleep(1)
-            jobs = await self.qmp.execute("query-block-jobs")
-            if len(jobs) == 0:
-                return
-            for job in jobs:
-                if not job["device"].startswith("qmpbackup"):
-                    continue
-                if job["status"] != "running":
-                    continue
-                prog = [
-                    (
-                        round(job["offset"] / job["len"] * 100)
-                        if job["offset"] != 0
-                        else 0
-                    )
-                ]
-                self.log.info(
-                    "[%s] Wrote Offset: %s%% (%s of %s)",
-                    job["device"],
-                    prog[0],
-                    job["offset"],
-                    job["len"],
                 )
