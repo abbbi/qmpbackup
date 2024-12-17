@@ -10,8 +10,8 @@
 """
 import os
 import logging
-from time import sleep
-from qemu.qmp import EventListener
+import time
+import itertools
 from libqmpbackup import fs
 
 
@@ -21,6 +21,7 @@ class QmpCommon:
     def __init__(self, qmp):
         self.qmp = qmp
         self.log = logging.getLogger(__name__)
+        self.check_timeout = 0
 
     async def show_vm_state(self):
         """Show and check if virtual machine is in required
@@ -119,7 +120,7 @@ class QmpCommon:
         for device in devices:
             targetdev = f"qmpbackup-{device.node}"
             bitmap = f"{bitmap_prefix}-{device.node}-{uuid}"
-            job_id = f"{device.node}"
+            job_id = f"qmpbackup-{device.node}"
 
             if (
                 not device.has_bitmap
@@ -163,6 +164,7 @@ class QmpCommon:
                         job_id=job_id,
                         speed=argv.speed_limit,
                         compress=compress,
+                        auto_finalize=False,
                     )
                 )
             else:
@@ -176,6 +178,7 @@ class QmpCommon:
                         job_id=job_id,
                         speed=argv.speed_limit,
                         compress=argv.compress,
+                        auto_finalize=False,
                     )
                 )
 
@@ -187,37 +190,28 @@ class QmpCommon:
         """Start backup transaction, while backup is active,
         watch for block status"""
         actions = self.prepare_transaction(argv, devices, uuid)
-        listener = EventListener(
-            (
-                "BLOCK_JOB_COMPLETED",
-                "BLOCK_JOB_CANCELLED",
-                "BLOCK_JOB_ERROR",
-                "BLOCK_JOB_READY",
-                "BLOCK_JOB_PENDING",
-                "JOB_STATUS_CHANGE",
-            )
-        )
-        with self.qmp.listen(listener):
-            finished_devices = []
-            await self.qmp.execute("transaction", arguments={"actions": actions})
-            if qga is not False:
-                fs.thaw(qga)
-            async for event in listener:
-                if event["event"] == "BLOCK_JOB_COMPLETED":
-                    finished_devices.append(event["data"]["device"])
-                    self.log.info(
-                        "Backup for device [%s] finished", event["data"]["device"]
-                    )
-                if event["event"] in ("BLOCK_JOB_ERROR", "BLOCK_JOB_CANCELLED"):
-                    raise RuntimeError(
-                        f"Error during backup operation: [{event['event']}] for device: [{event['data']['device']}]"
-                    )
-                if event["event"] == "JOB_STATUS_CHANGE":
-                    await self.show_progress(devices)
+        await self.qmp.execute("transaction", arguments={"actions": actions})
+        start_time = time.time()
 
-                if len(finished_devices) == len(devices):
-                    self.log.info("Saved all disks")
-                    return
+        while True:
+            jobs = await self.qmp.execute("query-block-jobs")
+            for job in jobs:
+                if not job["device"].startswith("qmpbackup-"):
+                    continue
+                if job["status"] == "pending" and job["len"] == job["offset"]:
+                    self.log.info(
+                        "Backup job for Device [%s] is state [%s] and and transferred all data",
+                        job["device"],
+                        job["status"],
+                    )
+                    ret = await self.qmp.execute(
+                        "block-job-complete", arguments={"device": job["device"]}
+                    )
+                    print(ret)
+                print(job)
+
+            time.sleep(1)
+            self.check_timeout = time.time() - start_time
 
     async def show_progress(self, devices):
         jobs = await self.qmp.execute("query-block-jobs")
