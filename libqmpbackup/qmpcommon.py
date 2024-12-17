@@ -22,7 +22,6 @@ class QmpCommon:
     def __init__(self, qmp):
         self.qmp = qmp
         self.log = logging.getLogger(__name__)
-        self.finished_devices = []
 
     async def show_vm_state(self):
         """Show and check if virtual machine is in required
