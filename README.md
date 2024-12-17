@@ -71,6 +71,10 @@ usually this happens by starting the virtual machine via:
 `Note:` Use a dedicated socket for backup operations if possible, as qmp
 sockets only allow one connection at a time.
 
+Especially if you want to backup `Proxmox` virtual machines, its recommended to
+add a second qmp socket to the virtual machine, to not interfere or block the
+Proxmox management frontend while the backup is running.
+
 # Usage
 
 In order to create a full backup use the following command:
