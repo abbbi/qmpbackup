@@ -11,6 +11,7 @@
 import os
 import logging
 from time import sleep
+import asyncio
 from qemu.qmp import EventListener
 from libqmpbackup import fs
 
@@ -21,6 +22,7 @@ class QmpCommon:
     def __init__(self, qmp):
         self.qmp = qmp
         self.log = logging.getLogger(__name__)
+        self.finished_devices = []
 
     async def show_vm_state(self):
         """Show and check if virtual machine is in required
@@ -119,7 +121,7 @@ class QmpCommon:
         for device in devices:
             targetdev = f"qmpbackup-{device.node}"
             bitmap = f"{bitmap_prefix}-{device.node}-{uuid}"
-            job_id = f"{device.node}"
+            job_id = f"qmpbackup.{device.node}.{os.path.basename(device.filename)}"
 
             if (
                 not device.has_bitmap
@@ -186,36 +188,50 @@ class QmpCommon:
     async def backup(self, argv, devices, qga, uuid):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        actions = self.prepare_transaction(argv, devices, uuid)
+        asyncio.create_task(self.progress())
+
+        def job_filter(event) -> bool:
+            event_data = event.get("data", {})
+            event_job_id = event_data.get("id")
+            return event_job_id.startswith("qmpbackup")
+
         listener = EventListener(
             (
                 "BLOCK_JOB_COMPLETED",
+                job_filter,
                 "BLOCK_JOB_CANCELLED",
+                job_filter,
                 "BLOCK_JOB_ERROR",
+                job_filter,
                 "BLOCK_JOB_READY",
+                job_filter,
                 "BLOCK_JOB_PENDING",
+                job_filter,
                 "JOB_STATUS_CHANGE",
+                job_filter,
             )
         )
+
+        finished = 0
+        actions = self.prepare_transaction(argv, devices, uuid)
         with self.qmp.listen(listener):
             await self.qmp.execute("transaction", arguments={"actions": actions})
             if qga is not False:
                 fs.thaw(qga)
             async for event in listener:
-                if event["event"] == "BLOCK_JOB_COMPLETED":
-                    self.log.info("Saved all disks")
-                    break
-                if event["event"] in ("BLOCK_JOB_ERROR", "BLOCK_JOB_CANCELLED"):
+                if event["event"] in ("BLOCK_JOB_CANCELLED", "BLOCK_JOB_ERROR"):
                     raise RuntimeError(
-                        f"Error during backup operation: {event['event']}"
+                        "Block job failed for device "
+                        f"[{event['data']['device']}]: [{event['event']}]",
                     )
-
-                while True:
-                    jobs = await self.qmp.execute("query-block-jobs")
-                    if not jobs:
-                        break
-                    self.progress(jobs, devices)
-                    sleep(1)
+                if event["event"] == "JOB_STATUS_CHANGE":
+                    continue
+                if event["event"] == "BLOCK_JOB_COMPLETED":
+                    finished += 1
+                    self.log.info("Block job [%s] finished", event["data"]["device"])
+                if len(devices) == finished:
+                    self.log.info("All backups finished")
+                    break
 
     async def do_query_block(self):
         """Return list of attached block devices"""
@@ -251,23 +267,29 @@ class QmpCommon:
                     arguments={"node": dev.node, "name": bitmap_name},
                 )
 
-    def progress(self, jobs, devices):
+    async def progress(self):
         """Report progress for active block job"""
-        for device in devices:
+        while True:
+            sleep(1)
+            jobs = await self.qmp.execute("query-block-jobs")
+            if len(jobs) == 0:
+                return
             for job in jobs:
-                if job["device"] == device.node:
-                    prog = [
-                        (
-                            round(job["offset"] / job["len"] * 100)
-                            if job["offset"] != 0
-                            else 0
-                        )
-                    ]
-                    self.log.info(
-                        "[%s:%s] Wrote Offset: %s%% (%s of %s)",
-                        job["device"],
-                        os.path.basename(device.filename),
-                        prog[0],
-                        job["offset"],
-                        job["len"],
+                if not job["device"].startswith("qmpbackup"):
+                    continue
+                if job["status"] != "running":
+                    continue
+                prog = [
+                    (
+                        round(job["offset"] / job["len"] * 100)
+                        if job["offset"] != 0
+                        else 0
                     )
+                ]
+                self.log.info(
+                    "[%s] Wrote Offset: %s%% (%s of %s)",
+                    job["device"],
+                    prog[0],
+                    job["offset"],
+                    job["len"],
+                )

@@ -430,7 +430,7 @@ async def main():
         try:
             await qemu_client.prepare_target_devices(blockdev, target_files)
             await qemu_client.backup(argv, blockdev, qga, uuid)
-        except QMPError as errmsg:
+        except (QMPError, RuntimeError) as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
         finally:
