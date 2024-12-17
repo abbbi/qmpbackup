@@ -49,14 +49,23 @@ async def stop_jobs(blockdev, log, qmp, signal):
         if job["type"] != "backup":
             continue
         for dev in blockdev:
+            job_id = f"qmpbackup.{dev.node}.{os.path.basename(dev.filename)}"
             try:
-                await qmp.execute(
-                    "block-job-cancel",
-                    arguments={
-                        "device": f"qmpbackup.{dev.node}.{os.path.basename(dev.filename)}",
-                        "force": True,
-                    },
-                )
+                if job["status"] == "concluded":
+                    await qmp.execute(
+                        "block-job-dismiss",
+                        arguments={
+                            "id": job_id,
+                        },
+                    )
+                else:
+                    await qmp.execute(
+                        "block-job-cancel",
+                        arguments={
+                            "device": job_id,
+                            "force": True,
+                        },
+                    )
             except qmp_client.ExecuteError as err:
                 log.info(err)
 
@@ -435,6 +444,7 @@ async def main():
             await qemu_client.prepare_target_devices(blockdev, target_files)
             await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError) as errmsg:
+            await stop_jobs(blockdev, log, qmp, signame)
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
         finally:

@@ -165,6 +165,7 @@ class QmpCommon:
                         job_id=job_id,
                         speed=argv.speed_limit,
                         compress=compress,
+                        auto_dismiss=False,
                     )
                 )
             else:
@@ -178,6 +179,7 @@ class QmpCommon:
                         job_id=job_id,
                         speed=argv.speed_limit,
                         compress=argv.compress,
+                        auto_dismiss=False,
                     )
                 )
 
@@ -188,51 +190,44 @@ class QmpCommon:
     async def backup(self, argv, devices, qga, uuid):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        def job_filter(event) -> bool:
-            event_data = event.get("data", {})
-            event_job_id = event_data.get("id")
-            return event_job_id.startswith("qmpbackup")
-
-        listener = EventListener(
-            (
-                "BLOCK_JOB_COMPLETED",
-                job_filter,
-                "BLOCK_JOB_CANCELLED",
-                job_filter,
-                "BLOCK_JOB_ERROR",
-                job_filter,
-                "BLOCK_JOB_READY",
-                job_filter,
-                "BLOCK_JOB_PENDING",
-                job_filter,
-                "JOB_STATUS_CHANGE",
-                job_filter,
-            )
-        )
-
         finished = 0
         actions = self.prepare_transaction(argv, devices, uuid)
-        with self.qmp.listen(listener):
-            await self.qmp.execute("transaction", arguments={"actions": actions})
-            task = asyncio.create_task(self.progress(), name="progress")
-            if qga is not False:
-                fs.thaw(qga)
-            async for event in listener:
-                if event["event"] in ("BLOCK_JOB_CANCELLED", "BLOCK_JOB_ERROR"):
-                    task.done()
+        await self.qmp.execute("transaction", arguments={"actions": actions})
+        task = asyncio.create_task(self.progress(), name="progress")
+        if qga is not False:
+            fs.thaw(qga)
+
+        while True:
+            jobs = await self.qmp.execute("query-block-jobs")
+            for job in jobs:
+                if not job["type"] == "backup":
+                    continue
+                if not job["device"].startswith("qmpbackup"):
+                    continue
+
+                if job["status"] in ("aborting", "undefined"):
                     raise RuntimeError(
                         "Block job failed for device "
-                        f"[{event['data']['device']}]: [{event['event']}]",
+                        f"[{job['device']}]: [{job['status']}]"
                     )
-                if event["event"] == "JOB_STATUS_CHANGE":
-                    continue
-                if event["event"] == "BLOCK_JOB_COMPLETED":
+
+                if job["status"] == "concluded" and job["offset"] != job["len"]:
+                    raise RuntimeError(
+                        "Block job cancelled during IO: "
+                        f"[{job['device']}]: [{job['status']}]"
+                        f"Offset:Len [{job['offset']}]: [{job['len']}]"
+                    )
+
+                if job["status"] == "concluded" and job["offset"] == job["len"]:
+                    await self.qmp.execute(
+                        "block-job-dismiss", arguments={"id": job["device"]}
+                    )
                     finished += 1
-                    self.log.info("Block job [%s] finished", event["data"]["device"])
-                if len(devices) == finished:
-                    task.done()
-                    self.log.info("All backups finished")
-                    break
+                    self.log.info("Block job [%s] finished", job["device"])
+                    if len(devices) == finished:
+                        task.done()
+                        self.log.info("All backups finished")
+                        return
 
     async def do_query_block(self):
         """Return list of attached block devices"""
