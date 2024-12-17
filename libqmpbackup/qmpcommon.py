@@ -188,7 +188,7 @@ class QmpCommon:
     async def backup(self, argv, devices, qga, uuid):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        asyncio.create_task(self.progress())
+        task = asyncio.create_task(self.progress(), name="progress")
 
         def job_filter(event) -> bool:
             event_data = event.get("data", {})
@@ -220,6 +220,7 @@ class QmpCommon:
                 fs.thaw(qga)
             async for event in listener:
                 if event["event"] in ("BLOCK_JOB_CANCELLED", "BLOCK_JOB_ERROR"):
+                    task.done()
                     raise RuntimeError(
                         "Block job failed for device "
                         f"[{event['data']['device']}]: [{event['event']}]",
@@ -230,6 +231,7 @@ class QmpCommon:
                     finished += 1
                     self.log.info("Block job [%s] finished", event["data"]["device"])
                 if len(devices) == finished:
+                    task.done()
                     self.log.info("All backups finished")
                     break
 
