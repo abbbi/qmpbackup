@@ -188,8 +188,6 @@ class QmpCommon:
     async def backup(self, argv, devices, qga, uuid):
         """Start backup transaction, while backup is active,
         watch for block status"""
-        task = asyncio.create_task(self.progress(), name="progress")
-
         def job_filter(event) -> bool:
             event_data = event.get("data", {})
             event_job_id = event_data.get("id")
@@ -216,6 +214,7 @@ class QmpCommon:
         actions = self.prepare_transaction(argv, devices, uuid)
         with self.qmp.listen(listener):
             await self.qmp.execute("transaction", arguments={"actions": actions})
+            task = asyncio.create_task(self.progress(), name="progress")
             if qga is not False:
                 fs.thaw(qga)
             async for event in listener:
