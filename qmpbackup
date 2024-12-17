@@ -444,8 +444,8 @@ async def main():
             await qemu_client.prepare_target_devices(blockdev, target_files)
             await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError) as errmsg:
-            await stop_jobs(blockdev, log, qmp, signame)
             log.fatal("Error executing backup: %s", errmsg)
+            await stop_jobs(blockdev, log, qmp, signame)
             sys.exit(1)
         finally:
             try:
@@ -489,4 +489,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print("Unhandled exception: ", e)
+        sys.exit(1)

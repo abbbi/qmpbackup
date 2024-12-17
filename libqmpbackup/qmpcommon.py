@@ -232,7 +232,7 @@ class QmpCommon:
                     raise RuntimeError(
                         "Block job cancelled during IO: "
                         f"[{job['device']}]: [{job['status']}]"
-                        f"Offset:Len [{job['offset']}]: [{job['len']}]"
+                        f"Offset:Len [{job['offset']}]: [{job['len']}]: [{job['error']}]"
                     )
 
                 if job["status"] == "concluded" and job["offset"] == job["len"]:
