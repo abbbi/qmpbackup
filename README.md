@@ -42,6 +42,8 @@ project:
   - [List existing bitmaps](#list-existing-bitmaps)
   - [Cleanup bitmaps](#cleanup-bitmaps)
   - [Speed limit](#speed-limit)
+- [Hypervisors](#hypervisors)
+  - [Proxmox](#proxmox)
 - [Limitations](#limitations)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -70,10 +72,6 @@ usually this happens by starting the virtual machine via:
 
 `Note:` Use a dedicated socket for backup operations if possible, as qmp
 sockets only allow one connection at a time.
-
-Especially if you want to backup `Proxmox` virtual machines, its recommended to
-add a second qmp socket to the virtual machine, to not interfere or block the
-Proxmox management frontend while the backup is running.
 
 # Usage
 
@@ -350,6 +348,40 @@ limit throughput:
 ```
  qmpbackup --socket /path/to/socket backup [..] --speed-limit 2000000
 ```
+
+# Hypervisors
+
+## Proxmox
+
+To backup virtual machines running on Proxmox hypervisors it is recommended to
+re-configure the virtual machines to provide a second dedicated qmp socket.
+This can be done using the `qm` command.
+
+First, show the command line that is used to start the vm (id 110 in this
+example):
+
+```
+ qm stop 110
+ qm showcmd 110
+ /usr/bin/kvm -id 110 -name [..] -chardev 'socket,id=qmp,path=/var/run/qemu-server/110.qmp,server=on,wait=off'
+```
+
+Now add an additional command line parameter to the VM configuration:
+
+```
+ qm set 110 --args "-chardev 'socket,id=qmp-backup,path=/var/run/qemu-server/110-backup.qmp,server=on,wait=off' -mon 'chardev=qmp-backup,mode=control'"
+ update VM 110: -args -chardev 'socket,id=qmp-backup,path=/var/run/qemu-server/110-backup.qmp,server=on,wait=off' -mon 'chardev=qmp-backup,mode=control'
+ qm start 110
+```
+
+After the VM has started, a new qmp socket is available for backup:
+
+```
+ ls -ah /var/run/qemu-server/110-backup.qmp
+ /var/run/qemu-server/110-backup.qmp
+ qmpbackup --socket /var/run/qemu-server/110-backup.qmp backup  [..]
+```
+
 
 # Limitations
 
