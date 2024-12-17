@@ -188,6 +188,7 @@ class QmpCommon:
     async def backup(self, argv, devices, qga, uuid):
         """Start backup transaction, while backup is active,
         watch for block status"""
+
         def job_filter(event) -> bool:
             event_data = event.get("data", {})
             event_job_id = event_data.get("id")
