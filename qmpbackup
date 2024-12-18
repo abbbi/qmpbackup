@@ -31,7 +31,7 @@ from libqmpbackup import version
 SIGNAL_CATCHED = False
 
 
-async def stop_jobs(blockdev, log, qmp, signal):
+async def stop_jobs(qmp, log, signal):
     """Catch signal: for some reason, cancelling the
     running block jobs with block-job-cancel issues
     a regular BLOCK_JOB_COMPLETED in the event loop,
@@ -42,32 +42,29 @@ async def stop_jobs(blockdev, log, qmp, signal):
     log.error("Caught signal: %s", signal)
     log.error("Stopping backup jobs")
     SIGNAL_CATCHED = True
-    jobs = await qmp._execute("query-block-jobs")
+    jobs = await qmp.execute("query-block-jobs")
     if len(jobs) == 0:
         log.info("No running jobs found")
     for job in jobs:
-        if job["type"] != "backup":
+        if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
             continue
-        for dev in blockdev:
-            job_id = f"qmpbackup.{dev.node}.{os.path.basename(dev.filename)}"
-            try:
-                if job["status"] == "concluded":
-                    await qmp._execute(
-                        "block-job-dismiss",
-                        arguments={
-                            "id": job_id,
-                        },
-                    )
-                else:
-                    await qmp._execute(
-                        "block-job-cancel",
-                        arguments={
-                            "device": job_id,
-                            "force": True,
-                        },
-                    )
-            except qmp_client.ExecuteError as err:
-                log.info(err)
+        try:
+            if job["status"] == "concluded":
+                await qmp.execute(
+                    "block-job-dismiss",
+                    arguments={"id": job["device"]},
+                )
+            else:
+                await qmp.execute(
+                    "block-job-cancel",
+                    arguments={
+                        "device": job["device"],
+                        "force": True,
+                    },
+                )
+        except qmp_client.ExecuteError as err:
+            log.info(err)
+    await qmp.disconnect()
 
 
 async def main():
@@ -333,9 +330,7 @@ async def main():
     for signame in ("SIGINT", "SIGTERM"):
         loop.add_signal_handler(
             getattr(signal, signame),
-            lambda signame=signame: asyncio.create_task(
-                stop_jobs(blockdev, log, qmp, signame)
-            ),
+            lambda signame=signame: asyncio.create_task(stop_jobs(qmp, log, signame)),
         )
 
     if blockdev is None:
@@ -444,8 +439,11 @@ async def main():
             await qemu_client.prepare_target_devices(blockdev, target_files)
             await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError) as errmsg:
+            stopqmp = QMPClient()
+            await stopqmp.connect(argv.socket)
+            await stop_jobs(stopqmp, log, signame)
+            await stopqmp.disconnect()
             log.fatal("Error executing backup: %s", errmsg)
-            await stop_jobs(blockdev, log, qmp, signame)
             sys.exit(1)
         finally:
             try:
@@ -489,8 +487,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except Exception as e:
-        print("Unhandled exception: ", e)
-        sys.exit(1)
+    asyncio.run(main())
