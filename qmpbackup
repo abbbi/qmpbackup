@@ -16,6 +16,7 @@ import sys
 import asyncio
 import signal
 import argparse
+from time import sleep
 from datetime import datetime
 from dataclasses import asdict
 from qemu.qmp import protocol, QMPClient, qmp_client
@@ -31,40 +32,55 @@ from libqmpbackup import version
 SIGNAL_CATCHED = False
 
 
-async def stop_jobs(qmp, log, signal):
-    """Catch signal: for some reason, cancelling the
-    running block jobs with block-job-cancel issues
-    a regular BLOCK_JOB_COMPLETED in the event loop,
-    for some reason. Thus exit with different exit code
-    by using global variable :/
-    """
-    global SIGNAL_CATCHED
-    log.error("Caught signal: %s", signal)
-    log.error("Stopping backup jobs")
-    SIGNAL_CATCHED = True
+async def cancel_jobs(qmp, log):
+    """Dismiss or cancel all running block jobs"""
+    log.info("Cancelling all block jobs")
     jobs = await qmp.execute("query-block-jobs")
     if len(jobs) == 0:
         log.info("No running jobs found")
-    for job in jobs:
-        if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
-            continue
-        try:
-            if job["status"] == "concluded":
-                await qmp.execute(
-                    "block-job-dismiss",
-                    arguments={"id": job["device"]},
-                )
-            else:
-                await qmp.execute(
-                    "block-job-cancel",
-                    arguments={
-                        "device": job["device"],
-                        "force": True,
-                    },
-                )
-        except qmp_client.ExecuteError as err:
-            log.info(err)
-    await qmp.disconnect()
+    retry = 60
+    limit = 0
+    while True:
+        if limit >= retry:
+            log.warning("Unable to stop all jobs within %s seconds.", retry)
+            return
+        for job in jobs:
+            jobs = await qmp.execute("query-block-jobs")
+            if len(jobs) == 0:
+                log.info("All jobs stopped")
+                return
+            if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
+                continue
+            try:
+                if job["status"] == "concluded":
+                    await qmp.execute(
+                        "block-job-dismiss",
+                        arguments={"id": job["device"]},
+                    )
+                else:
+                    await qmp.execute(
+                        "block-job-cancel",
+                        arguments={
+                            "device": job["device"],
+                            "force": True,
+                        },
+                    )
+            except qmp_client.ExecuteError as err:
+                log.info(err)
+        limit += 1
+        sleep(1)
+
+
+async def stop_jobs(log, signal):
+    """Cancel all running asyncio tasks so we disconnect"""
+    global SIGNAL_CATCHED
+    log.error("Caught signal: %s", signal)
+    log.error("Stopping all tasks")
+    SIGNAL_CATCHED = True
+
+    tasks = asyncio.all_tasks()
+    for task in tasks:
+        task.cancel()
 
 
 async def main():
@@ -330,7 +346,7 @@ async def main():
     for signame in ("SIGINT", "SIGTERM"):
         loop.add_signal_handler(
             getattr(signal, signame),
-            lambda signame=signame: asyncio.create_task(stop_jobs(qmp, log, signame)),
+            lambda signame=signame: asyncio.create_task(stop_jobs(log, signame)),
         )
 
     if blockdev is None:
@@ -438,10 +454,10 @@ async def main():
         try:
             await qemu_client.prepare_target_devices(blockdev, target_files)
             await qemu_client.backup(argv, blockdev, qga, uuid)
-        except (QMPError, RuntimeError) as errmsg:
+        except (QMPError, RuntimeError, asyncio.exceptions.CancelledError) as errmsg:
             stopqmp = QMPClient()
             await stopqmp.connect(argv.socket)
-            await stop_jobs(stopqmp, log, signame)
+            await cancel_jobs(stopqmp, log)
             await stopqmp.disconnect()
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
