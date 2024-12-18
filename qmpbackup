@@ -46,19 +46,18 @@ async def stop_jobs(blockdev, log, qmp, signal):
     if len(jobs) == 0:
         log.info("No running jobs found")
     for job in jobs:
-        if job["type"] != "backup":
+        if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
             continue
-        for dev in blockdev:
-            try:
-                await qmp.execute(
-                    "block-job-cancel",
-                    arguments={
-                        "device": f"qmpbackup.{dev.node}.{os.path.basename(dev.filename)}",
-                        "force": True,
-                    },
-                )
-            except qmp_client.ExecuteError as err:
-                log.info(err)
+        try:
+            await qmp.execute(
+                "block-job-cancel",
+                arguments={
+                    "device": job["device"],
+                    "force": True,
+                },
+            )
+        except qmp_client.ExecuteError as err:
+            log.info(err)
 
 
 async def main():
