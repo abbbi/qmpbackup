@@ -44,11 +44,13 @@ async def cancel_jobs(qmp, log):
         if limit >= retry:
             log.warning("Unable to stop all jobs within %s seconds.", retry)
             return
+
+        jobs = await qmp.execute("query-block-jobs")
+        if len(jobs) == 0:
+            log.info("All jobs stopped")
+            return
+
         for job in jobs:
-            jobs = await qmp.execute("query-block-jobs")
-            if len(jobs) == 0:
-                log.info("All jobs stopped")
-                return
             if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
                 continue
             try:
