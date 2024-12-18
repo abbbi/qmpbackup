@@ -11,4 +11,4 @@
  the LICENSE file in the top-level directory.
 """
 
-VERSION = "0.45-noevent"
+VERSION = "0.44-noevent"
