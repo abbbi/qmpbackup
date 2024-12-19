@@ -41,7 +41,7 @@ def has_full(directory, filename):
 def setup_log(argv):
     """setup logging"""
     log_format_colored = (
-        "%(green)s[%(asctime)s]%(reset)s%(blue)s %(log_color)s%(levelname)s%(reset)s "
+        "%(green)s[%(asctime)s]%(reset)s%(blue)s %(log_color)s%(levelname)7s%(reset)s "
         "- %(funcName)s"
         ":%(log_color)s %(message)s"
     )
