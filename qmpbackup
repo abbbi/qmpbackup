@@ -97,9 +97,16 @@ async def main():
     parser.add_argument(
         "-L",
         "--logfile",
-        dest="logfile",
+        default="",
         help="log output to specified logfile",
         required=False,
+    )
+    parser.add_argument(
+        "--syslog",
+        action="store_true",
+        help="log output to syslog",
+        required=False,
+        default=False,
     )
     subparsers = parser.add_subparsers(help="sub-command help")
     parser_backup = subparsers.add_parser("backup", help="backup")
@@ -225,7 +232,7 @@ async def main():
         parser.print_help()
         sys.exit(1)
 
-    log = lib.setup_log(argv.debug, argv.logfile)
+    log = lib.setup_log(argv)
     log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 
     if action == "backup" and argv.exclude and argv.include:

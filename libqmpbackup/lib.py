@@ -18,6 +18,8 @@ import uuid
 from json import dumps as json_dumps
 from glob import glob
 import logging
+import logging.handlers
+import colorlog
 from libqmpbackup.qaclient import QemuGuestAgentClient
 
 log = logging.getLogger(__name__)
@@ -36,20 +38,38 @@ def has_full(directory, filename):
     return True
 
 
-def setup_log(debug, logfile=None):
+def setup_log(argv):
     """setup logging"""
-    log_format = "[%(asctime)-15s] %(levelname)7s  %(message)s"
-    if debug:
+    log_format_colored = (
+        "%(green)s[%(asctime)s]%(reset)s%(blue)s %(log_color)s%(levelname)s%(reset)s "
+        "- %(funcName)s"
+        ": %(log_color)s %(message)s"
+    )
+    log_format = "[%(asctime)-15s] %(levelname)7s - %(funcName)s  %(message)s"
+    if argv.debug:
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
+    stdout = logging.StreamHandler(stream=sys.stdout)
     handler = []
-    handler.append(logging.StreamHandler(stream=sys.stdout))
-    if logfile:
-        logpath = os.path.dirname(logfile)
+    formatter = colorlog.ColoredFormatter(
+        log_format_colored,
+        log_colors={
+            "WARNING": "yellow",
+            "ERROR": "red",
+            "DEBUG": "cyan",
+            "CRITICAL": "red",
+        },
+    )
+    stdout.setFormatter(formatter)
+    handler.append(stdout)
+    if argv.syslog is True:
+        handler.append(logging.handlers.SysLogHandler(address="/dev/log"))
+    if argv.logfile != "":
+        logpath = os.path.dirname(argv.logfile)
         if logpath != "":
             os.makedirs(logpath, exist_ok=True)
-        handler.append(logging.FileHandler(logfile, mode="a"))
+        handler.append(logging.FileHandler(argv.logfile, mode="a"))
     logging.basicConfig(format=log_format, level=loglevel, handlers=handler)
     return logging.getLogger(__name__)
 
