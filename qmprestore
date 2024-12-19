@@ -126,7 +126,10 @@ except AttributeError:
     parser.print_help()
     sys.exit(1)
 
-log = lib.setup_log(False)
+argv.logfile = ""
+argv.syslog = False
+argv.debug = False
+log = lib.setup_log(argv)
 
 log.info("Version: %s Arguments: %s", version.VERSION, " ".join(sys.argv))
 
