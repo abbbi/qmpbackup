@@ -8,7 +8,7 @@ qemu virtual machines via QMP protocol. It makes use of the dirty-bitmap
 feature introduced in later QEMU versions. It works with standalone QEMU
 processes.
 
-![Alt text](qmpbackup.jpg?raw=true "Title")
+![ScreenShot](https://raw.githubusercontent.com/abbbi/qmpbackup/refs/heads/master/qmpbackup.jpg)
 
 If you want to backup QEMU virtual machines managed by `libvirt`, see this
 project:
