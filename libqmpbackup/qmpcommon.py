@@ -12,7 +12,7 @@ import os
 import logging
 from time import sleep
 import asyncio
-from qemu.qmp import EventListener
+from qemu.qmp import EventListener, qmp_client
 from libqmpbackup import fs
 
 
@@ -268,7 +268,10 @@ class QmpCommon:
         """Report progress for active block job"""
         while True:
             sleep(1)
-            jobs = await self.qmp.execute("query-block-jobs")
+            try:
+                jobs = await self.qmp.execute("query-block-jobs")
+            except qmp_client.ExecInterruptedError:
+                return
             if len(jobs) == 0:
                 return
             for job in jobs:

@@ -464,6 +464,7 @@ async def main():
 
         for task in asyncio.all_tasks():
             if task.get_name() == "progress" and task.done() is not True:
+                log.debug("Cancelling progress job")
                 task.cancel()
         await qmp.disconnect()
 
