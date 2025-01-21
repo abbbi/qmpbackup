@@ -462,6 +462,10 @@ async def main():
             log.info("Removing non-persistent bitmaps used for copy backup.")
             await qemu_client.remove_bitmaps(blockdev, prefix="qmpbackup-copy")
 
+        for task in asyncio.all_tasks():
+            if task.get_name() == "progress" and task.done() is not True:
+                log.debug("Cancelling progress job")
+                task.cancel()
         await qmp.disconnect()
 
         if SIGNAL_CATCHED is True:
