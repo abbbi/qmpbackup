@@ -232,10 +232,12 @@ def merge(argv):
             log.info(commit_cmd)
             subprocess.check_output(commit_cmd, shell=True)
             if image != argv.targetfile:
+                fname = os.path.join(targetdir, os.path.basename(image))
                 log.info(
                     "Removing temporary file after merge: [%s]",
-                    os.path.join(targetdir, os.path.basename(image)),
+                    fname,
                 )
+                os.unlink(fname)
         except subprocess.CalledProcessError as errmsg:
             log.error("Rebase or commit command failed: [%s]", errmsg)
             return False
