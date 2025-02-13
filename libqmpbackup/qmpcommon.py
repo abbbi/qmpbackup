@@ -26,11 +26,31 @@ class QmpCommon:
 
     async def _connect(self):
         self.log.debug("Connecting QMP socket: [%s]", self.socket)
-        try:
-            await self.qmp.connect(self.socket)
-        except protocol.ConnectError as errmsg:
-            self.log.fatal("Can't connect QMP socket [%s]: %s", self.socket, errmsg)
-            sys.exit(1)
+        max_retry = 60
+        retry = 0
+        for _ in range(0, max_retry):
+            try:
+                await self.qmp.connect(self.socket)
+                break
+            except protocol.ConnectError as errmsg:
+                if retry <= max_retry:
+                    self.log.fatal(
+                        "Can't connect QMP socket [%s]: %s, retry: [%s]",
+                        self.socket,
+                        errmsg,
+                        retry,
+                    )
+                    retry += 1
+                    sleep(1)
+                    continue
+
+                self.log.fatal(
+                    "Unable to connect QMP socket [%s] after [%s] retries: [%s] giving up",
+                    self.socket,
+                    errmsg,
+                    retry,
+                )
+                sys.exit(1)
 
     async def _disconnect(self):
         self.log.debug("Disconnect QMP socket: [%s]", self.socket)
