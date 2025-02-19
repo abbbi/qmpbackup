@@ -19,14 +19,15 @@ from libqmpbackup import fs
 class QmpCommon:
     """Common functions"""
 
-    def __init__(self, qmp, socket):
+    def __init__(self, qmp, socket, connection_retry):
         self.qmp = qmp
         self.log = logging.getLogger(__name__)
         self.socket = socket
+        self.connection_retry = connection_retry
 
     async def _connect(self):
         self.log.debug("Connecting QMP socket: [%s]", self.socket)
-        max_retry = 60
+        max_retry = self.connection_retry
         retry = 0
         for _ in range(0, max_retry):
             try:

@@ -21,6 +21,7 @@ from datetime import datetime
 from dataclasses import asdict
 from qemu.qmp import protocol, QMPClient, qmp_client
 from qemu.qmp.error import QMPError
+from qemu.qmp.protocol import QMPError, StateError
 
 from libqmpbackup.qmpcommon import QmpCommon
 from libqmpbackup import lib
@@ -226,6 +227,13 @@ async def main():
         required=False,
         default=1,
     )
+    parser_backup.add_argument(
+        "--connection-retry",
+        help="How often to attempt retry connecting qmp socket",
+        type=int,
+        required=False,
+        default=1,
+    )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
     parser_cleanup.add_argument(
@@ -266,11 +274,11 @@ async def main():
 
     new_monthly = False
     qmp = QMPClient()
-    qemu_client = QmpCommon(qmp, argv.socket)
+    qemu_client = QmpCommon(qmp, argv.socket, argv.connection_retry)
 
     try:
         await qemu_client.show_vm_state()
-    except RuntimeError as errmsg:
+    except (RuntimeError, StateError) as errmsg:
         log.fatal(errmsg)
         sys.exit(1)
 
