@@ -243,6 +243,13 @@ async def main():
         required=True,
     )
     parser_cleanup.add_argument(
+        "--connection-retry",
+        help="How often to attempt retry connecting qmp socket",
+        type=int,
+        required=False,
+        default=60,
+    )
+    parser_cleanup.add_argument(
         "--uuid",
         help="remove bitmaps matching uuid",
         type=str,
