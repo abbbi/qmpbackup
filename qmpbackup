@@ -232,7 +232,7 @@ async def main():
         help="How often to attempt retry connecting qmp socket",
         type=int,
         required=False,
-        default=1,
+        default=60,
     )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
@@ -257,6 +257,13 @@ async def main():
         type=str,
         help="show block device information",
         required=True,
+    )
+    parser_info.add_argument(
+        "--connection-retry",
+        help="How often to attempt retry connecting qmp socket",
+        type=int,
+        required=False,
+        default=60,
     )
     argv = parser.parse_args()
     try:
