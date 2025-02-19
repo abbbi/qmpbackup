@@ -155,6 +155,9 @@ class QmpCommon:
             self.log.info("Copy backup: no persistent bitmap will be created.")
             bitmap_prefix = f"qmpbackup-{argv.level}"
             persistent = False
+        if argv.no_persist is True:
+            self.log.info("Create non-persistent bitmap.")
+            persistent = False
 
         actions = []
         for device in devices:

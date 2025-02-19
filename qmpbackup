@@ -234,6 +234,13 @@ async def main():
         required=False,
         default=60,
     )
+    parser_backup.add_argument(
+        "--no-persist",
+        help="Create non-persistent bitmap",
+        default=False,
+        required=False,
+        action="store_true",
+    )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
     parser_cleanup.add_argument(
