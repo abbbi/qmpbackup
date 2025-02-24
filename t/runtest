@@ -170,6 +170,7 @@ rm -rf /tmp/include
 [ -e /tmp/exclude/ide0-hd0 ] && echo "backed up excluded disk" && exit 1
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --include ide0-hd1 --target /tmp/include/ --quiesce
 [ -e /tmp/exclude/ide0-hd0 ] && echo "backed up non included disks" && exit 1
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/delay/ --quiesce --remove-delay 10
 
 
 echo "------------------------------------------------"
