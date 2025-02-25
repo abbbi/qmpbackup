@@ -12,6 +12,7 @@ cleanup() {
     fi
     rm -f ${AGENT_SOCKET}
     rm -f ${QMP_SOCKET}
+    rm -f /tmp/file.qcow2
     rm -f /tmp/disk1.qcow2
     rm -f /tmp/disk2.qcow2
     rm -f /tmp/disk3.qcow2
@@ -40,8 +41,6 @@ no_exist_files() {
     fi
 }
 
-
-
 echo "Downloading image"
 [ ! -e /tmp/libvirt.box ] && curl -L -s $IMAGE > /tmp/libvirt.box
 [ ! -e /tmp/box.img ] && tar -zxvf /tmp/libvirt.box box.img
@@ -54,6 +53,7 @@ else
 fi
 [ ! -e /tmp/disk3.raw ] && qemu-img create -f raw /tmp/disk3.raw 10M
 [ ! -e /tmp/snapshot.qcow2 ] &&  qemu-img create -f qcow2 /tmp/snapshot.qcow2 10M
+[ ! -e /tmp/file.qcow2 ] &&  qemu-img create -f qcow2 /tmp/file.qcow2 10M
 
 echo "Starting qemu process"
 KVMOPT=""
@@ -68,6 +68,9 @@ qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)" -daemonize -display no
     -device virtio-serial \
     -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
     -drive id=snapshot,if=none,format=qcow2,snapshot=on,file=/tmp/snapshot.qcow2 \
+    -blockdev driver=qcow2,node-name=disk.0,file.driver=file,file.filename=/tmp/file.qcow2 \
+    -device virtio-scsi-pci,id=scsi \
+    -device scsi-hd,drive=disk.0,bus=scsi.0 \
     -pidfile ${PIDFILE}
 
 # wait until qemu agent is reachable within booted Vm, then continue

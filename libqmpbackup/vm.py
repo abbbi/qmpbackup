@@ -122,6 +122,20 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 )
                 continue
 
+        if device["device"] == "":
+            try:
+                log.info(
+                    "Device for file [%s] has empty device setting, attempt fallback to node name.",
+                    filename,
+                )
+                device["device"] = device["inserted"]["node-name"]
+                log.info("Using node name: [%s]", device["device"])
+            except KeyError:
+                log.error(
+                    "Unable to get device node name for disk: [%s], skipping.", filename
+                )
+                continue
+
         if included_disks and not device["device"] in included_disks:
             log.info(
                 "Device not in included disk list, ignoring: [%s:%s]",
