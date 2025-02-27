@@ -228,7 +228,7 @@ def merge(argv):
             log.info(rebase_cmd)
             subprocess.check_output(rebase_cmd, shell=True)
             commit_cmd = (
-                "qemu-img commit -b "
+                f"qemu-img commit {argv.commitopt} -b "
                 f'"{targetdir}/{os.path.basename(images[idx])}" '
                 f'"{targetdir}/{os.path.basename(image)}"'
             )
@@ -375,7 +375,9 @@ def snapshot_rebase(argv):
                 f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}" -u'
             )
             log.info(rebase_cmd)
-            commit_cmd = "qemu-img commit -b " f'"{images[0]}" ' f'"{image}"'
+            commit_cmd = (
+                f"qemu-img commit {argv.commitopt} -b " f'"{images[0]}" ' f'"{image}"'
+            )
             log.info(commit_cmd)
             if not argv.dry_run:
                 subprocess.check_output(rebase_cmd, shell=True)
@@ -428,7 +430,7 @@ def commit(argv):
                 f'qemu-img rebase -f qcow2 -F qcow2 -b "{images[0]}" "{image}" -u'
             )
             log.info(rebase_cmd)
-            commit_cmd = f"qemu-img commit '{image}'"
+            commit_cmd = f"qemu-img commit {argv.commitopt} '{image}'"
             log.info(commit_cmd)
             if not argv.dry_run:
                 subprocess.check_output(rebase_cmd, shell=True)

@@ -26,7 +26,13 @@ parser.add_argument(
     action="store_true",
     required=False,
 )
-
+parser.add_argument(
+    "--use-writeback",
+    default=False,
+    help="during commit, use -t writeback option",
+    action="store_true",
+    required=False,
+)
 
 subparsers = parser.add_subparsers(help="sub-command help")
 parser_snapshot = subparsers.add_parser("snapshotrebase", help="snapshotrebase")
@@ -145,6 +151,10 @@ if not os.path.exists(argv.dir):
 
 if argv.filter != "":
     log.info("Filter images in [%s] based on string: [%s]", argv.dir, argv.filter)
+
+argv.commitopt = ""
+if argv.use_writeback is True:
+    argv.commitopt = "-t writeback"
 
 if action in ("rebase", "snapshotrebase", "commit"):
     if argv.dry_run:
