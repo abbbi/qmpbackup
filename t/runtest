@@ -200,6 +200,9 @@ rm -rf /tmp/rebase
 cp -a /tmp/backup/ide0-hd0/ /tmp/rebase
 ../qmprestore rebase --dir /tmp/rebase
 virt-ls /tmp/rebase/image /tmp | grep incdata3
+rm -rf /tmp/skip_check
+cp -a /tmp/backup/ide0-hd0/ /tmp/skip_check
+../qmprestore --skip-check rebase --dir /tmp/skip_check
 
 echo "------------------------------------------------"
 echo "Executing qmprestore tests: snapshotrebase"

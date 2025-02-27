@@ -150,8 +150,11 @@ def clone(image, targetfile):
     return True
 
 
-def _check(image):
+def _check(image, argv):
     """before rebase we check consistency of all files"""
+    if argv.skip_check is True:
+        log.info("Skipping image check")
+        return
     check_cmd = f"qemu-img check '{image}'"
     try:
         log.info(check_cmd)
@@ -264,7 +267,7 @@ def rebase(argv):
     idx = len(images) - 1
 
     try:
-        _check(images[0])
+        _check(images[0], argv)
     except RuntimeError as errmsg:
         log.error(errmsg)
         return False
@@ -288,7 +291,7 @@ def rebase(argv):
         log.debug('"%s" is based on "%s"', image, images[idx])
 
         try:
-            _check(image)
+            _check(image, argv)
         except RuntimeError as errmsg:
             log.error(errmsg)
             return False
@@ -327,7 +330,7 @@ def snapshot_rebase(argv):
         return False
 
     try:
-        _check(images[0])
+        _check(images[0], argv)
     except RuntimeError as errmsg:
         log.error(errmsg)
         return False
@@ -346,7 +349,7 @@ def snapshot_rebase(argv):
 
     for image in images[1:]:
         try:
-            _check(image)
+            _check(image, argv)
         except RuntimeError as errmsg:
             log.error(errmsg)
             return False
@@ -399,14 +402,14 @@ def commit(argv):
         return False
 
     try:
-        _check(images[0])
+        _check(images[0], argv)
     except RuntimeError as errmsg:
         log.error(errmsg)
         return False
 
     for image in images[1:]:
         try:
-            _check(image)
+            _check(image, argv)
         except RuntimeError as errmsg:
             log.error(errmsg)
             return False
