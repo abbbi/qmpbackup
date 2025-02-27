@@ -19,6 +19,15 @@ from libqmpbackup import image
 from libqmpbackup import lib
 
 parser = argparse.ArgumentParser(prog=sys.argv[0])
+parser.add_argument(
+    "--skip-check",
+    default=False,
+    help="skip image check during restore actions",
+    action="store_true",
+    required=False,
+)
+
+
 subparsers = parser.add_subparsers(help="sub-command help")
 parser_snapshot = subparsers.add_parser("snapshotrebase", help="snapshotrebase")
 parser_rebase = subparsers.add_parser("rebase", help="rebase")
