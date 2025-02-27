@@ -354,7 +354,16 @@ def snapshot_rebase(argv):
             log.error(errmsg)
             return False
 
-        timestamp = int(os.path.basename(image).split("-")[1])
+        imagebase = os.path.basename(image)
+        if imagebase.startswith("INC"):
+            log.info("Using timestamp as provided by from image name")
+            timestamp = int(imagebase.split("-")[1])
+        else:
+            log.info(
+                "No timestamp provided in image name, use timestamp from filesystem"
+            )
+            timestamp = int(os.path.getctime(image))
+
         snapshot_name = datetime.datetime.fromtimestamp(timestamp).strftime(
             "%Y-%m-%d-%H:%M:%S"
         )
