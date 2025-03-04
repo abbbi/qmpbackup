@@ -76,6 +76,13 @@ parser_snapshot.add_argument(
     required=False,
     default="",
 )
+parser_snapshot.add_argument(
+    "--inc-dir",
+    type=str,
+    help="directory which contains additional incremental backup images",
+    required=False,
+    default="",
+)
 parser_commit.add_argument(
     "--dir", type=str, help="directory which contains images", required=True
 )
@@ -121,6 +128,13 @@ parser_merge.add_argument(
     required=False,
     default="",
 )
+parser_merge.add_argument(
+    "--inc-dir",
+    type=str,
+    help="directory which contains additional incremental backup images",
+    required=False,
+    default="",
+)
 parser_rebase.add_argument(
     "--until",
     type=str,
@@ -137,6 +151,13 @@ parser_rebase.add_argument(
     "--filter",
     type=str,
     help="only process images matching string",
+    required=False,
+    default="",
+)
+parser_rebase.add_argument(
+    "--inc-dir",
+    type=str,
+    help="directory which contains additional incremental backup images",
     required=False,
     default="",
 )
