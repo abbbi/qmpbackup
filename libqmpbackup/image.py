@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
- qmpbackup: Full an incremental backup using Qemus
- dirty bitmap feature
+qmpbackup: Full an incremental backup using Qemus
+dirty bitmap feature
 
- Copyright (C) 2022  Michael Ablassmeier
+Copyright (C) 2022  Michael Ablassmeier
 
- Authors:
-  Michael Ablassmeier <abi@grinser.de>
+Authors:
+ Michael Ablassmeier <abi@grinser.de>
 
- This work is licensed under the terms of the GNU GPL, version 3.  See
- the LICENSE file in the top-level directory.
+This work is licensed under the terms of the GNU GPL, version 3.  See
+the LICENSE file in the top-level directory.
 """
 import os
 import json
@@ -97,6 +97,11 @@ def create(argv, backupdir, blockdev):
             targetdir = backupdir
         else:
             targetdir = os.path.join(backupdir, dev.node)
+
+        if argv.override_targetdir != "":
+            log.warning("Overriding backup target dir")
+            targetdir = argv.override_targetdir
+
         os.makedirs(targetdir, exist_ok=True)
         if argv.no_timestamp and argv.level in ("copy", "full"):
             filename = f"{os.path.basename(dev.filename)}.partial"

@@ -1,18 +1,18 @@
 """
- QEMU Monitor Protocol Python class
+QEMU Monitor Protocol Python class
 
- Copyright (C) 2022 Michael Ablassmeier <abi@grinser.de>
- Copyright (C) 2009, 2010 Red Hat Inc.
+Copyright (C) 2022 Michael Ablassmeier <abi@grinser.de>
+Copyright (C) 2009, 2010 Red Hat Inc.
 
- Authors:
-  Michael Ablassmeier <abi@grinser.de>
-  Luiz Capitulino <lcapitulino@redhat.com>
+Authors:
+ Michael Ablassmeier <abi@grinser.de>
+ Luiz Capitulino <lcapitulino@redhat.com>
 
- Based on work by:
-  Luiz Capitulino <lcapitulino@redhat.com>
+Based on work by:
+ Luiz Capitulino <lcapitulino@redhat.com>
 
- This work is licensed under the terms of the GNU GPL, version 2.  See
- the COPYING file in the top-level directory.
+This work is licensed under the terms of the GNU GPL, version 2.  See
+the COPYING file in the top-level directory.
 """
 
 import json

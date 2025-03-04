@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
- Copyright (C) 2022  Michael Ablassmeier
+Copyright (C) 2022  Michael Ablassmeier
 
- Authors:
-  Michael Ablassmeier <abi@grinser.de>
+Authors:
+ Michael Ablassmeier <abi@grinser.de>
 
- This work is licensed under the terms of the GNU GPL, version 3.  See
- the LICENSE file in the top-level directory.
+This work is licensed under the terms of the GNU GPL, version 3.  See
+the LICENSE file in the top-level directory.
 """
 import os
 import sys
@@ -270,11 +270,7 @@ class QmpCommon:
                         return
 
                 prog = [
-                    (
-                        round(job["offset"] / job["len"] * 100)
-                        if job["offset"] != 0
-                        else 0
-                    )
+                    round(job["offset"] / job["len"] * 100) if job["offset"] != 0 else 0
                 ]
                 self.log.info(
                     "[%s] Wrote Offset: %s%% (%s of %s)",

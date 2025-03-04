@@ -1,11 +1,11 @@
 """
- QEMU Guest Agent Client
+QEMU Guest Agent Client
 
- Copyright (C) 2022 Michael Ablassmeier <abi@grinser.de>
- Copyright (C) 2012 Ryota Ozaki <ozaki.ryota@gmail.com>
+Copyright (C) 2022 Michael Ablassmeier <abi@grinser.de>
+Copyright (C) 2012 Ryota Ozaki <ozaki.ryota@gmail.com>
 
- This work is licensed under the terms of the GNU GPL, version 2.  See
- the COPYING file in the top-level directory.
+This work is licensed under the terms of the GNU GPL, version 2.  See
+the COPYING file in the top-level directory.
 
 """
 
