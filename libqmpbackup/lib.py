@@ -132,15 +132,29 @@ def get_images(argv):
         if not (f.endswith(".config") or f == "uuid")
     ]
     images_flat = [os.path.basename(f) for f in images]
+    images.sort(key=os.path.getmtime)
+    images_flat.sort(key=os.path.getmtime)
+
+    if argv.inc_dir != "":
+        os.chdir(argv.inc_dir)
+        log.warning("Adding Images in additional directory [%s]", argv.inc_dir)
+        image_files = filter(os.path.isfile, os.listdir(argv.inc_dir))
+        images_inc = [
+            os.path.join(argv.inc_dir, f)
+            for f in image_files
+            if not (f.endswith(".config") or f == "uuid")
+        ]
+        images = images + images_inc
+        images_flat = [os.path.basename(f) for f in images if not "FULL" in f]
+        images.sort(key=os.path.getmtime)
+        images_flat.sort(key=os.path.getmtime)
+    os.chdir(argv.dir)
+
     if argv.until is not None and argv.until not in images_flat:
         raise RuntimeError(
             "Image file specified by --until option "
             f"[{argv.until}] does not exist in backup directory"
         )
-
-    # sort files by creation date
-    images.sort(key=os.path.getmtime)
-    images_flat.sort(key=os.path.getmtime)
 
     if len(images) == 0:
         raise RuntimeError("No image files found in specified directory")
