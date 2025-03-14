@@ -201,6 +201,13 @@ async def main():
         required=False,
         default="",
     )
+    parser_backup.add_argument(
+        "--remove-delay",
+        help="Delay removal of attached disks (seconds)",
+        default=0,
+        type=int,
+    )
+
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
     parser_cleanup.add_argument(
@@ -444,6 +451,9 @@ async def main():
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
         finally:
+            if int(argv.remove_delay) > 0:
+                log.info("Delay removal of devices by [%s] seconds", argv.remove_delay)
+                sleep(int(argv.remove_delay))
             try:
                 await qemu_client.remove_target_devices(blockdev)
             except QMPError as errmsg:
