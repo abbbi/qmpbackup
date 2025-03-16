@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
- qmpbackup: Full an incremental backup using Qemus
- dirty bitmap feature
+qmpbackup: Full an incremental backup using Qemus
+dirty bitmap feature
 
- Copyright (C) 2022  Michael Ablassmeier
+Copyright (C) 2022  Michael Ablassmeier
 
- Authors:
-  Michael Ablassmeier <abi@grinser.de>
+Authors:
+ Michael Ablassmeier <abi@grinser.de>
 
- This work is licensed under the terms of the GNU GPL, version 3.  See
- the LICENSE file in the top-level directory.
+This work is licensed under the terms of the GNU GPL, version 3.  See
+the LICENSE file in the top-level directory.
 """
 import os
 import sys
@@ -208,7 +208,19 @@ async def main():
         default=0,
         type=int,
     )
-
+    parser_backup.add_argument(
+        "--blockdev-disable-cache",
+        help="Disable caching during backup operation",
+        required=False,
+        action="store_true",
+    )
+    parser_backup.add_argument(
+        "--blockdev-aio",
+        help="Aio option to use during backup, default: %(default)s",
+        choices=["threads", "io_uring"],
+        required=False,
+        default="threads",
+    )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
     parser_cleanup.add_argument(
@@ -446,7 +458,7 @@ async def main():
                 fs.quiesce(qga)
 
         try:
-            await qemu_client.prepare_target_devices(blockdev, target_files)
+            await qemu_client.prepare_target_devices(argv, blockdev, target_files)
             await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError) as errmsg:
             log.fatal("Error executing backup: %s", errmsg)

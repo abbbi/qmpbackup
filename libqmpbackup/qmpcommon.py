@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
- Copyright (C) 2022  Michael Ablassmeier
+Copyright (C) 2022  Michael Ablassmeier
 
- Authors:
-  Michael Ablassmeier <abi@grinser.de>
+Authors:
+ Michael Ablassmeier <abi@grinser.de>
 
- This work is licensed under the terms of the GNU GPL, version 3.  See
- the LICENSE file in the top-level directory.
+This work is licensed under the terms of the GNU GPL, version 3.  See
+the LICENSE file in the top-level directory.
 """
 import os
 import logging
@@ -72,7 +72,7 @@ class QmpCommon:
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
-    async def prepare_target_devices(self, devices, target_files):
+    async def prepare_target_devices(self, argv, devices, target_files):
         """Create the required target devices for blockev-backup
         operation"""
         self.log.info("Attach backup target devices to virtual machine")
@@ -80,13 +80,24 @@ class QmpCommon:
             target = target_files[device.node]
             targetdev = f"qmpbackup-{device.node}"
 
+            args = {
+                "driver": device.format,
+                "node-name": targetdev,
+                "file": {
+                    "driver": "file",
+                    "filename": target,
+                    "aio": argv.blockdev_aio,
+                },
+            }
+
+            if argv.blockdev_disable_cache is True:
+                nocache = {"cache": {"direct": False, "no-flush": False}}
+                args = args | nocache
+                args["file"] = args["file"] | nocache
+
             await self.qmp.execute(
                 "blockdev-add",
-                arguments={
-                    "driver": device.format,
-                    "node-name": targetdev,
-                    "file": {"driver": "file", "filename": target},
-                },
+                arguments=args,
             )
 
     async def remove_target_devices(self, devices):
@@ -280,11 +291,7 @@ class QmpCommon:
                 if job["status"] != "running":
                     continue
                 prog = [
-                    (
-                        round(job["offset"] / job["len"] * 100)
-                        if job["offset"] != 0
-                        else 0
-                    )
+                    round(job["offset"] / job["len"] * 100) if job["offset"] != 0 else 0
                 ]
                 self.log.info(
                     "[%s] Wrote Offset: %s%% (%s of %s)",
