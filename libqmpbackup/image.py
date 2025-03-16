@@ -98,8 +98,8 @@ def create(argv, backupdir, blockdev):
         else:
             targetdir = os.path.join(backupdir, dev.node)
 
-        if argv.override_targetdir != "":
-            log.warning("Overriding backup target dir")
+        if argv.override_targetdir != "" and not dev.node.startswith("pflash"):
+            log.warning("Overriding backup target dir for device: %s", dev.node)
             targetdir = argv.override_targetdir
 
         os.makedirs(targetdir, exist_ok=True)
