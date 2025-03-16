@@ -112,7 +112,7 @@ class QmpCommon:
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
-    async def prepare_target_devices(self, devices, target_files):
+    async def prepare_target_devices(self, argv, devices, target_files):
         """Create the required target devices for blockev-backup
         operation"""
         self.log.info("Attach backup target devices to virtual machine")
@@ -120,14 +120,22 @@ class QmpCommon:
             target = target_files[device.node]
             targetdev = f"qmpbackup-{device.node}"
 
-            await self._execute(
-                "blockdev-add",
-                arguments={
-                    "driver": device.format,
-                    "node-name": targetdev,
-                    "file": {"driver": "file", "filename": target},
+            args = {
+                "driver": device.format,
+                "node-name": targetdev,
+                "file": {
+                    "driver": "file",
+                    "filename": target,
+                    "aio": argv.blockdev_aio,
                 },
-            )
+            }
+
+            if argv.blockdev_disable_cache is True:
+                nocache = {"cache": {"direct": False, "no-flush": False}}
+                args = args | nocache
+                args["file"] = args["file"] | nocache
+
+            await self._execute("blockdev-add", arguments=args)
 
     async def remove_target_devices(self, devices):
         """Cleanup named devices after executing blockdev-backup
