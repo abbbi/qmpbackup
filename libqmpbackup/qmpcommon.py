@@ -133,9 +133,9 @@ class QmpCommon:
             await self._execute(
                 "blockdev-add",
                 arguments={
-                    "driver": "file",
+                    "driver": device.format,
                     "node-name": f"{device.node}_fleece",
-                    "filename": fleece_targets[device.node],
+                    "file": {"driver": "file", "filename": fleece_targets[device.node]},
                 },
             )
 
@@ -235,14 +235,15 @@ class QmpCommon:
                 "blockdev-add",
                 arguments=cbw,
             )
-            sna = {
+            self.log.info("Setup snapshot-access for backup image [%s]", device.node)
+            snap = {
                 "driver": "snapshot-access",
-                "node-name": f"{device.node}_access",
                 "file": f"{device.node}_cbw",
+                "node-name": f"{device.node}-snap",
             }
             await self._execute(
                 "blockdev-add",
-                arguments=sna,
+                arguments=snap,
             )
 
             if argv.level in ("full", "copy") or (
@@ -251,7 +252,7 @@ class QmpCommon:
                 actions.append(
                     self.transaction_action(
                         "blockdev-backup",
-                        device=device.node,
+                        device=f"{device.node}-snap",
                         target=targetdev,
                         sync="full",
                         job_id=job_id,
@@ -265,7 +266,7 @@ class QmpCommon:
                     self.transaction_action(
                         "blockdev-backup",
                         bitmap=bitmap,
-                        device=device.node,
+                        device=f"{device.node}-snap",
                         target=targetdev,
                         sync=sync,
                         job_id=job_id,
