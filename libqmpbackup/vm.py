@@ -11,6 +11,7 @@ This work is licensed under the terms of the GNU GPL, version 3.  See
 the LICENSE file in the top-level directory.
 """
 
+import os
 import json
 import logging
 from dataclasses import dataclass
@@ -30,6 +31,7 @@ class BlockDev:
     bitmaps: list
     virtual_size: int
     driver: str
+    path: str
 
 
 def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
@@ -149,6 +151,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 bitmaps,
                 inserted["image"]["virtual-size"],
                 driver,
+                os.path.dirname(os.path.abspath(filename)),
             )
         )
 

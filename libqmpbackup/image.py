@@ -91,6 +91,7 @@ def create(argv, backupdir, blockdev):
     be used as parameter for QMP drive-backup operation"""
     opt = []
     dev_target = {}
+    fleece_target = {}
     timestamp = int(time())
     for dev in blockdev:
         if argv.no_subdir is True:
@@ -135,7 +136,31 @@ def create(argv, backupdir, blockdev):
         except subprocess.CalledProcessError as errmsg:
             raise RuntimeError from errmsg
 
-    return dev_target
+        fleece_image_name = f"{dev.node}_fleece.qcow2"
+        target = os.path.join(dev.path, fleece_image_name)
+        cmd = [
+            "qemu-img",
+            "create",
+            "-f",
+            f"{dev.format}",
+            f"{target}",
+            "-o",
+            f"size={dev.virtual_size}",
+        ]
+
+        try:
+            log.info(
+                "Create fleecing image: [%s], virtual size: [%s]",
+                target,
+                dev.virtual_size,
+            )
+            log.debug(cmd)
+            subprocess.check_output(cmd)
+            fleece_target[dev.node] = target
+        except subprocess.CalledProcessError as errmsg:
+            raise RuntimeError from errmsg
+
+    return dev_target, fleece_target
 
 
 def clone(image, targetfile):

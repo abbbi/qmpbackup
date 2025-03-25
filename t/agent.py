@@ -7,7 +7,7 @@ from libqmpbackup.qaclient import QemuGuestAgentClient
 
 class TestCaseAgent(QemuGuestAgentClient):
     def create_dir_for_inc(self, target):
-        self.qga.exec(path="/bin/cp", arg=["-r", "/etc/fstab", target])
+        self.qga.exec(path="/bin/cp", arg=["-r", "/etc/", target])
         self.qga.exec(path="/bin/sync")
 
 

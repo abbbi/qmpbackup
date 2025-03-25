@@ -485,7 +485,7 @@ async def main():
 
         try:
             image.save_info(backupdir, blockdev)
-            target_files = image.create(argv, backupdir, blockdev)
+            target_files, fleece_targets = image.create(argv, backupdir, blockdev)
         except RuntimeError as errmsg:
             log.fatal(errmsg)
             sys.exit(1)
@@ -497,8 +497,10 @@ async def main():
                 fs.quiesce(qga)
 
         try:
-            await qemu_client.prepare_target_devices(blockdev, target_files)
-            await qemu_client.backup(argv, blockdev, qga, uuid)
+            await qemu_client.prepare_target_devices(
+                blockdev, target_files, fleece_targets
+            )
+            await qemu_client.backup(argv, blockdev, fleece_targets, qga, uuid)
         except (QMPError, RuntimeError, asyncio.exceptions.CancelledError) as errmsg:
             stopqmp = QMPClient()
             await stopqmp.connect(argv.socket)

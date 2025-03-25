@@ -112,10 +112,12 @@ class QmpCommon:
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
-    async def prepare_target_devices(self, devices, target_files):
+    async def prepare_target_devices(self, devices, target_files, fleece_targets):
         """Create the required target devices for blockev-backup
         operation"""
-        self.log.info("Attach backup target devices to virtual machine")
+        self.log.info(
+            "Attach backup target devices and fleecing images to virtual machine"
+        )
         for device in devices:
             target = target_files[device.node]
             targetdev = f"qmpbackup-{device.node}"
@@ -128,11 +130,21 @@ class QmpCommon:
                     "file": {"driver": "file", "filename": target},
                 },
             )
+            await self._execute(
+                "blockdev-add",
+                arguments={
+                    "driver": "file",
+                    "node-name": f"{device.node}_fleece",
+                    "filename": fleece_targets[device.node],
+                },
+            )
 
     async def remove_target_devices(self, devices):
         """Cleanup named devices after executing blockdev-backup
         operation"""
-        self.log.info("Removing backup target devices from virtual machine")
+        self.log.info(
+            "Removing backup target devices and fleecing image from virtual machine"
+        )
         for device in devices:
             targetdev = f"qmpbackup-{device.node}"
 
@@ -142,8 +154,20 @@ class QmpCommon:
                     "node-name": targetdev,
                 },
             )
+            await self._execute(
+                "blockdev-del",
+                arguments={
+                    "node-name": f"{device.node}_fleece",
+                },
+            )
+            await self._execute(
+                "blockdev-del",
+                arguments={
+                    "node-name": f"{device.node}_cbw",
+                },
+            )
 
-    def prepare_transaction(self, argv, devices, uuid):
+    async def prepare_transaction(self, argv, devices, fleece_targets, uuid):
         """Prepare transaction steps"""
         sync = "full"
         if argv.level == "inc":
@@ -195,6 +219,32 @@ class QmpCommon:
                 compress = False
                 self.log.info("Disabling compression for raw device: [%s]", device.node)
 
+            self.log.info("Setup copy-before-write filter for device [%s]", device.node)
+            cbw = {
+                "driver": "copy-before-write",
+                "node-name": f"{device.node}_cbw",
+                "file": device.node,
+                "target": f"{device.node}_fleece",
+                "on-cbw-error": "break-snapshot",
+                "cbw-timeout": 45,
+            }
+            if device.has_bitmap:
+                cbw["bitmap"] = {"node": device.node, "name": bitmap}
+
+            await self._execute(
+                "blockdev-add",
+                arguments=cbw,
+            )
+            sna = {
+                "driver": "snapshot-access",
+                "node-name": f"{device.node}_access",
+                "file": f"{device.node}_cbw",
+            }
+            await self._execute(
+                "blockdev-add",
+                arguments=sna,
+            )
+
             if argv.level in ("full", "copy") or (
                 argv.level == "inc" and device.format == "raw"
             ):
@@ -229,11 +279,11 @@ class QmpCommon:
 
         return actions
 
-    async def backup(self, argv, devices, qga, uuid):
+    async def backup(self, argv, devices, fleece_targets, qga, uuid):
         """Start backup transaction, while backup is active,
         watch for block status"""
         finished = 0
-        actions = self.prepare_transaction(argv, devices, uuid)
+        actions = await self.prepare_transaction(argv, devices, fleece_targets, uuid)
         await self._execute("transaction", arguments={"actions": actions})
         if qga is not False:
             fs.thaw(qga)
