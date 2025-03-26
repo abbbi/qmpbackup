@@ -148,22 +148,43 @@ class QmpCommon:
         for device in devices:
             targetdev = f"qmpbackup-{device.node}"
 
+            self.log.info("Detach snapshot device")
             await self._execute(
                 "blockdev-del",
                 arguments={
-                    "node-name": targetdev,
+                    "node-name": f"{device.node}-snap",
                 },
+            )
+            self.log.info(
+                "Reset qdev device entry to original device name [%s:%s]",
+                device.nodename,
+                device.qdev,
             )
             await self._execute(
-                "blockdev-del",
+                "qom-set",
                 arguments={
-                    "node-name": f"{device.node}_fleece",
+                    "path": device.qdev,
+                    "property": "drive",
+                    "value": f"{device.nodename}",
                 },
             )
+            self.log.info("Detach CBW device")
             await self._execute(
                 "blockdev-del",
                 arguments={
                     "node-name": f"{device.node}_cbw",
+                },
+            )
+            self.log.info("Detach fleecing device")
+            await self._execute(
+                "blockdev-del",
+                arguments={"node-name": f"{device.node}_fleece"},
+            )
+            self.log.info("Detach backup target device")
+            await self._execute(
+                "blockdev-del",
+                arguments={
+                    "node-name": targetdev,
                 },
             )
 
@@ -235,6 +256,21 @@ class QmpCommon:
                 "blockdev-add",
                 arguments=cbw,
             )
+
+            self.log.info(
+                "Update qdev device entry to CBW filter [%s:%s]",
+                device.node,
+                device.qdev,
+            )
+            await self._execute(
+                "qom-set",
+                arguments={
+                    "path": device.qdev,
+                    "property": "drive",
+                    "value": f"{device.node}_cbw",
+                },
+            )
+
             self.log.info("Setup snapshot-access for backup image [%s]", device.node)
             snap = {
                 "driver": "snapshot-access",
@@ -360,7 +396,9 @@ class QmpCommon:
                         uuid,
                     )
                     continue
-                self.log.info("Removing bitmap: %s", bitmap_name)
+                self.log.info(
+                    "Removing bitmap: %s on device: %s", bitmap_name, dev.node
+                )
                 await self._execute(
                     "block-dirty-bitmap-remove",
                     arguments={"node": dev.node, "name": bitmap_name},

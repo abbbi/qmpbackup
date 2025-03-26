@@ -32,6 +32,8 @@ class BlockDev:
     virtual_size: int
     driver: str
     path: str
+    nodename: str
+    qdev: str
 
 
 def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
@@ -140,6 +142,15 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
             )
             continue
 
+        try:
+            qdev = device["qdev"]
+        except KeyError:
+            log.warning(
+                "Device [%s] has no qdev required for CBW set, skipping.",
+                device["device"],
+            )
+            continue
+
         log.debug("Adding device to device list: %s", device)
         blockdevs.append(
             BlockDev(
@@ -152,6 +163,8 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 inserted["image"]["virtual-size"],
                 driver,
                 os.path.dirname(os.path.abspath(filename)),
+                inserted["node-name"],
+                qdev,
             )
         )
 
