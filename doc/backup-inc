@@ -1,6 +1,9 @@
 blockdev-add driver=qcow2 node-name=fleecie file={"driver":"file","filename":"/tmp/fleece.qcow2"}
 blockdev-add driver=qcow2 node-name=backup-target-file file={"driver":"file","filename":"/tmp/backup.qcow2"}
-blockdev-add driver=copy-before-write node-name=cbw file=ide0-hd0 target=fleecie bitmap={"node":"ide0-hd0","name":"bitmap0"}
+
+blockdev-add driver=copy-before-write node-name=cbw file=disk1 target=fleecie bitmap={"node":"disk1","name":"bitmap"}
+
 qom-set path=/machine/unattached/device[20] property=drive value=cbw
 blockdev-add driver=snapshot-access file=cbw node-name=snapshot-backup-source
-blockdev-backup device=snapshot-backup-source target=backup-target-file sync=incremental job-id=test bitmap=bitmap0
+
+blockdev-backup device=snapshot-backup-source target=backup-target-file sync=incremental job-id=test bitmap=bitmap
