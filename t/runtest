@@ -124,6 +124,12 @@ rm -rf /tmp/raw_backup/
 exist_files /tmp/raw_backup//ide1-hd0/FULL*
 rm -rf /tmp/raw_backup/
 
+# caching and aio options
+rm -rf /tmp/caching/
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/caching/ --blockdev-aio io_uring
+rm -rf /tmp/caching/
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/caching/ --blockdev-disable-cache
+rm -rf /tmp/caching/
 
 # auto backup to empty directory must execute FULL backup
 rm -rf /tmp/empty
