@@ -58,6 +58,8 @@ class QmpCommon:
         await self.qmp.disconnect()
 
     async def _execute(self, *args, **kwargs):
+        print(args)
+        print(kwargs)
         await self._connect()
         res = await self.qmp.execute(*args, **kwargs)
         await self._disconnect()
@@ -234,7 +236,11 @@ class QmpCommon:
                     device.node,
                     os.path.basename(device.filename),
                 )
-                actions.append(self.transaction_bitmap_clear(device.node, bitmap))
+                bmd = {
+                    "node": device.node,
+                    "name": bitmap,
+                }
+                await self._execute("block-dirty-bitmap-clear", arguments=bmd)
 
             compress = argv.compress
             if device.format == "raw" and compress:
@@ -250,8 +256,13 @@ class QmpCommon:
                 "on-cbw-error": "break-snapshot",
                 "cbw-timeout": 45,
             }
-            if device.has_bitmap:
-                cbw["bitmap"] = {"node": device.node, "name": bitmap}
+            if device.has_bitmap and argv.level in ("inc", "diff"):
+                cbw["bitmap"] = {
+                    "node": device.node,
+                    "name": bitmap,
+                }
+
+            print(cbw)
 
             await self._execute(
                 "blockdev-add",
