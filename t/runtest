@@ -59,9 +59,9 @@ echo "Starting qemu process"
 KVMOPT=""
 [ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
 qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)" -daemonize -display none -m 1024 \
-    -hda /tmp/disk1.qcow2 \
-    -hdb /tmp/disk2.qcow2 \
-    -hdc /tmp/disk3.raw \
+    -drive file=/tmp/disk1.qcow2,id=disk1,format=qcow2,node-name=node-disk1 \
+    -drive file=/tmp/disk2.qcow2,id=disk2,format=qcow2,node-name=node-disk2 \
+    -drive file=/tmp/disk3.raw,id=disk3,format=raw,node-name=node-disk3 \
     -qmp unix:/tmp/socket,server=on,wait=off \
     -qmp unix:/tmp/socket2,server=on,wait=off \
     -chardev socket,path=$AGENT_SOCKET,server=on,wait=off,id=qga0 \
@@ -124,6 +124,12 @@ rm -rf /tmp/raw_backup/
 exist_files /tmp/raw_backup//ide1-hd0/FULL*
 rm -rf /tmp/raw_backup/
 
+# caching and aio options
+rm -rf /tmp/caching/
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/caching/ --blockdev-aio io_uring
+rm -rf /tmp/caching/
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/caching/ --blockdev-disable-cache
+rm -rf /tmp/caching/
 
 # auto backup to empty directory must execute FULL backup
 rm -rf /tmp/empty

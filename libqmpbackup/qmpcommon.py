@@ -61,8 +61,12 @@ class QmpCommon:
         print(args)
         print(kwargs)
         await self._connect()
-        res = await self.qmp.execute(*args, **kwargs)
-        await self._disconnect()
+        try:
+            res = await self.qmp.execute(*args, **kwargs)
+        except Exception as errmsg:
+            raise RuntimeError(f"Error executing qmp command: {errmsg}") from errmsg
+        finally:
+            await self._disconnect()
         return res
 
     async def show_vm_state(self):
@@ -114,7 +118,7 @@ class QmpCommon:
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
-    async def prepare_target_devices(self, devices, target_files, fleece_targets):
+    async def prepare_target_devices(self, argv, devices, target_files, fleece_targets):
         """Create the required target devices for blockev-backup
         operation"""
         self.log.info(
@@ -124,14 +128,20 @@ class QmpCommon:
             target = target_files[device.node]
             targetdev = f"qmpbackup-{device.node}"
 
-            await self._execute(
-                "blockdev-add",
-                arguments={
-                    "driver": device.format,
-                    "node-name": targetdev,
-                    "file": {"driver": "file", "filename": target},
+            if argv.blockdev_disable_cache is True:
+                nocache = {"cache": {"direct": False, "no-flush": False}}
+                args = args | nocache
+                args["file"] = args["file"] | nocache
+
+            args = {
+                "driver": device.format,
+                "node-name": targetdev,
+                "file": {
+                    "driver": "file",
+                    "filename": target,
+                    "aio": argv.blockdev_aio,
                 },
-            )
+            }
             await self._execute(
                 "blockdev-add",
                 arguments={
@@ -140,6 +150,8 @@ class QmpCommon:
                     "file": {"driver": "file", "filename": fleece_targets[device.node]},
                 },
             )
+
+            await self._execute("blockdev-add", arguments=args)
 
     async def remove_target_devices(self, devices):
         """Cleanup named devices after executing blockdev-backup

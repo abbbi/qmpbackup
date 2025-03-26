@@ -254,7 +254,19 @@ async def main():
         default=0,
         type=int,
     )
-
+    parser_backup.add_argument(
+        "--blockdev-disable-cache",
+        help="Disable caching during backup operation",
+        required=False,
+        action="store_true",
+    )
+    parser_backup.add_argument(
+        "--blockdev-aio",
+        help="Aio option to use during backup, default: %(default)s",
+        choices=["threads", "io_uring"],
+        required=False,
+        default="threads",
+    )
     parser_cleanup = subparsers.add_parser("cleanup", help="cleanup functions")
     parser_cleanup.set_defaults(which="cleanup")
     parser_cleanup.add_argument(
@@ -498,7 +510,7 @@ async def main():
 
         try:
             await qemu_client.prepare_target_devices(
-                blockdev, target_files, fleece_targets
+                argv, blockdev, target_files, fleece_targets
             )
             await qemu_client.backup(argv, blockdev, fleece_targets, qga, uuid)
         except (QMPError, RuntimeError, asyncio.exceptions.CancelledError) as errmsg:
@@ -507,7 +519,6 @@ async def main():
             await cancel_jobs(stopqmp, log)
             await stopqmp.disconnect()
             log.fatal("Error executing backup: %s", errmsg)
-            sys.exit(1)
         finally:
             if int(argv.remove_delay) > 0:
                 log.info("Delay removal of devices by [%s] seconds", argv.remove_delay)
