@@ -220,11 +220,12 @@ class QmpCommon:
                 self.log.info(
                     "Creating new bitmap: [%s] for device [%s]", bitmap, device.node
                 )
-                actions.append(
-                    self.transaction_bitmap_add(
-                        device.node, bitmap, persistent=persistent
-                    )
-                )
+                bmd = {
+                    "node": device.node,
+                    "name": bitmap,
+                    "persistent": persistent,
+                }
+                await self._execute("block-dirty-bitmap-add", arguments=bmd)
 
             if device.has_bitmap and argv.level in ("full") and device.format != "raw":
                 self.log.info(
