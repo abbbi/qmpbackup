@@ -59,8 +59,12 @@ class QmpCommon:
 
     async def _execute(self, *args, **kwargs):
         await self._connect()
-        res = await self.qmp.execute(*args, **kwargs)
-        await self._disconnect()
+        try:
+            res = await self.qmp.execute(*args, **kwargs)
+        except Exception as errmsg:
+            raise RuntimeError(f"Error executing qmp command: {errmsg}") from errmsg
+        finally:
+            await self._disconnect()
         return res
 
     async def show_vm_state(self):

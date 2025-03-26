@@ -505,7 +505,6 @@ async def main():
             await cancel_jobs(stopqmp, log)
             await stopqmp.disconnect()
             log.fatal("Error executing backup: %s", errmsg)
-            sys.exit(1)
         finally:
             if int(argv.remove_delay) > 0:
                 log.info("Delay removal of devices by [%s] seconds", argv.remove_delay)
