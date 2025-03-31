@@ -1,7 +1,8 @@
 blockdev-add driver=qcow2 node-name=fleecie file={"driver":"file","filename":"/tmp/fleece.qcow2"}
 blockdev-add driver=qcow2 node-name=backup-target-file file={"driver":"file","filename":"/tmp/backup.qcow2"}
 
-blockdev-add driver=copy-before-write node-name=cbw file=disk1 target=fleecie
+blockdev-add driver=copy-before-write node-name=cbw file=disk1 target=fleecie bitmap={"node":"disk1","name":"bitmap"}
+
 block-dirty-bitmap-add node=cbw name=bitmap
 block-dirty-bitmap-merge node=cbw target=bitmap bitmaps=[{"node":"disk1","name":"bitmap"}]
 
