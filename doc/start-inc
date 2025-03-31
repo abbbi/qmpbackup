@@ -10,4 +10,3 @@ block-dirty-bitmap-add node=snapshot-backup-source name=bitmap
 block-dirty-bitmap-merge node=snapshot-backup-source target=bitmap bitmaps=['bitmap']
 
 blockdev-backup device=snapshot-backup-source target=backup-target-file job-id=test sync=incremental bitmap=bitmap
-block-dirty-bitmap-clear node=disk1 name=bitmap
