@@ -29,13 +29,13 @@ IMAGE="https://app.vagrantup.com/generic/boxes/alpine38/versions/3.6.6/providers
 
 exist_files() {
     if ! ls "${1}" 1> /dev/null 2>&1; then
-        echo "backup files do not exist"
+        echo "backup file ${1} does not exist"
         exit 1
     fi
 }
 no_exist_files() {
     if ls "${1}" 1> /dev/null 2>&1; then
-        echo "backup files do not exist"
+        echo "backup files ${1} should not exist"
         exit 1
     fi
 }
@@ -59,15 +59,15 @@ echo "Starting qemu process"
 KVMOPT=""
 [ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
 qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)" -daemonize -display none -m 1024 \
-    -drive file=/tmp/disk1.qcow2,id=disk1,format=qcow2,node-name=node-disk1 \
-    -drive file=/tmp/disk2.qcow2,id=disk2,format=qcow2,node-name=node-disk2 \
-    -drive file=/tmp/disk3.raw,id=disk3,format=raw,node-name=node-disk3 \
+    -drive node-name=disk1,file=/tmp/disk1.qcow2,format=qcow2 \
+    -drive node-name=disk2,file=/tmp/disk2.qcow2,format=qcow2 \
+    -drive node-name=disk3,file=/tmp/disk3.raw,format=raw \
     -qmp unix:/tmp/socket,server=on,wait=off \
     -qmp unix:/tmp/socket2,server=on,wait=off \
     -chardev socket,path=$AGENT_SOCKET,server=on,wait=off,id=qga0 \
     -device virtio-serial \
     -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
-    -drive id=snapshot,if=none,format=qcow2,snapshot=on,file=/tmp/snapshot.qcow2 \
+    -drive node-name=snapshot,if=none,format=qcow2,snapshot=on,file=/tmp/snapshot.qcow2 \
     -pidfile ${PIDFILE}
 
 # wait until qemu agent is reachable within booted Vm, then continue
@@ -106,6 +106,7 @@ rm -rf /tmp/nosubdir_backup/
 
 
 # no-timestamp and no-subdir/no-symlink option
+rm -rf /tmp/nosubdir_timestamp_backup/
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/nosubdir_timestamp_backup/ --no-subdir --no-symlink --no-timestamp --quiesce
 no_exist_files /tmp/nosubdir_timestamp_backup/FULL*
 no_exist_files /tmp/nosubdir_timestamp_backup/FULL*
@@ -182,10 +183,8 @@ rm -rf /tmp/include
 echo "------------------------------------------------"
 echo "Check bitmap information output"
 echo "------------------------------------------------"
-
-
 # at this point, block devices must show bitmaps
-../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "qmpbackup-disk"
+../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "qmpbackup-disk1"
 # bitmaps must be active
 ../qmpbackup --socket $QMP_SOCKET info --show bitmaps 2>&1 | grep "recording.*true"
 # at least one bitmap must be removed at this point

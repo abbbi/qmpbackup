@@ -175,7 +175,7 @@ class QmpCommon:
             )
             self.log.info(
                 "Reset qdev device entry to original device name [%s:%s]",
-                device.nodename,
+                device.node,
                 device.qdev,
             )
             await self._execute(
@@ -183,7 +183,7 @@ class QmpCommon:
                 arguments={
                     "path": device.qdev,
                     "property": "drive",
-                    "value": f"{device.nodename}",
+                    "value": f"{device.node}",
                 },
             )
             if argv.level in ("inc", "diff"):
@@ -288,31 +288,6 @@ class QmpCommon:
                 "blockdev-add",
                 arguments=cbw,
             )
-
-            if argv.level in ("inc", "diff") and device.format != "raw":
-                self.log.info(
-                    "Merging bitmaps to COW device: [%s:%s]",
-                    device.node,
-                    bitmap,
-                )
-                copy_bitmap = {"node": f"{device.node}_cbw", "name": bitmap}
-                await self._execute(
-                    "block-dirty-bitmap-add",
-                    arguments=copy_bitmap,
-                )
-                bm_source = {
-                    "name": bitmap,
-                    "node": device.node,
-                }
-                merge_bitmap = {
-                    "node": f"{device.node}_cbw",
-                    "target": bitmap,
-                    "bitmaps": [bm_source],
-                }
-                await self._execute(
-                    "block-dirty-bitmap-merge",
-                    arguments=merge_bitmap,
-                )
 
             self.log.info(
                 "Update qdev device entry to CBW filter [%s:%s]",
