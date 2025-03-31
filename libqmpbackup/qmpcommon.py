@@ -122,6 +122,35 @@ class QmpCommon:
                 arguments=args,
             )
 
+    async def add_snapshot_access_devices(self, devices):
+        """Prepare snapshot-access devices required for backup using
+        image fleecing technique"""
+        self.log.info("Add snapshot-access devices.")
+        for device in devices:
+            snap = {
+                "driver": "snapshot-access",
+                "file": f"qmpbackup-{device.node}-cbw",
+                "node-name": f"qmpbackup-{device.node}-snap",
+            }
+            await self.qmp.execute(
+                "blockdev-add",
+                arguments=snap,
+            )
+
+    async def remove_snapshot_access_devices(self, devices):
+        """Cleanup named devices after executing blockdev-backup
+        operation"""
+        self.log.info("Removing cbw devices from virtual machine")
+        for device in devices:
+            targetdev = f"qmpbackup-{device.node}-snap"
+
+            await self.qmp.execute(
+                "blockdev-del",
+                arguments={
+                    "node-name": targetdev,
+                },
+            )
+
     async def remove_target_devices(self, devices):
         """Cleanup named devices after executing blockdev-backup
         operation"""
@@ -168,7 +197,7 @@ class QmpCommon:
         """Issue qom command to switch disk device to copy-before-write filter"""
         self.log.info("Activate copy-before-write filter")
         if action == "disable":
-            self.log.info("Activate copy-before-write filter")
+            self.log.info("Disable copy-before-write filter")
         else:
             self.log.info("Disable copy-before-write filter")
         for device in devices:
