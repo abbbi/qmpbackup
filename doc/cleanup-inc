@@ -1,0 +1,1 @@
+block-dirty-bitmap-clear node=disk1 name=bitmap
