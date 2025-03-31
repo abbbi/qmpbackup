@@ -136,7 +136,7 @@ def create(argv, backupdir, blockdev):
         except subprocess.CalledProcessError as errmsg:
             raise RuntimeError from errmsg
 
-        fleece_image_name = f"{dev.node}_fleece.qcow2"
+        fleece_image_name = f"{dev.node}_{timestamp}_fleece.qcow2"
         target = os.path.join(dev.path, fleece_image_name)
         cmd = [
             "qemu-img",
