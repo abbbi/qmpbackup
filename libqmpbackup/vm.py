@@ -11,6 +11,7 @@ This work is licensed under the terms of the GNU GPL, version 3.  See
 the LICENSE file in the top-level directory.
 """
 
+import os
 import json
 import logging
 from dataclasses import dataclass
@@ -31,6 +32,8 @@ class BlockDev:
     virtual_size: int
     driver: str
     node: str
+    path: str
+    qdev: str
 
 
 def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
@@ -159,6 +162,15 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
             )
             continue
 
+        try:
+            qdev = device["qdev"]
+        except KeyError:
+            log.warning(
+                "Device [%s] has no qdev required for CBW set, skipping.",
+                device["device"],
+            )
+            continue
+
         log.debug("Adding device to device list: %s", device)
         blockdevs.append(
             BlockDev(
@@ -171,6 +183,8 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 inserted["image"]["virtual-size"],
                 driver,
                 inserted["node-name"],
+                os.path.dirname(os.path.abspath(filename)),
+                qdev,
             )
         )
 
