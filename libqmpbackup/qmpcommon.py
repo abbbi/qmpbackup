@@ -325,10 +325,14 @@ class QmpCommon:
                     "block-dirty-bitmap-add",
                     arguments=copy_bitmap,
                 )
+                bm_source =  {
+                    "name": bitmap,
+                    "node": device.node,
+                }
                 merge_bitmap = {
                     "node": f"{device.node}-snap",
                     "target": bitmap,
-                    "bitmaps": [bitmap],
+                    "bitmaps": [bm_source],
                 }
                 await self._execute(
                     "block-dirty-bitmap-merge",
