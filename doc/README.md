@@ -4,8 +4,9 @@ qmp commands to do backup via cbw
 
 -> wait for block job to finish, then cleanup:
 
- qmp-shell -vp /tmp/socket < cleanup-after-full
+ qmp-shell -vp /tmp/socket < cleanup
 
--> start incremental backup (fails)
+-> start incremental backup
 
-kqmp-shell -vp /tmp/socket < cleanup-after-full
+ qmp-shell -vp /tmp/socket < start-inc
+ qmp-shell -vp /tmp/socket < cleanup
