@@ -446,7 +446,7 @@ async def main():
 
         try:
             image.save_info(backupdir, blockdev)
-            target_files = image.create(argv, backupdir, blockdev)
+            targetfiles, fleecefiles = image.create(argv, backupdir, blockdev)
         except RuntimeError as errmsg:
             log.fatal(errmsg)
             sys.exit(1)
@@ -458,7 +458,11 @@ async def main():
                 fs.quiesce(qga)
 
         try:
-            await qemu_client.prepare_target_devices(argv, blockdev, target_files)
+            await qemu_client.prepare_target_devices(argv, blockdev, targetfiles)
+            await qemu_client.prepare_fleece_devices(blockdev, fleecefiles)
+            await qemu_client.add_cbw_device(argv, blockdev, uuid)
+            await qemu_client.blockdev_replace(blockdev, action="enable")
+            await qemu_client.add_snapshot_access_devices(blockdev)
             await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError) as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
@@ -468,7 +472,11 @@ async def main():
                 log.info("Delay removal of devices by [%s] seconds", argv.remove_delay)
                 sleep(int(argv.remove_delay))
             try:
+                await qemu_client.remove_snapshot_access_devices(blockdev)
+                await qemu_client.blockdev_replace(blockdev, action="disable")
+                await qemu_client.remove_cbw_devices(blockdev)
                 await qemu_client.remove_target_devices(blockdev)
+                await qemu_client.remove_fleece_devices(blockdev)
             except QMPError as errmsg:
                 log.warning("Unable to cleanup: %s", errmsg)
             if qga is not False:
@@ -496,7 +504,7 @@ async def main():
             sys.exit(1)
 
         log.info("Renaming partial files")
-        for _, saveset in target_files.items():
+        for _, saveset in targetfiles.items():
             new_filename = saveset.replace(".partial", "")
             try:
                 os.rename(saveset, new_filename)
@@ -511,6 +519,14 @@ async def main():
                 short = os.path.basename(new_filename)
                 tgtdir = os.path.dirname(new_filename)
                 os.symlink(new_filename, f"{tgtdir}/{argv.level.upper()}-{short}")
+
+        log.info("Removing fleece image files")
+        for _, fleeceimage in fleecefiles.items():
+            try:
+                os.remove(fleeceimage)
+            except OSError as errmsg:
+                log.error("Unable to remove file: %s", errmsg)
+                sys.exit(1)
 
 
 if __name__ == "__main__":
