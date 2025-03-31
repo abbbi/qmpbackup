@@ -171,7 +171,7 @@ class QmpCommon:
                         "blockdev-backup",
                         device=device.node,
                         target=targetdev,
-                        sync="full",
+                        sync=sync,
                         job_id=job_id,
                         speed=argv.speed_limit,
                         compress=compress,
