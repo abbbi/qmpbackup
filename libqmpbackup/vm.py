@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 class BlockDev:
     """Block device information"""
 
-    node: str
+    device: str
     format: str
     filename: str
     backing_image: str
@@ -30,6 +30,7 @@ class BlockDev:
     bitmaps: list
     virtual_size: int
     driver: str
+    node: str
 
 
 def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
@@ -136,7 +137,10 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 )
                 continue
 
-        if included_disks and not device["device"] in included_disks:
+        if included_disks and not (
+            device["device"] in included_disks
+            or inserted["node-name"] in included_disks
+        ):
             log.info(
                 "Device not in included disk list, ignoring: [%s:%s]",
                 device["device"],
@@ -144,7 +148,10 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
             )
             continue
 
-        if excluded_disks and device["device"] in excluded_disks:
+        if excluded_disks and (
+            device["device"] in excluded_disks
+            or inserted["node-name"] in excluded_disks
+        ):
             logging.info(
                 "Excluding device from backup: [%s:%s]",
                 device["device"],
@@ -163,6 +170,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 bitmaps,
                 inserted["image"]["virtual-size"],
                 driver,
+                inserted["node-name"],
             )
         )
 
