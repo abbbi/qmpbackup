@@ -14,6 +14,7 @@ from time import sleep
 import asyncio
 from qemu.qmp import EventListener, qmp_client
 from libqmpbackup import fs
+from libqmpbackup.lib import json_pp
 
 
 class QmpCommon:
@@ -292,7 +293,7 @@ class QmpCommon:
                 actions.append(
                     self.transaction_action(
                         "blockdev-backup",
-                        device=device.node,
+                        device=f"qmpbackup-{device.node}-snap",
                         target=targetdev,
                         sync=sync,
                         job_id=job_id,
@@ -302,10 +303,29 @@ class QmpCommon:
                 )
             else:
                 actions.append(
+                    self.transaction_bitmap_add(f"qmpbackup-{device.node}-snap", bitmap)
+                )
+
+                bm_source = {
+                    "name": bitmap,
+                    "node": device.node,
+                }
+                merge_bitmap = {
+                    "node": f"qmpbackup-{device.node}-snap",
+                    "target": bitmap,
+                    "bitmaps": [bm_source],
+                }
+                actions.append(
+                    self.transaction_action(
+                        "block-dirty-bitmap-merge",
+                        **merge_bitmap,
+                    )
+                )
+                actions.append(
                     self.transaction_action(
                         "blockdev-backup",
                         bitmap=bitmap,
-                        device=device.node,
+                        device=f"qmpbackup-{device.node}-snap",
                         target=targetdev,
                         sync=sync,
                         job_id=job_id,
@@ -313,8 +333,9 @@ class QmpCommon:
                         compress=argv.compress,
                     )
                 )
+                actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
-        self.log.debug("Created transaction: %s", actions)
+        self.log.debug("Created transaction: %s", json_pp(actions))
 
         return actions
 
