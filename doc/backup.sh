@@ -15,8 +15,6 @@ rm /tmp/fleece.qcow2 /tmp/backup.qcow2
 qemu-img create -f qcow2 /tmp/fleece.qcow2 128G
 qemu-img create -f qcow2 /tmp/backup.qcow2 128G
 
-exit
-
 qmp-shell -vp /tmp/socket < start-inc
 sleep 5
 qmp-shell -vp /tmp/socket < cleanup
