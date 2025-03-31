@@ -512,7 +512,7 @@ async def main():
             await qemu_client.prepare_target_devices(
                 argv, blockdev, target_files, fleece_targets
             )
-            await qemu_client.backup(argv, blockdev, fleece_targets, qga, uuid)
+            await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError, asyncio.exceptions.CancelledError) as errmsg:
             stopqmp = QMPClient()
             await stopqmp.connect(argv.socket)
@@ -524,9 +524,16 @@ async def main():
                 log.info("Delay removal of devices by [%s] seconds", argv.remove_delay)
                 sleep(int(argv.remove_delay))
             try:
-                await qemu_client.remove_target_devices(blockdev)
+                await qemu_client.remove_target_devices(argv, blockdev, uuid)
             except QMPError as errmsg:
                 log.warning("Unable to cleanup: %s", errmsg)
+            log.info("Delete fleecing images")
+            try:
+                for _, fleecie in fleece_targets.items():
+                    os.remove(fleecie)
+            except OSError as errmsg:
+                log.warning("Unable to remove fleecing image: %s", errmsg)
+
             if qga is not False:
                 fs.thaw(qga)
 

@@ -84,7 +84,7 @@ echo "Executing qmpbackup tests"
 echo "------------------------------------------------"
 rm -rf /tmp/backup_no_agent
 rm -f /tmp/backup.log
-../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET --logfile /tmp/backup.log backup --level full --exclude ide0-hd0 --target /tmp/backup_no_agent/ --quiesce
+../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET --logfile /tmp/backup.log backup --level full --exclude disk1 --target /tmp/backup_no_agent/ --quiesce
 [ -e /tmp/backup.log ]
 [ -e /tmp/backup_no_agent/uuid ]
 grep Arguments /tmp/backup.log > /dev/null
@@ -95,8 +95,8 @@ rm -rf /tmp/backup
 rm -rf /tmp/copy_backup
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/copy_backup/ --quiesce
 
-exist_files /tmp/backup//ide0-hd0/FULL*
-exist_files /tmp/backup//ide0-hd1/FULL*
+exist_files /tmp/backup//disk1/FULL*
+exist_files /tmp/backup//disk2/FULL*
 
 # no-subdir option
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/nosubdir_backup/ --no-subdir --quiesce
@@ -121,7 +121,7 @@ rm -rf /tmp/compressed_backup/
 # compress option
 rm -rf /tmp/raw_backup/
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/raw_backup/ --quiesce --include-raw
-exist_files /tmp/raw_backup//ide1-hd0/FULL*
+exist_files /tmp/raw_backup//disk3/FULL*
 rm -rf /tmp/raw_backup/
 
 # caching and aio options
@@ -134,9 +134,9 @@ rm -rf /tmp/caching/
 # auto backup to empty directory must execute FULL backup
 rm -rf /tmp/empty
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --target /tmp/empty/ --quiesce
-exist_files /tmp/empty//ide0-hd0/FULL*
+exist_files /tmp/empty//disk1/FULL*
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --target /tmp/empty/ --quiesce
-exist_files /tmp/empty//ide0-hd0/INC*
+exist_files /tmp/empty//disk1/INC*
 
 # create /tmp/incdata1 within the guest, execute further
 # incremental backups
@@ -145,8 +145,8 @@ python3 agent.py incdata1
 echo "------------------------------------------------"
 
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level inc --target /tmp/backup/ --quiesce
-exist_files /tmp/backup//ide0-hd0/INC* 
-exist_files /tmp/backup//ide0-hd1/INC* 
+exist_files /tmp/backup//disk1/INC* 
+exist_files /tmp/backup//disk2/INC* 
 
 echo "------------------------------------------------"
 python3 agent.py incdata2
@@ -172,10 +172,10 @@ echo "------------------------------------------------"
 # exclude/include
 rm -rf /tmp/exclude
 rm -rf /tmp/include
-../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --exclude ide0-hd0 --target /tmp/exclude/ --quiesce
-[ -e /tmp/exclude/ide0-hd0 ] && echo "backed up excluded disk" && exit 1
-../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --include ide0-hd1 --target /tmp/include/ --quiesce
-[ -e /tmp/exclude/ide0-hd0 ] && echo "backed up non included disks" && exit 1
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --exclude disk1 --target /tmp/exclude/ --quiesce
+[ -e /tmp/exclude/disk1 ] && echo "backed up excluded disk" && exit 1
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --include disk2 --target /tmp/include/ --quiesce
+[ -e /tmp/exclude/disk1 ] && echo "backed up non included disks" && exit 1
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/delay/ --quiesce --remove-delay 10
 
 
@@ -185,36 +185,36 @@ echo "------------------------------------------------"
 
 
 # at this point, block devices must show bitmaps
-../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "qmpbackup-ide"
+../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "qmpbackup-disk"
 # bitmaps must be active
 ../qmpbackup --socket $QMP_SOCKET info --show bitmaps 2>&1 | grep "recording.*true"
 # at least one bitmap must be removed at this point
-../qmpbackup --socket $QMP_SOCKET cleanup --remove-bitmap 2>&1 | grep "Removing bitmap: qmpbackup-ide0-hd0"
+../qmpbackup --socket $QMP_SOCKET cleanup --remove-bitmap 2>&1 | grep "Removing bitmap: qmpbackup-disk1"
 
 
 # exit code of qmpbackup must be errnous if partial backup is found in directory
 rm -rf /tmp/partial_backup
-../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --include ide0-hd1 --target /tmp/partial_backup/ --quiesce
-touch /tmp/partial_backup/ide0-hd1/FULL-bar.partial
-../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level inc --include ide0-hd1 --target /tmp/partial_backup/ --quiesce && exit 1
-../qmprestore rebase --dir /tmp/partial_backup/ide0-hd1/ --dry-run && exit 1
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --include disk2 --target /tmp/partial_backup/ --quiesce
+touch /tmp/partial_backup/disk2/FULL-bar.partial
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level inc --include disk2 --target /tmp/partial_backup/ --quiesce && exit 1
+../qmprestore rebase --dir /tmp/partial_backup/disk2/ --dry-run && exit 1
 
 echo "------------------------------------------------"
 echo "Executing qmprestore tests: rebase"
 echo "------------------------------------------------"
 rm -rf /tmp/rebase
-cp -a /tmp/backup/ide0-hd0/ /tmp/rebase
+cp -a /tmp/backup/disk1/ /tmp/rebase
 ../qmprestore rebase --dir /tmp/rebase
 virt-ls /tmp/rebase/image /tmp | grep incdata3
 rm -rf /tmp/skip_check
-cp -a /tmp/backup/ide0-hd0/ /tmp/skip_check
+cp -a /tmp/backup/disk1/ /tmp/skip_check
 ../qmprestore --skip-check rebase --dir /tmp/skip_check
 
 echo "------------------------------------------------"
 echo "Executing qmprestore tests: snapshotrebase"
 echo "------------------------------------------------"
 rm -rf /tmp/snaprebase
-cp -a /tmp/backup/ide0-hd0/ /tmp/snaprebase
+cp -a /tmp/backup/disk1/ /tmp/snaprebase
 ../qmprestore snapshotrebase --dir /tmp/snaprebase
 qemu-img info "$(find /tmp/snaprebase/  -type f)" | grep "Snapshot" || exit 1
 rm -rf /tmp/snaprebase
@@ -223,7 +223,7 @@ echo "------------------------------------------------"
 echo "Executing qmprestore tests: commit"
 echo "------------------------------------------------"
 rm -rf /tmp/commitrebase
-cp -a /tmp/backup/ide0-hd0/ /tmp/commitrebase
+cp -a /tmp/backup/disk1/ /tmp/commitrebase
 ../qmprestore snapshotrebase --dir /tmp/commitrebase
 virt-ls -a "$(find /tmp/commitrebase/  -type f)" /tmp | grep incdata3
 
@@ -234,10 +234,10 @@ RESTORED_FILE="/tmp/restore/restore.qcow2"
 rm -rf /tmp/restore
 
 # merge must not alter original files
-md5sum /tmp/backup/ide0-hd0/* > /tmp/sum
-../qmprestore merge --dir /tmp/backup/ide0-hd0/ --targetfile /tmp/restore/restore.qcow2
+md5sum /tmp/backup/disk1/* > /tmp/sum
+../qmprestore merge --dir /tmp/backup/disk1/ --targetfile /tmp/restore/restore.qcow2
 echo "merge OK"
-md5sum /tmp/backup/ide0-hd0/* > /tmp/sum_after_restore
+md5sum /tmp/backup/disk1/* > /tmp/sum_after_restore
 
 echo "check if merge has altered original files"
 diff /tmp/sum /tmp/sum_after_restore  || exit 1
@@ -245,7 +245,7 @@ echo "OK"
 
 qemu-img info "${RESTORED_FILE}" > /dev/null
 
-ORIGINAL_FILE=$(echo /tmp/backup/ide0-hd0/FULL*)
+ORIGINAL_FILE=$(echo /tmp/backup/disk1/FULL*)
 echo "------------------------------------------------------"
 echo "Check restored image for contents of all inc backups "
 echo "------------------------------------------------------"

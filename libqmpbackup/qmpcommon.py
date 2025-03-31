@@ -58,8 +58,6 @@ class QmpCommon:
         await self.qmp.disconnect()
 
     async def _execute(self, *args, **kwargs):
-        print(args)
-        print(kwargs)
         await self._connect()
         try:
             res = await self.qmp.execute(*args, **kwargs)
@@ -128,11 +126,6 @@ class QmpCommon:
             target = target_files[device.node]
             targetdev = f"qmpbackup-{device.node}"
 
-            if argv.blockdev_disable_cache is True:
-                nocache = {"cache": {"direct": False, "no-flush": False}}
-                args = args | nocache
-                args["file"] = args["file"] | nocache
-
             args = {
                 "driver": device.format,
                 "node-name": targetdev,
@@ -142,6 +135,12 @@ class QmpCommon:
                     "aio": argv.blockdev_aio,
                 },
             }
+
+            if argv.blockdev_disable_cache is True:
+                nocache = {"cache": {"direct": False, "no-flush": False}}
+                args = args | nocache
+                args["file"] = args["file"] | nocache
+
             await self._execute(
                 "blockdev-add",
                 arguments={
@@ -153,13 +152,18 @@ class QmpCommon:
 
             await self._execute("blockdev-add", arguments=args)
 
-    async def remove_target_devices(self, devices):
+    async def remove_target_devices(self, argv, devices, uuid):
         """Cleanup named devices after executing blockdev-backup
         operation"""
+        bitmap_prefix = "qmpbackup"
+        if argv.level == "copy":
+            bitmap_prefix = f"qmpbackup-{argv.level}"
+
         self.log.info(
             "Removing backup target devices and fleecing image from virtual machine"
         )
         for device in devices:
+            bitmap = f"{bitmap_prefix}-{device.node}-{uuid}"
             targetdev = f"qmpbackup-{device.node}"
 
             self.log.info("Detach snapshot device")
@@ -182,6 +186,8 @@ class QmpCommon:
                     "value": f"{device.nodename}",
                 },
             )
+            if argv.level in ("inc", "diff"):
+                await self.clear_bitmap(device, bitmap)
             self.log.info("Detach CBW device")
             await self._execute(
                 "blockdev-del",
@@ -202,7 +208,21 @@ class QmpCommon:
                 },
             )
 
-    async def prepare_transaction(self, argv, devices, fleece_targets, uuid):
+    async def clear_bitmap(self, device, bitmap):
+        """Clear bitmap contents"""
+        self.log.info(
+            "Clearing bitmap [%s] for device: [%s:%s]",
+            bitmap,
+            device.node,
+            os.path.basename(device.filename),
+        )
+        bmd = {
+            "node": device.node,
+            "name": bitmap,
+        }
+        await self._execute("block-dirty-bitmap-clear", arguments=bmd)
+
+    async def prepare_transaction(self, argv, devices, uuid):
         """Prepare transaction steps"""
         sync = "full"
         if argv.level == "inc":
@@ -242,17 +262,7 @@ class QmpCommon:
                 await self._execute("block-dirty-bitmap-add", arguments=bmd)
 
             if device.has_bitmap and argv.level in ("full") and device.format != "raw":
-                self.log.info(
-                    "Clearing existing bitmap [%s] for device: [%s:%s]",
-                    bitmap,
-                    device.node,
-                    os.path.basename(device.filename),
-                )
-                bmd = {
-                    "node": device.node,
-                    "name": bitmap,
-                }
-                await self._execute("block-dirty-bitmap-clear", arguments=bmd)
+                await self.clear_bitmap(device, bitmap)
 
             compress = argv.compress
             if device.format == "raw" and compress:
@@ -273,8 +283,6 @@ class QmpCommon:
                     "node": device.node,
                     "name": bitmap,
                 }
-
-            print(cbw)
 
             await self._execute(
                 "blockdev-add",
@@ -305,6 +313,27 @@ class QmpCommon:
                 "blockdev-add",
                 arguments=snap,
             )
+
+            if argv.level in ("inc", "diff") and device.format != "raw":
+                self.log.info(
+                    "Merging bitmaps to snapshot-access image [%s:%s]",
+                    device.node,
+                    bitmap,
+                )
+                copy_bitmap = {"node": f"{device.node}-snap", "name": bitmap}
+                await self._execute(
+                    "block-dirty-bitmap-add",
+                    arguments=copy_bitmap,
+                )
+                merge_bitmap = {
+                    "node": f"{device.node}-snap",
+                    "target": bitmap,
+                    "bitmaps": [bitmap],
+                }
+                await self._execute(
+                    "block-dirty-bitmap-merge",
+                    arguments=merge_bitmap,
+                )
 
             if argv.level in ("full", "copy") or (
                 argv.level == "inc" and device.format == "raw"
@@ -340,11 +369,11 @@ class QmpCommon:
 
         return actions
 
-    async def backup(self, argv, devices, fleece_targets, qga, uuid):
+    async def backup(self, argv, devices, qga, uuid):
         """Start backup transaction, while backup is active,
         watch for block status"""
         finished = 0
-        actions = await self.prepare_transaction(argv, devices, fleece_targets, uuid)
+        actions = await self.prepare_transaction(argv, devices, uuid)
         await self._execute("transaction", arguments={"actions": actions})
         if qga is not False:
             fs.thaw(qga)
