@@ -57,7 +57,7 @@ KVMOPT=""
 [ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
 
 if [ -z "$DEBUG_CONSOLE" ]; then
-    KVMOPT="${KVMOPT} -daemonize -display none"
+    KVMOPT="${KVMOPT} -daemonize -display none -net nic,model=virtio,macaddr=52:54:00:00:00:01 -net bridge,br=virtbr0"
 fi
 
 echo "Starting qemu process"
