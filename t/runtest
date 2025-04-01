@@ -53,10 +53,15 @@ fi
 [ ! -e /tmp/disk3.raw ] && qemu-img create -f raw /tmp/disk3.raw 10M
 [ ! -e /tmp/file.qcow2 ] &&  qemu-img create -f qcow2 /tmp/file.qcow2 10M
 
-echo "Starting qemu process"
 KVMOPT=""
 [ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
-qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)" -daemonize -display none -m 1024 \
+
+if [ -z "$DEBUG_CONSOLE" ]; then
+    KVMOPT="${KVMOPT} -daemonize -display none"
+fi
+
+echo "Starting qemu process"
+qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)"  -m 1024 \
     -drive node-name=disk1,file=/tmp/disk1.qcow2,format=qcow2 \
     -drive node-name=disk2,file=/tmp/disk2.qcow2,format=qcow2 \
     -drive node-name=disk3,file=/tmp/disk3.raw,format=raw \
