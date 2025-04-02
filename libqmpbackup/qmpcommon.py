@@ -303,7 +303,9 @@ class QmpCommon:
                 )
             else:
                 actions.append(
-                    self.transaction_bitmap_add(f"qmpbackup-{device.node_safe}-snap", bitmap)
+                    self.transaction_bitmap_add(
+                        f"qmpbackup-{device.node_safe}-snap", bitmap
+                    )
                 )
 
                 bm_source = {

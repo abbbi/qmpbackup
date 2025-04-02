@@ -393,7 +393,7 @@ async def main():
             tdir = backupdir
             if not argv.no_subdir:
                 nodename = device.node
-                if device.node.startswith('#block'):
+                if device.node.startswith("#block"):
                     nodename = device.device
                 tdir = os.path.join(backupdir, nodename)
             if (
