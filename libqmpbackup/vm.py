@@ -31,8 +31,9 @@ class BlockDev:
     bitmaps: list
     virtual_size: int
     driver: str
-    path: str
     node: str
+    node_safe: str
+    path: str
     qdev: str
 
 
@@ -126,6 +127,20 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 )
                 continue
 
+        if device["device"] == "":
+            try:
+                log.info(
+                    "Device for file [%s] has empty device setting, attempt fallback to node name.",
+                    filename,
+                )
+                device["device"] = device["inserted"]["node-name"]
+                log.info("Using node name: [%s]", device["device"])
+            except KeyError:
+                log.error(
+                    "Unable to get device node name for disk: [%s], skipping.", filename
+                )
+                continue
+
         if included_disks and not (
             device["device"] in included_disks
             or inserted["node-name"] in included_disks
@@ -168,8 +183,9 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 bitmaps,
                 inserted["image"]["virtual-size"],
                 driver,
-                os.path.dirname(os.path.abspath(filename)),
                 inserted["node-name"],
+                inserted["node-name"].replace("#", ""),
+                os.path.dirname(os.path.abspath(filename)),
                 qdev,
             )
         )

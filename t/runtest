@@ -12,10 +12,10 @@ cleanup() {
     fi
     rm -f ${AGENT_SOCKET}
     rm -f ${QMP_SOCKET}
+    rm -f /tmp/file.qcow2
     rm -f /tmp/disk1.qcow2
     rm -f /tmp/disk2.qcow2
     rm -f /tmp/disk3.qcow2
-    rm -f /tmp/snapshot.qcow2
     rm -f /tmp/qemu.pid
 }
 trap cleanup EXIT
@@ -40,8 +40,6 @@ no_exist_files() {
     fi
 }
 
-
-
 echo "Downloading image"
 [ ! -e /tmp/libvirt.box ] && curl -L -s $IMAGE > /tmp/libvirt.box
 [ ! -e /tmp/box.img ] && tar -zxvf /tmp/libvirt.box box.img
@@ -53,21 +51,33 @@ else
     [ ! -e /tmp/disk2.qcow2 ] &&  qemu-img create -f qcow2 /tmp/disk2.qcow2 10M
 fi
 [ ! -e /tmp/disk3.raw ] && qemu-img create -f raw /tmp/disk3.raw 10M
-[ ! -e /tmp/snapshot.qcow2 ] &&  qemu-img create -f qcow2 /tmp/snapshot.qcow2 10M
+[ ! -e /tmp/file.qcow2 ] &&  qemu-img create -f qcow2 /tmp/file.qcow2 10M
+[ ! -e /tmp/disk4.qcow2 ] &&  qemu-img create -f qcow2 /tmp/disk4.qcow2 10M
 
-echo "Starting qemu process"
 KVMOPT=""
 [ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
-qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)" -daemonize -display none -m 1024 \
+
+if [ -z "$DEBUG_CONSOLE" ]; then
+    echo "without console"
+    KVMOPT="${KVMOPT} -daemonize -display none"
+else
+    KVMOPT="${KVMOPT} -net nic,model=virtio,macaddr=52:54:00:00:00:01 -net bridge,br=virtbr0"
+fi
+
+echo "Starting qemu process"
+qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)"  -m 1024 \
     -drive node-name=disk1,file=/tmp/disk1.qcow2,format=qcow2 \
     -drive node-name=disk2,file=/tmp/disk2.qcow2,format=qcow2 \
     -drive node-name=disk3,file=/tmp/disk3.raw,format=raw \
+    -drive file=/tmp/disk4.qcow2,format=qcow2 \
     -qmp unix:/tmp/socket,server=on,wait=off \
     -qmp unix:/tmp/socket2,server=on,wait=off \
     -chardev socket,path=$AGENT_SOCKET,server=on,wait=off,id=qga0 \
     -device virtio-serial \
     -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
-    -drive node-name=snapshot,if=none,format=qcow2,snapshot=on,file=/tmp/snapshot.qcow2 \
+    -blockdev driver=qcow2,node-name=disk.0,file.driver=file,file.filename=/tmp/file.qcow2 \
+    -device virtio-scsi-pci,id=scsi \
+    -device scsi-hd,drive=disk.0,bus=scsi.0 \
     -pidfile ${PIDFILE}
 
 # wait until qemu agent is reachable within booted Vm, then continue
@@ -106,7 +116,6 @@ rm -rf /tmp/nosubdir_backup/
 
 
 # no-timestamp and no-subdir/no-symlink option
-rm -rf /tmp/nosubdir_timestamp_backup/
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/nosubdir_timestamp_backup/ --no-subdir --no-symlink --no-timestamp --quiesce
 no_exist_files /tmp/nosubdir_timestamp_backup/FULL*
 no_exist_files /tmp/nosubdir_timestamp_backup/FULL*
@@ -122,7 +131,7 @@ rm -rf /tmp/compressed_backup/
 # compress option
 rm -rf /tmp/raw_backup/
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/raw_backup/ --quiesce --include-raw
-exist_files /tmp/raw_backup//disk3/FULL*
+exist_files /tmp/raw_backup//disk1/FULL*
 rm -rf /tmp/raw_backup/
 
 # caching and aio options
@@ -146,8 +155,8 @@ python3 agent.py incdata1
 echo "------------------------------------------------"
 
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level inc --target /tmp/backup/ --quiesce
-exist_files /tmp/backup//disk1/INC* 
-exist_files /tmp/backup//disk2/INC* 
+exist_files /tmp/backup//disk1/INC*
+exist_files /tmp/backup//disk2/INC*
 
 echo "------------------------------------------------"
 python3 agent.py incdata2
@@ -183,6 +192,8 @@ rm -rf /tmp/include
 echo "------------------------------------------------"
 echo "Check bitmap information output"
 echo "------------------------------------------------"
+
+
 # at this point, block devices must show bitmaps
 ../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "qmpbackup-disk1"
 # bitmaps must be active
