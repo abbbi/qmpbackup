@@ -392,7 +392,10 @@ async def main():
         for device in blockdev:
             tdir = backupdir
             if not argv.no_subdir:
-                tdir = os.path.join(backupdir, device.node)
+                nodename = device.node
+                if device.node.startswith('#block'):
+                    nodename = device.device
+                tdir = os.path.join(backupdir, nodename)
             if (
                 device.has_bitmap is False
                 and argv.level == "inc"

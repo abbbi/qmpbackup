@@ -52,6 +52,7 @@ else
 fi
 [ ! -e /tmp/disk3.raw ] && qemu-img create -f raw /tmp/disk3.raw 10M
 [ ! -e /tmp/file.qcow2 ] &&  qemu-img create -f qcow2 /tmp/file.qcow2 10M
+[ ! -e /tmp/disk4.qcow2 ] &&  qemu-img create -f qcow2 /tmp/disk4.qcow2 10M
 
 KVMOPT=""
 [ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
@@ -68,6 +69,7 @@ qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)"  -m 1024 \
     -drive node-name=disk1,file=/tmp/disk1.qcow2,format=qcow2 \
     -drive node-name=disk2,file=/tmp/disk2.qcow2,format=qcow2 \
     -drive node-name=disk3,file=/tmp/disk3.raw,format=raw \
+    -drive file=/tmp/disk4.qcow2,format=qcow2 \
     -qmp unix:/tmp/socket,server=on,wait=off \
     -qmp unix:/tmp/socket2,server=on,wait=off \
     -chardev socket,path=$AGENT_SOCKET,server=on,wait=off,id=qga0 \

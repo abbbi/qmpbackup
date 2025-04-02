@@ -79,7 +79,7 @@ class QmpCommon:
         self.log.info("Attach backup target devices to virtual machine")
         for device in devices:
             target = target_files[device.node]
-            targetdev = f"qmpbackup-{device.node}"
+            targetdev = f"qmpbackup-{device.node_safe}"
 
             args = {
                 "driver": device.format,
@@ -107,7 +107,7 @@ class QmpCommon:
         self.log.info("Attach fleece devices to virtual machine")
         for device in devices:
             target = target_files[device.node]
-            targetdev = f"qmpbackup-{device.node}-fleece"
+            targetdev = f"qmpbackup-{device.node_safe}-fleece"
 
             args = {
                 "driver": device.format,
@@ -130,8 +130,8 @@ class QmpCommon:
         for device in devices:
             snap = {
                 "driver": "snapshot-access",
-                "file": f"qmpbackup-{device.node}-cbw",
-                "node-name": f"qmpbackup-{device.node}-snap",
+                "file": f"qmpbackup-{device.node_safe}-cbw",
+                "node-name": f"qmpbackup-{device.node_safe}-snap",
             }
             await self.qmp.execute(
                 "blockdev-add",
@@ -143,7 +143,7 @@ class QmpCommon:
         operation"""
         self.log.info("Removing cbw devices from virtual machine")
         for device in devices:
-            targetdev = f"qmpbackup-{device.node}-snap"
+            targetdev = f"qmpbackup-{device.node_safe}-snap"
 
             await self.qmp.execute(
                 "blockdev-del",
@@ -157,7 +157,7 @@ class QmpCommon:
         operation"""
         self.log.info("Removing backup target devices from virtual machine")
         for device in devices:
-            targetdev = f"qmpbackup-{device.node}"
+            targetdev = f"qmpbackup-{device.node_safe}"
 
             await self.qmp.execute(
                 "blockdev-del",
@@ -171,7 +171,7 @@ class QmpCommon:
         operation"""
         self.log.info("Removing fleece devices from virtual machine")
         for device in devices:
-            targetdev = f"qmpbackup-{device.node}-fleece"
+            targetdev = f"qmpbackup-{device.node_safe}-fleece"
 
             await self.qmp.execute(
                 "blockdev-del",
@@ -185,7 +185,7 @@ class QmpCommon:
         operation"""
         self.log.info("Removing cbw devices from virtual machine")
         for device in devices:
-            targetdev = f"qmpbackup-{device.node}-cbw"
+            targetdev = f"qmpbackup-{device.node_safe}-cbw"
 
             await self.qmp.execute(
                 "blockdev-del",
@@ -202,7 +202,7 @@ class QmpCommon:
         else:
             self.log.info("Disable copy-before-write filter")
         for device in devices:
-            target = f"qmpbackup-{device.node}-cbw"
+            target = f"qmpbackup-{device.node_safe}-cbw"
             if action == "disable":
                 target = device.node
             await self.qmp.execute(
@@ -223,14 +223,14 @@ class QmpCommon:
         for device in devices:
             cbwopt = {
                 "driver": "copy-before-write",
-                "node-name": f"qmpbackup-{device.node}-cbw",
+                "node-name": f"qmpbackup-{device.node_safe}-cbw",
                 "file": device.node,
-                "target": f"qmpbackup-{device.node}-fleece",
+                "target": f"qmpbackup-{device.node_safe}-fleece",
                 "on-cbw-error": "break-snapshot",
                 "cbw-timeout": 45,
             }
             if device.has_bitmap and argv.level in ("inc", "diff"):
-                bitmap = f"{bitmap_prefix}-{device.node}-{uuid}"
+                bitmap = f"{bitmap_prefix}-{device.node_safe}-{uuid}"
                 cbwopt["bitmap"] = {
                     "node": device.node,
                     "name": bitmap,
@@ -253,9 +253,9 @@ class QmpCommon:
 
         actions = []
         for device in devices:
-            targetdev = f"qmpbackup-{device.node}"
-            bitmap = f"{bitmap_prefix}-{device.node}-{uuid}"
-            job_id = f"qmpbackup.{device.node}.{os.path.basename(device.filename)}"
+            targetdev = f"qmpbackup-{device.node_safe}"
+            bitmap = f"{bitmap_prefix}-{device.node_safe}-{uuid}"
+            job_id = f"qmpbackup.{device.node_safe}.{os.path.basename(device.filename)}"
 
             if (
                 not device.has_bitmap
@@ -293,7 +293,7 @@ class QmpCommon:
                 actions.append(
                     self.transaction_action(
                         "blockdev-backup",
-                        device=f"qmpbackup-{device.node}-snap",
+                        device=f"qmpbackup-{device.node_safe}-snap",
                         target=targetdev,
                         sync=sync,
                         job_id=job_id,
@@ -303,7 +303,7 @@ class QmpCommon:
                 )
             else:
                 actions.append(
-                    self.transaction_bitmap_add(f"qmpbackup-{device.node}-snap", bitmap)
+                    self.transaction_bitmap_add(f"qmpbackup-{device.node_safe}-snap", bitmap)
                 )
 
                 bm_source = {
@@ -311,7 +311,7 @@ class QmpCommon:
                     "node": device.node,
                 }
                 merge_bitmap = {
-                    "node": f"qmpbackup-{device.node}-snap",
+                    "node": f"qmpbackup-{device.node_safe}-snap",
                     "target": bitmap,
                     "bitmaps": [bm_source],
                 }
@@ -325,7 +325,7 @@ class QmpCommon:
                     self.transaction_action(
                         "blockdev-backup",
                         bitmap=bitmap,
-                        device=f"qmpbackup-{device.node}-snap",
+                        device=f"qmpbackup-{device.node_safe}-snap",
                         target=targetdev,
                         sync=sync,
                         job_id=job_id,

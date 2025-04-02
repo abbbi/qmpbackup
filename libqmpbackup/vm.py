@@ -32,6 +32,7 @@ class BlockDev:
     virtual_size: int
     driver: str
     node: str
+    node_safe: str
     path: str
     qdev: str
 
@@ -183,6 +184,7 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 inserted["image"]["virtual-size"],
                 driver,
                 inserted["node-name"],
+                inserted["node-name"].replace("#", ""),
                 os.path.dirname(os.path.abspath(filename)),
                 qdev,
             )

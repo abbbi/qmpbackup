@@ -94,10 +94,20 @@ def create(argv, backupdir, blockdev):
     fleece_targets = {}
     timestamp = int(time())
     for dev in blockdev:
+
+        nodname = dev.node
+        if dev.node.startswith("#block"):
+            log.warning(
+                "No node name set for [%s], falling back to device name: [%s]",
+                dev.filename,
+                dev.device,
+            )
+            nodname = dev.device
+
         if argv.no_subdir is True:
             targetdir = backupdir
         else:
-            targetdir = os.path.join(backupdir, dev.node)
+            targetdir = os.path.join(backupdir, nodname)
         os.makedirs(targetdir, exist_ok=True)
         if argv.no_timestamp and argv.level in ("copy", "full"):
             filename = f"{os.path.basename(dev.filename)}.partial"
@@ -120,7 +130,7 @@ def create(argv, backupdir, blockdev):
             cmd = cmd + opt
 
         fleece_filename = (
-            f"{argv.level.upper()}-{timestamp}-{dev.node}.fleece.{dev.format}"
+            f"{argv.level.upper()}-{timestamp}-{nodname}.fleece.{dev.format}"
         )
         fleece_targetfile = os.path.join(dev.path, fleece_filename)
         fleece_cmd = [
