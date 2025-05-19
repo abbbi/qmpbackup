@@ -83,6 +83,13 @@ parser_snapshot.add_argument(
     required=False,
     default="",
 )
+parser_snapshot.add_argument(
+    "--rate-limit",
+    type=int,
+    help="Rate limit passed to qemu-img commit command",
+    required=False,
+    default=0,
+)
 parser_commit.add_argument(
     "--dir", type=str, help="directory which contains images", required=True
 )
@@ -104,6 +111,13 @@ parser_commit.add_argument(
     help="only process images matching string",
     required=False,
     default="",
+)
+parser_commit.add_argument(
+    "--rate-limit",
+    type=int,
+    help="Rate limit passed to qemu-img commit command",
+    required=False,
+    default=0,
 )
 parser_merge.set_defaults(which="merge")
 parser_merge.add_argument(
@@ -135,6 +149,13 @@ parser_merge.add_argument(
     required=False,
     default="",
 )
+parser_merge.add_argument(
+    "--rate-limit",
+    type=int,
+    help="Rate limit passed to qemu-img commit command",
+    required=False,
+    default=0,
+)
 parser_rebase.add_argument(
     "--until",
     type=str,
@@ -160,6 +181,13 @@ parser_rebase.add_argument(
     help="directory which contains additional incremental backup images",
     required=False,
     default="",
+)
+parser_rebase.add_argument(
+    "--rate-limit",
+    type=int,
+    help="Rate limit passed to qemu-img commit command",
+    required=False,
+    default=0,
 )
 
 argv = parser.parse_args()

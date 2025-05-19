@@ -222,10 +222,12 @@ rm -rf /tmp/snaprebase
 echo "------------------------------------------------"
 echo "Executing qmprestore tests: commit"
 echo "------------------------------------------------"
-rm -rf /tmp/commitrebase
+rm -rf /tmp/commitrebase /tmp/commitrebaselimit
 cp -a /tmp/backup/ide0-hd0/ /tmp/commitrebase
-../qmprestore snapshotrebase --dir /tmp/commitrebase
+../qmprestore commit --dir /tmp/commitrebase
 virt-ls -a "$(find /tmp/commitrebase/  -type f)" /tmp | grep incdata3
+cp -a /tmp/backup/ide0-hd0/ /tmp/commitrebaselimit
+../qmprestore commit --dir /tmp/commitrebaselimit --rate-limit 1000000
 
 echo "------------------------------------------------"
 echo "Executing qmprestore tests: merge"

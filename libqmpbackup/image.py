@@ -237,6 +237,8 @@ def merge(argv):
                 f'"{targetdir}/{os.path.basename(images[idx])}" '
                 f'"{targetdir}/{os.path.basename(image)}"'
             )
+            if argv.rate_limit != 0:
+                commit_cmd = f"{commit_cmd} -r {argv.rate_limit}"
             log.info(commit_cmd)
             subprocess.check_output(commit_cmd, shell=True)
             if image != argv.targetfile:
@@ -383,6 +385,8 @@ def snapshot_rebase(argv):
             commit_cmd = (
                 f"qemu-img commit {argv.commitopt} -b " f'"{images[0]}" ' f'"{image}"'
             )
+            if argv.rate_limit != 0:
+                commit_cmd = f"{commit_cmd} -r {argv.rate_limit}"
             log.info(commit_cmd)
             if not argv.dry_run:
                 subprocess.check_output(rebase_cmd, shell=True)
@@ -436,6 +440,8 @@ def commit(argv):
             )
             log.info(rebase_cmd)
             commit_cmd = f"qemu-img commit {argv.commitopt} '{image}'"
+            if argv.rate_limit != 0:
+                commit_cmd = f"{commit_cmd} -r {argv.rate_limit}"
             log.info(commit_cmd)
             if not argv.dry_run:
                 subprocess.check_output(rebase_cmd, shell=True)
