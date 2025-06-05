@@ -216,7 +216,7 @@ echo "------------------------------------------------"
 rm -rf /tmp/snaprebase
 cp -a /tmp/backup/ide0-hd0/ /tmp/snaprebase
 ../qmprestore snapshotrebase --dir /tmp/snaprebase
-qemu-img info "$(find /tmp/snaprebase/  -type f)" | grep "Snapshot" || exit 1
+qemu-img info "$(find /tmp/snaprebase/  -type f -name '*FULL*')" | grep "Snapshot" || exit 1
 rm -rf /tmp/snaprebase
 
 echo "------------------------------------------------"
