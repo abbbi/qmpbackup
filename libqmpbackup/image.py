@@ -396,10 +396,6 @@ def snapshot_rebase(argv):
             log.error("Rebase command failed: [%s]", errmsg)
             return False
 
-        if not argv.dry_run:
-            log.info("Removing: [%s]", image)
-            os.remove(image)
-
         if argv.until is not None and os.path.basename(image) == argv.until:
             log.info(
                 "Stopping at checkpoint: %s as requested with --until option", image
