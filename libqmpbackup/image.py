@@ -399,7 +399,7 @@ def snapshot_rebase(argv):
         snapshot_name = datetime.datetime.fromtimestamp(timestamp).strftime(
             "%Y-%m-%d-%H%M%S"
         )
-        snapshot_name = f"Backup {snapshot_name}"
+        snapshot_name = f"Backup-{snapshot_name}"
 
         try:
             snapshot_cmd = f'qemu-img snapshot -c "{snapshot_name}" "{images[0]}"'
