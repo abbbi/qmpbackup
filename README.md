@@ -22,6 +22,7 @@ project:
 
 - [Installation](#installation)
 - [Prerequisites](#prerequisites)
+  - [Supported QEMU versions](#supported-qemu-versions)
 - [Usage](#usage)
 - [Backup](#backup)
   - [Backup chains / unique bitmap names](#backup-chains--unique-bitmap-names)
@@ -72,6 +73,13 @@ usually this happens by starting the virtual machine via:
 
 `Note:` Use a dedicated socket for backup operations if possible, as qmp
 sockets only allow one connection at a time.
+
+## Supported QEMU versions
+
+Up until [Version 0.45](https://github.com/abbbi/qmpbackup/releases/tag/v0.45)
+QEMU <= 7.0.0 is supported, all later versions introduce [image
+fleecing](https://abbbi.github.io/fleece/) and require at least QEMU Version
+7.1.
 
 # Usage
 
