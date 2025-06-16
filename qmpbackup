@@ -474,16 +474,28 @@ async def main():
             if int(argv.remove_delay) > 0:
                 log.info("Delay removal of devices by [%s] seconds", argv.remove_delay)
                 sleep(int(argv.remove_delay))
-            try:
-                await qemu_client.remove_snapshot_access_devices(blockdev)
-                await qemu_client.blockdev_replace(blockdev, action="disable")
-                await qemu_client.remove_cbw_devices(blockdev)
-                await qemu_client.remove_target_devices(blockdev)
-                await qemu_client.remove_fleece_devices(blockdev)
-            except QMPError as errmsg:
-                log.warning("Unable to cleanup: %s", errmsg)
             if qga is not False:
                 fs.thaw(qga)
+            try:
+                await qemu_client.remove_snapshot_access_devices(blockdev)
+            except QMPError as errmsg:
+                log.warning("Unable to cleanup snapshot device: %s", errmsg)
+            try:
+                await qemu_client.blockdev_replace(blockdev, action="disable")
+            except QMPError as errmsg:
+                log.warning("Unable to execute blockdev replace: %s", errmsg)
+            try:
+                await qemu_client.remove_cbw_devices(blockdev)
+            except QMPError as errmsg:
+                log.warning("Unable to cleanup cbw device: %s", errmsg)
+            try:
+                await qemu_client.remove_target_devices(blockdev)
+            except QMPError as errmsg:
+                log.warning("Unable to cleanup backup target device: %s", errmsg)
+            try:
+                await qemu_client.remove_fleece_devices(blockdev)
+            except QMPError as errmsg:
+                log.warning("Unable to cleanup fleece device: %s", errmsg)
 
         if argv.level == "copy":
             blockdev = vm.get_block_devices(
