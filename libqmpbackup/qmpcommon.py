@@ -214,6 +214,8 @@ class QmpCommon:
                 },
             )
 
+        return True
+
     async def add_cbw_device(self, argv, devices, uuid):
         """Add copy-before-write device operation"""
         self.log.info("Adding cbw devices to virtual machine")

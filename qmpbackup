@@ -460,11 +460,12 @@ async def main():
             if qga:
                 fs.quiesce(qga)
 
+        cbw_active = False
         try:
             await qemu_client.prepare_target_devices(argv, blockdev, targetfiles)
             await qemu_client.prepare_fleece_devices(blockdev, fleecefiles)
             await qemu_client.add_cbw_device(argv, blockdev, uuid)
-            await qemu_client.blockdev_replace(blockdev, action="enable")
+            cbw_active = await qemu_client.blockdev_replace(blockdev, action="enable")
             await qemu_client.add_snapshot_access_devices(blockdev)
             await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError) as errmsg:
@@ -481,7 +482,8 @@ async def main():
             except QMPError as errmsg:
                 log.warning("Unable to cleanup snapshot device: %s", errmsg)
             try:
-                await qemu_client.blockdev_replace(blockdev, action="disable")
+                if cbw_active is True:
+                    await qemu_client.blockdev_replace(blockdev, action="disable")
             except QMPError as errmsg:
                 log.warning("Unable to execute blockdev replace: %s", errmsg)
             try:
