@@ -86,6 +86,7 @@ python3 -u agent.py
 
 if [ -n "$DEBUG_PAUSE" ]; then
     echo "pausing"
+    cat ${PIDFILE}
     sleep 1d
 fi
 

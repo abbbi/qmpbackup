@@ -429,8 +429,12 @@ class QmpCommon:
             sleep(1)
             try:
                 jobs = await self.qmp.execute("query-block-jobs")
-            except qmp_client.ExecInterruptedError:
-                return
+            except qmp_client.ExecInterruptedError as err:
+                self.log.critical(
+                    "Unrecoverable error detected: Unable to receive progress: [%s], exiting",
+                    err,
+                )
+                raise SystemExit() from err
             if len(jobs) == 0:
                 return
             for job in jobs:
