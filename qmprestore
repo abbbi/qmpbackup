@@ -33,7 +33,12 @@ parser.add_argument(
     action="store_true",
     required=False,
 )
-
+parser.add_argument(
+    "--qemu-util-path",
+    default="",
+    type=str,
+    help="Append directory to current $PATH variable",
+)
 subparsers = parser.add_subparsers(help="sub-command help")
 parser_snapshot = subparsers.add_parser("snapshotrebase", help="snapshotrebase")
 parser_rebase = subparsers.add_parser("rebase", help="rebase")
@@ -211,6 +216,12 @@ if argv.filter != "":
 argv.commitopt = ""
 if argv.use_writeback is True:
     argv.commitopt = "-t writeback"
+
+if argv.qemu_util_path != "":
+    os.environ["PATH"] = (
+        os.pathsep.join([argv.qemu_util_path]) + os.pathsep + os.environ["PATH"]
+    )
+    log.info("Setting $PATH to qemu utils: %s", os.environ["PATH"])
 
 if action in ("rebase", "snapshotrebase", "commit"):
     if argv.dry_run:

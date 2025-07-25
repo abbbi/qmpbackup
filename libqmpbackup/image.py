@@ -28,7 +28,8 @@ def get_info(filename):
     original one."""
     try:
         return subprocess.check_output(
-            ["qemu-img", "info", f"{filename}", "--output", "json", "--force-share"]
+            ["qemu-img", "info", f"{filename}", "--output", "json", "--force-share"],
+            shell=True,
         )
     except subprocess.CalledProcessError as errmsg:
         raise RuntimeError from errmsg
