@@ -527,7 +527,7 @@ async def main():
                 log.warning("Unable to cleanup: %s", errmsg)
             if qga is not False:
                 fs.thaw(qga)
-            SIGNAL_CATCHED=True
+            SIGNAL_CATCHED = True
 
         if argv.level == "copy":
             blockdev = vm.get_block_devices(
