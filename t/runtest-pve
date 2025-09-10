@@ -1,0 +1,122 @@
+#!/bin/bash
+AGENT_SOCKET=/tmp/qga.sock
+QMP_SOCKET=/tmp/socket
+PIDFILE="/tmp/qemu.pid"
+
+cleanup() {
+    echo "cleanup"
+    if [ -e ${PIDFILE} ]; then
+        PID=$(cat ${PIDFILE})
+        echo "killing qemu process: ${PID}"
+        kill -9 "${PID}"
+    fi
+    rm -f ${AGENT_SOCKET}
+    rm -f ${QMP_SOCKET}
+    rm -f /tmp/file.qcow2
+    rm -f /tmp/disk1.qcow2
+    rm -f /tmp/disk2.qcow2
+    rm -f /tmp/disk3.qcow2
+    rm -f /tmp/qemu.pid
+}
+trap cleanup EXIT
+
+set -e
+
+rm -rf /tmp/restore
+rm -rf /tmp/backup
+
+IMAGE="https://app.vagrantup.com/generic/boxes/alpine38/versions/3.6.6/providers/libvirt.box"
+
+exist_files() {
+    if ! ls "${1}" 1> /dev/null 2>&1; then
+        echo "backup file ${1} does not exist"
+        exit 1
+    fi
+}
+no_exist_files() {
+    if ls "${1}" 1> /dev/null 2>&1; then
+        echo "backup files ${1} should not exist"
+        exit 1
+    fi
+}
+
+echo "Downloading image"
+[ ! -e /tmp/libvirt.box ] && curl -L -s $IMAGE > /tmp/libvirt.box
+[ ! -e /tmp/box.img ] && tar -zxvf /tmp/libvirt.box box.img
+mv -f box.img /tmp/disk1.qcow2
+
+KVMOPT=""
+[ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
+
+if [ -z "$DEBUG_CONSOLE" ]; then
+    echo "without console"
+    KVMOPT="${KVMOPT} -daemonize -display none"
+else
+    KVMOPT="${KVMOPT} -net nic,model=virtio,macaddr=52:54:00:00:00:01 -net bridge,br=virtbr0"
+fi
+
+echo "Starting qemu process"
+if [ -n "${DEBUG_PVE}" ]; then
+    qemu-system-x86_64 -name "testvm" $KVMOPT -object '{"id":"throttle-drive-scsi0","limits":{},"qom-type":"throttle-group"}' \
+    -device 'pci-bridge,id=pci.1,chassis_nr=1,bus=pci.0,addr=0x1e' \
+        -device 'pci-bridge,id=pci.2,chassis_nr=2,bus=pci.0,addr=0x1f' \
+        -device 'piix3-usb-uhci,id=uhci,bus=pci.0,addr=0x1.0x2' \
+        -device 'virtio-scsi-pci,id=scsihw0,bus=pci.0,addr=0x5' \
+        -blockdev '{"detect-zeroes":"on","discard":"ignore","driver":"throttle","file":{"cache":{"direct":true,"no-flush":false},"detect-zeroes":"on","discard":"ignore","driver":"qcow2","file":{"aio":"io_uring","cache":{"direct":true,"no-flush":false},"detect-zeroes":"on","discard":"ignore","driver":"file","filename":"/tmp/disk1.qcow2","node-name":"ee0d1a339ae510e43fde3db6a83b965","read-only":false},"node-name":"fe0d1a339ae510e43fde3db6a83b965","read-only":false},"node-name":"drive-scsi0","read-only":false,"throttle-group":"throttle-drive-scsi0"}' -device 'scsi-hd,bus=scsihw0.0,channel=0,scsi-id=0,lun=0,drive=drive-scsi0,id=scsi0,device_id=drive-scsi0,rotation_rate=1,bootindex=100,write-cache=on' \
+        -qmp unix:/tmp/socket,server=on,wait=off \
+        -chardev socket,path=$AGENT_SOCKET,server=on,wait=off,id=qga0 \
+        -device virtio-serial \
+        -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
+        -pidfile ${PIDFILE}
+fi
+
+
+# wait until qemu agent is reachable within booted Vm, then continue
+# with the tests
+python3 -u agent.py
+
+if [ -n "$DEBUG_PAUSE" ]; then
+    echo "pausing"
+    cat ${PIDFILE}
+    sleep 1d
+fi
+
+echo "------------------------------------------------"
+echo "Executing qmpbackup tests"
+echo "------------------------------------------------"
+rm -rf /tmp/backup_no_agent
+rm -f /tmp/backup.log
+../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET --logfile /tmp/backup.log backup --level full --exclude disk1 --target /tmp/backup_no_agent/ --quiesce
+[ -e /tmp/backup.log ]
+[ -e /tmp/backup_no_agent/uuid ]
+grep Arguments /tmp/backup.log > /dev/null
+grep INFO /tmp/backup.log > /dev/null
+
+rm -rf /tmp/backup
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level full --target /tmp/backup/ --quiesce
+rm -rf /tmp/copy_backup
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level copy --target /tmp/copy_backup/ --quiesce
+
+exist_files /tmp/backup//disk1/FULL*
+exist_files /tmp/backup//disk2/FULL*
+
+# create /tmp/incdata1 within the guest, execute further
+# incremental backups
+echo "------------------------------------------------"
+python3 agent.py incdata1
+echo "------------------------------------------------"
+
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level inc --target /tmp/backup/ --quiesce
+exist_files /tmp/backup//disk1/INC*
+exist_files /tmp/backup//disk2/INC*
+
+echo "------------------------------------------------"
+python3 agent.py incdata2
+echo "------------------------------------------------"
+
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --target /tmp/backup/ --quiesce
+
+echo "------------------------------------------------"
+python3 agent.py incdata3
+echo "------------------------------------------------"
+../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --target /tmp/backup/ --quiesce --compress
