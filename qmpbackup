@@ -507,6 +507,7 @@ async def main():
         if argv.level == "copy":
             blockdev = vm.get_block_devices(
                 await qemu_client.do_query_block(),
+                await qemu_client.do_query_named_block(),
                 argv,
                 excluded_disks,
                 included_disks,
