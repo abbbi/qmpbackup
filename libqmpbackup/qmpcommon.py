@@ -223,10 +223,14 @@ class QmpCommon:
         if argv.level == "copy":
             bitmap_prefix = f"qmpbackup-{argv.level}"
         for device in devices:
+            node = device.node
+            if device.child_device is not None:
+                node = device.child_device
+
             cbwopt = {
                 "driver": "copy-before-write",
                 "node-name": f"qmpbackup-{device.node_safe}-cbw",
-                "file": device.node,
+                "file": node,
                 "target": f"qmpbackup-{device.node_safe}-fleece",
                 "on-cbw-error": "break-snapshot",
                 "cbw-timeout": 45,
@@ -234,7 +238,7 @@ class QmpCommon:
             if device.has_bitmap and argv.level in ("inc", "diff"):
                 bitmap = f"{bitmap_prefix}-{device.node_safe}-{uuid}"
                 cbwopt["bitmap"] = {
-                    "node": device.node,
+                    "node": node,
                     "name": bitmap,
                 }
 
@@ -259,6 +263,10 @@ class QmpCommon:
             bitmap = f"{bitmap_prefix}-{device.node_safe}-{uuid}"
             job_id = f"qmpbackup.{device.node_safe}.{os.path.basename(device.filename)}"
 
+            node = device.node
+            if device.child_device is not None:
+                node = device.child_device
+
             if (
                 not device.has_bitmap
                 and device.format != "raw"
@@ -270,16 +278,14 @@ class QmpCommon:
                     "Creating new bitmap: [%s] for device [%s]", bitmap, device.node
                 )
                 actions.append(
-                    self.transaction_bitmap_add(
-                        device.node, bitmap, persistent=persistent
-                    )
+                    self.transaction_bitmap_add(node, bitmap, persistent=persistent)
                 )
 
             if device.has_bitmap and argv.level in ("full") and device.format != "raw":
                 self.log.info(
                     "Clearing existing bitmap [%s] for device: [%s:%s]",
                     bitmap,
-                    device.node,
+                    node,
                     os.path.basename(device.filename),
                 )
                 actions.append(self.transaction_bitmap_clear(device.node, bitmap))
@@ -312,7 +318,7 @@ class QmpCommon:
 
                 bm_source = {
                     "name": bitmap,
-                    "node": device.node,
+                    "node": node,
                 }
                 merge_bitmap = {
                     "node": f"qmpbackup-{device.node_safe}-snap",
@@ -337,7 +343,7 @@ class QmpCommon:
                         compress=argv.compress,
                     )
                 )
-                actions.append(self.transaction_bitmap_clear(device.node, bitmap))
+                actions.append(self.transaction_bitmap_clear(node, bitmap))
 
         self.log.debug("Created transaction: %s", json_pp(actions))
 
@@ -393,12 +399,20 @@ class QmpCommon:
         """Return list of attached block devices"""
         return await self.qmp.execute("query-block")
 
+    async def do_query_named_block(self):
+        """Return list of attached named block devices"""
+        return await self.qmp.execute("query-named-block-nodes")
+
     async def remove_bitmaps(self, blockdev, prefix="qmpbackup", uuid=""):
         """Remove existing bitmaps for block devices"""
         for dev in blockdev:
             if not dev.has_bitmap:
                 self.log.info("No bitmap set for device %s", dev.node)
                 continue
+
+            node = dev.node
+            if dev.child_device is not None:
+                node = dev.child_device
 
             for bitmap in dev.bitmaps:
                 bitmap_name = bitmap["name"]
@@ -420,7 +434,7 @@ class QmpCommon:
                 self.log.info("Removing bitmap: %s", bitmap_name)
                 await self.qmp.execute(
                     "block-dirty-bitmap-remove",
-                    arguments={"node": dev.node, "name": bitmap_name},
+                    arguments={"node": node, "name": bitmap_name},
                 )
 
     async def progress(self):
