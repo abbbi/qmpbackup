@@ -474,7 +474,7 @@ async def main():
             await qemu_client.add_snapshot_access_devices(blockdev)
             await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError) as errmsg:
-            log.fatal("Error executing backup: %s", errmsg)
+            log.exception("Error executing backup: %s", errmsg)
             sys.exit(1)
         finally:
             if int(argv.remove_delay) > 0:
