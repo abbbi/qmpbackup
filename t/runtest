@@ -3,13 +3,20 @@ AGENT_SOCKET=/tmp/qga.sock
 QMP_SOCKET=/tmp/socket
 PIDFILE="/tmp/qemu.pid"
 
-cleanup() {
-    echo "cleanup"
+stop_qemu () {
     if [ -e ${PIDFILE} ]; then
         PID=$(cat ${PIDFILE})
         echo "killing qemu process: ${PID}"
-        kill -9 "${PID}"
+        while :; kill -0 "${PID}" 2>/dev/null ; do
+          kill "${PID}"
+          sleep 1
+        done
     fi
+}
+
+cleanup() {
+    echo "cleanup"
+    stop_qemu
     rm -f ${AGENT_SOCKET}
     rm -f ${QMP_SOCKET}
     rm -f /tmp/file.qcow2
@@ -64,25 +71,28 @@ else
     KVMOPT="${KVMOPT} -net nic,model=virtio,macaddr=52:54:00:00:00:01 -net bridge,br=virtbr0"
 fi
 
-echo "Starting qemu process"
-qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)"  -m 1024 \
-    -drive node-name=disk1,file=/tmp/disk1.qcow2,format=qcow2 \
-    -drive node-name=disk2,file=/tmp/disk2.qcow2,format=qcow2 \
-    -drive node-name=disk3,file=/tmp/disk3.raw,format=raw \
-    -drive file=/tmp/disk4.qcow2,format=qcow2 \
-    -qmp unix:/tmp/socket,server=on,wait=off \
-    -qmp unix:/tmp/socket2,server=on,wait=off \
-    -chardev socket,path=$AGENT_SOCKET,server=on,wait=off,id=qga0 \
-    -device virtio-serial \
-    -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
-    -blockdev driver=qcow2,node-name=disk.0,file.driver=file,file.filename=/tmp/file.qcow2 \
-    -device virtio-scsi-pci,id=scsi \
-    -device scsi-hd,drive=disk.0,bus=scsi.0 \
-    -pidfile ${PIDFILE}
+start_qemu () {
+    echo "Starting qemu process"
+    qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)"  -m 1024 \
+        -drive node-name=disk1,file=/tmp/disk1.qcow2,format=qcow2 \
+        -drive node-name=disk2,file=/tmp/disk2.qcow2,format=qcow2 \
+        -drive node-name=disk3,file=/tmp/disk3.raw,format=raw \
+        -drive file=/tmp/disk4.qcow2,format=qcow2 \
+        -qmp unix:/tmp/socket,server=on,wait=off \
+        -qmp unix:/tmp/socket2,server=on,wait=off \
+        -chardev socket,path=$AGENT_SOCKET,server=on,wait=off,id=qga0 \
+        -device virtio-serial \
+        -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
+        -blockdev driver=qcow2,node-name=disk.0,file.driver=file,file.filename=/tmp/file.qcow2 \
+        -device virtio-scsi-pci,id=scsi \
+        -device scsi-hd,drive=disk.0,bus=scsi.0 \
+        -pidfile ${PIDFILE}
+        # wait until qemu agent is reachable within booted Vm, then continue
+        # with the tests
+        python3 -u agent.py
+}
 
-# wait until qemu agent is reachable within booted Vm, then continue
-# with the tests
-python3 -u agent.py
+start_qemu
 
 if [ -n "$DEBUG_PAUSE" ]; then
     echo "pausing"
@@ -96,6 +106,18 @@ echo "------------------------------------------------"
 rm -rf /tmp/backup_no_agent
 rm -f /tmp/backup.log
 ../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET --logfile /tmp/backup.log backup --level full --exclude disk1 --target /tmp/backup_no_agent/ --quiesce
+[ -e /tmp/backup.log ]
+[ -e /tmp/backup_no_agent/uuid ]
+grep Arguments /tmp/backup.log > /dev/null
+grep INFO /tmp/backup.log > /dev/null
+
+stop_qemu
+start_qemu
+
+echo "------------------------------------------------"
+echo "Checking that auto/inc will work after qemu is restarted"
+echo "------------------------------------------------"
+../qmpbackup --agent-socket /tmp/doenstexist --socket $QMP_SOCKET --logfile /tmp/backup.log backup --level auto --exclude disk1 --target /tmp/backup_no_agent/ --quiesce
 [ -e /tmp/backup.log ]
 [ -e /tmp/backup_no_agent/uuid ]
 grep Arguments /tmp/backup.log > /dev/null
