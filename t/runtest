@@ -48,8 +48,12 @@ if [ -n "${DEBUG_BIG}" ]; then
     echo "two big disks"
     cp /tmp/disk1.qcow2 /tmp/disk2.qcow2
 else
+    rm -f /tmp/disk2.qcow2
     [ ! -e /tmp/disk2.qcow2 ] &&  qemu-img create -f qcow2 /tmp/disk2.qcow2 10M
 fi
+rm -f /tmp/disk3.raw
+rm -f /tmp/file.qcow2
+rm -f /tmp/disk4.qcow2
 [ ! -e /tmp/disk3.raw ] && qemu-img create -f raw /tmp/disk3.raw 10M
 [ ! -e /tmp/file.qcow2 ] &&  qemu-img create -f qcow2 /tmp/file.qcow2 10M
 [ ! -e /tmp/disk4.qcow2 ] &&  qemu-img create -f qcow2 /tmp/disk4.qcow2 10M
@@ -64,8 +68,14 @@ else
     KVMOPT="${KVMOPT} -net nic,model=virtio,macaddr=52:54:00:00:00:01 -net bridge,br=virtbr0"
 fi
 
-echo "Starting qemu process"
-qemu-system-x86_64 -name "testvm" $KVMOPT -smp "$(nproc)"  -m 1024 \
+if [ -z "$QEMU" ]; then
+    QEMU_EXE="qemu-system-x86_64"
+else
+    QEMU_EXE="$QEMU"
+fi
+
+echo "Starting qemu process: $QEMU_EXE"
+"$QEMU_EXE" -name "testvm" $KVMOPT -smp "$(nproc)"  -m 1024 \
     -drive node-name=disk1,file=/tmp/disk1.qcow2,format=qcow2 \
     -drive node-name=disk2,file=/tmp/disk2.qcow2,format=qcow2 \
     -drive node-name=disk3,file=/tmp/disk3.raw,format=raw \
