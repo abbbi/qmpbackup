@@ -196,11 +196,10 @@ class QmpCommon:
 
     async def blockdev_replace(self, devices, action):
         """Issue qom command to switch disk device to copy-before-write filter"""
-        self.log.info("Activate copy-before-write filter")
         if action == "disable":
             self.log.info("Disable copy-before-write filter")
         else:
-            self.log.info("Disable copy-before-write filter")
+            self.log.info("Activate copy-before-write filter")
         for device in devices:
             target = f"qmpbackup-{device.node_safe}-cbw"
             if action == "disable":
