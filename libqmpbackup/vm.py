@@ -35,7 +35,6 @@ class BlockDev:
     node_safe: str
     path: str
     qdev: str
-    child_device: str
 
 
 def get_block_devices(
@@ -67,27 +66,11 @@ def get_block_devices(
             )
             continue
 
-        child = None
-        try:
-            child = device["inserted"]["children"][0]["node-name"]
-            log.info("Child device detected: [%s]", child)
-        except KeyError:
-            pass
-
         bitmaps = []
-        if child is not None:
-            log.info("Child node detected, use named blockinfo for bitmap detection.")
-            for named in named_block_info:
-                if named["node-name"] == child:
-                    try:
-                        bitmaps = named["dirty-bitmaps"]
-                    except KeyError:
-                        pass
-        else:
-            if "dirty-bitmaps" in inserted:
-                bitmaps = inserted["dirty-bitmaps"]
-            if "dirty-bitmaps" in device:
-                bitmaps = device["dirty-bitmaps"]
+        if "dirty-bitmaps" in inserted:
+            bitmaps = inserted["dirty-bitmaps"]
+        if "dirty-bitmaps" in device:
+            bitmaps = device["dirty-bitmaps"]
 
         if len(bitmaps) > 0 and uuid is not None:
             for bmap in bitmaps:
@@ -205,7 +188,6 @@ def get_block_devices(
                 inserted["node-name"].replace("#", ""),
                 os.path.dirname(os.path.abspath(filename)),
                 qdev,
-                child,
             )
         )
 
