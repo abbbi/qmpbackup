@@ -79,7 +79,10 @@ def get_block_devices(
             log.info("Child node detected, use named blockinfo for bitmap detection.")
             for named in named_block_info:
                 if named["node-name"] == child:
-                    bitmaps = named["dirty-bitmaps"]
+                    try:
+                        bitmaps = named["dirty-bitmaps"]
+                    except KeyError:
+                        pass
         else:
             if "dirty-bitmaps" in inserted:
                 bitmaps = inserted["dirty-bitmaps"]
