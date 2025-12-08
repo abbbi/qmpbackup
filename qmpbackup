@@ -396,7 +396,12 @@ async def main():
         argv.include_raw = False
 
     blockdev = vm.get_block_devices(
-        await qemu_client.do_query_block(), argv, excluded_disks, included_disks, uuid
+        await qemu_client.do_query_block(),
+        await qemu_client.do_query_named_block(),
+        argv,
+        excluded_disks,
+        included_disks,
+        uuid,
     )
 
     loop = asyncio.get_event_loop()

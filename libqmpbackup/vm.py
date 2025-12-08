@@ -11,6 +11,7 @@ This work is licensed under the terms of the GNU GPL, version 3.  See
 the LICENSE file in the top-level directory.
 """
 
+import os
 import json
 import logging
 from dataclasses import dataclass
@@ -22,7 +23,7 @@ log = logging.getLogger(__name__)
 class BlockDev:
     """Block device information"""
 
-    node: str
+    device: str
     format: str
     filename: str
     backing_image: str
@@ -30,9 +31,16 @@ class BlockDev:
     bitmaps: list
     virtual_size: int
     driver: str
+    node: str
+    node_safe: str
+    path: str
+    qdev: str
+    child_device: str
 
 
-def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
+def get_block_devices(
+    blockinfo, named_block_info, argv, excluded_disks, included_disks, uuid
+):
     """Get a list of block devices that we can create a bitmap for,
     currently we only get inserted qcow based images
     """
@@ -59,12 +67,27 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
             )
             continue
 
-        bitmaps = []
-        if "dirty-bitmaps" in inserted:
-            bitmaps = inserted["dirty-bitmaps"]
+        child = None
+        try:
+            child = device["inserted"]["children"][0]["node-name"]
+            log.info("Child device detected: [%s]", child)
+        except KeyError:
+            pass
 
-        if "dirty-bitmaps" in device:
-            bitmaps = device["dirty-bitmaps"]
+        bitmaps = []
+        if child is not None:
+            log.info("Child node detected, use named blockinfo for bitmap detection.")
+            for named in named_block_info:
+                if named["node-name"] == child:
+                    try:
+                        bitmaps = named["dirty-bitmaps"]
+                    except KeyError:
+                        pass
+        else:
+            if "dirty-bitmaps" in inserted:
+                bitmaps = inserted["dirty-bitmaps"]
+            if "dirty-bitmaps" in device:
+                bitmaps = device["dirty-bitmaps"]
 
         if len(bitmaps) > 0 and uuid is not None:
             for bmap in bitmaps:
@@ -122,7 +145,24 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 )
                 continue
 
-        if included_disks and not device["device"] in included_disks:
+        if device["device"] == "":
+            try:
+                log.info(
+                    "Device for file [%s] has empty device setting, attempt fallback to node name.",
+                    filename,
+                )
+                device["device"] = device["inserted"]["node-name"]
+                log.info("Using node name: [%s]", device["device"])
+            except KeyError:
+                log.error(
+                    "Unable to get device node name for disk: [%s], skipping.", filename
+                )
+                continue
+
+        if included_disks and not (
+            device["device"] in included_disks
+            or inserted["node-name"] in included_disks
+        ):
             log.info(
                 "Device not in included disk list, ignoring: [%s:%s]",
                 device["device"],
@@ -130,11 +170,23 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
             )
             continue
 
-        if excluded_disks and device["device"] in excluded_disks:
+        if excluded_disks and (
+            device["device"] in excluded_disks
+            or inserted["node-name"] in excluded_disks
+        ):
             logging.info(
                 "Excluding device from backup: [%s:%s]",
                 device["device"],
                 filename,
+            )
+            continue
+
+        try:
+            qdev = device["qdev"]
+        except KeyError:
+            log.warning(
+                "Device [%s] has no qdev required for CBW set, skipping.",
+                device["device"],
             )
             continue
 
@@ -149,6 +201,11 @@ def get_block_devices(blockinfo, argv, excluded_disks, included_disks, uuid):
                 bitmaps,
                 inserted["image"]["virtual-size"],
                 driver,
+                inserted["node-name"],
+                inserted["node-name"].replace("#", ""),
+                os.path.dirname(os.path.abspath(filename)),
+                qdev,
+                child,
             )
         )
 

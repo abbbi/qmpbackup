@@ -173,9 +173,12 @@ class QmpCommon:
 
         actions = []
         for device in devices:
+            node = device.node
+            if device.child_device is not None:
+                node = device.child_device
             targetdev = f"qmpbackup-{device.node}"
-            bitmap = f"{bitmap_prefix}-{device.node}-{uuid}"
-            job_id = f"qmpbackup.{device.node}.{os.path.basename(device.filename)}"
+            bitmap = f"{bitmap_prefix}-{node}-{uuid}"
+            job_id = f"qmpbackup.{node}.{os.path.basename(device.filename)}"
 
             if (
                 not device.has_bitmap
@@ -184,28 +187,24 @@ class QmpCommon:
                 or device.has_bitmap
                 and argv.level in ("copy")
             ):
-                self.log.info(
-                    "Creating new bitmap: [%s] for device [%s]", bitmap, device.node
-                )
+                self.log.info("Creating new bitmap: [%s] for device [%s]", bitmap, node)
                 actions.append(
-                    self.transaction_bitmap_add(
-                        device.node, bitmap, persistent=persistent
-                    )
+                    self.transaction_bitmap_add(node, bitmap, persistent=persistent)
                 )
 
             if device.has_bitmap and argv.level in ("full") and device.format != "raw":
                 self.log.info(
                     "Clearing existing bitmap [%s] for device: [%s:%s]",
                     bitmap,
-                    device.node,
+                    node,
                     os.path.basename(device.filename),
                 )
-                actions.append(self.transaction_bitmap_clear(device.node, bitmap))
+                actions.append(self.transaction_bitmap_clear(node, bitmap))
 
             compress = argv.compress
             if device.format == "raw" and compress:
                 compress = False
-                self.log.info("Disabling compression for raw device: [%s]", device.node)
+                self.log.info("Disabling compression for raw device: [%s]", node)
 
             if argv.level in ("full", "copy") or (
                 argv.level == "inc" and device.format == "raw"
@@ -213,7 +212,7 @@ class QmpCommon:
                 actions.append(
                     self.transaction_action(
                         "blockdev-backup",
-                        device=device.node,
+                        device=node,
                         target=targetdev,
                         sync="full",
                         job_id=job_id,
@@ -227,7 +226,7 @@ class QmpCommon:
                     self.transaction_action(
                         "blockdev-backup",
                         bitmap=bitmap,
-                        device=device.node,
+                        device=node,
                         target=targetdev,
                         sync=sync,
                         job_id=job_id,
@@ -296,6 +295,10 @@ class QmpCommon:
     async def do_query_block(self):
         """Return list of attached block devices"""
         return await self._execute("query-block")
+
+    async def do_query_named_block(self):
+        """Return list of attached block devices"""
+        return await self._execute("query-named-block-nodes")
 
     async def remove_bitmaps(self, blockdev, prefix="qmpbackup", uuid=""):
         """Remove existing bitmaps for block devices"""
