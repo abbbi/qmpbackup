@@ -70,7 +70,11 @@ def get_block_devices(
         child = None
         try:
             child = device["inserted"]["children"][0]["node-name"]
-            log.info("Child device detected: [%s]", child)
+            if child.startswith("#block"):
+                log.info("Child device detected but uses block notation, ignoring.")
+                child = None
+            else:
+                log.info("Child device detected: [%s]", child)
         except KeyError:
             pass
 
