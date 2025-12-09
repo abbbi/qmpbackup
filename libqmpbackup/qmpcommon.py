@@ -177,7 +177,7 @@ class QmpCommon:
             if device.child_device is not None:
                 node = device.child_device
             targetdev = f"qmpbackup-{device.node_safe}"
-            bitmap = f"{bitmap_prefix}-{node}-{uuid}"
+            bitmap = f"{bitmap_prefix}-{device.node_safe}-{uuid}"
             job_id = f"qmpbackup.{device.node_safe}.{os.path.basename(device.filename)}"
 
             if (
