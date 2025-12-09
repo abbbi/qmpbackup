@@ -122,7 +122,7 @@ class QmpCommon:
         self.log.info("Attach backup target devices to virtual machine")
         for device in devices:
             target = target_files[device.node]
-            targetdev = f"qmpbackup-{device.node}"
+            targetdev = f"qmpbackup-{device.node_safe}"
 
             args = {
                 "driver": device.format,
@@ -146,7 +146,7 @@ class QmpCommon:
         operation"""
         self.log.info("Removing backup target devices from virtual machine")
         for device in devices:
-            targetdev = f"qmpbackup-{device.node}"
+            targetdev = f"qmpbackup-{device.node_safe}"
 
             await self._execute(
                 "blockdev-del",
@@ -176,9 +176,9 @@ class QmpCommon:
             node = device.node
             if device.child_device is not None:
                 node = device.child_device
-            targetdev = f"qmpbackup-{device.node}"
+            targetdev = f"qmpbackup-{device.node_safe}"
             bitmap = f"{bitmap_prefix}-{node}-{uuid}"
-            job_id = f"qmpbackup.{node}.{os.path.basename(device.filename)}"
+            job_id = f"qmpbackup.{device.node_safe}.{os.path.basename(device.filename)}"
 
             if (
                 not device.has_bitmap
