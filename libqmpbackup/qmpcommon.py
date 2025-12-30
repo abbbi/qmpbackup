@@ -116,6 +116,92 @@ class QmpCommon:
             "block-dirty-bitmap-add", node=node, name=name, **kwargs
         )
 
+    async def prepare_fleece_devices(self, devices, target_files):
+        """Create the required fleece devices for blockev-backup
+        operation"""
+        self.log.info("Attach fleece devices to virtual machine")
+        for device in devices:
+            target = target_files[device.node]
+            targetdev = f"qmpbackup-{device.node_safe}-fleece"
+
+            args = {
+                "driver": device.format,
+                "node-name": targetdev,
+                "file": {
+                    "driver": "file",
+                    "filename": target,
+                },
+            }
+
+            await self._execute(
+                "blockdev-add",
+                arguments=args,
+            )
+
+    async def add_snapshot_access_devices(self, devices):
+        """Prepare snapshot-access devices required for backup using
+        image fleecing technique"""
+        self.log.info("Add snapshot-access devices.")
+        for device in devices:
+            snap = {
+                "driver": "snapshot-access",
+                "file": f"qmpbackup-{device.node_safe}-cbw",
+                "node-name": f"qmpbackup-{device.node_safe}-snap",
+            }
+            await self._execute(
+                "blockdev-add",
+                arguments=snap,
+            )
+
+    async def add_cbw_device(self, argv, devices, uuid):
+        """Add copy-before-write device operation"""
+        self.log.info("Adding cbw devices to virtual machine")
+        bitmap_prefix = "qmpbackup"
+        if argv.level == "copy":
+            bitmap_prefix = f"qmpbackup-{argv.level}"
+        for device in devices:
+            node = device.node
+            if device.child_device is not None:
+                node = device.child_device
+
+            cbwopt = {
+                "driver": "copy-before-write",
+                "node-name": f"qmpbackup-{device.node_safe}-cbw",
+                "file": node,
+                "target": f"qmpbackup-{device.node_safe}-fleece",
+                "on-cbw-error": "break-snapshot",
+                "cbw-timeout": 45,
+            }
+            if device.has_bitmap and argv.level in ("inc", "diff"):
+                bitmap = f"{bitmap_prefix}-{device.node_safe}-{uuid}"
+                cbwopt["bitmap"] = {
+                    "node": node,
+                    "name": bitmap,
+                }
+
+            await self._execute("blockdev-add", arguments=cbwopt)
+
+    async def blockdev_replace(self, devices, action):
+        """Issue qom command to switch disk device to copy-before-write filter"""
+        if action == "disable":
+            self.log.info("Disable copy-before-write filter")
+        else:
+            self.log.info("Activate copy-before-write filter")
+        for device in devices:
+            target = f"qmpbackup-{device.node_safe}-cbw"
+            if action == "disable":
+                target = device.node
+            await self._execute(
+                "qom-set",
+                arguments={
+                    "path": device.qdev,
+                    "property": "drive",
+                    "value": target,
+                },
+            )
+
+        return True
+
     async def prepare_target_devices(self, argv, devices, target_files):
         """Create the required target devices for blockev-backup
         operation"""
@@ -140,6 +226,48 @@ class QmpCommon:
                 args["file"] = args["file"] | nocache
 
             await self._execute("blockdev-add", arguments=args)
+
+    async def remove_snapshot_access_devices(self, devices):
+        """Cleanup named devices after executing blockdev-backup
+        operation"""
+        self.log.info("Removing cbw devices from virtual machine")
+        for device in devices:
+            targetdev = f"qmpbackup-{device.node_safe}-snap"
+
+            await self._execute(
+                "blockdev-del",
+                arguments={
+                    "node-name": targetdev,
+                },
+            )
+
+    async def remove_cbw_devices(self, devices):
+        """Cleanup named devices after executing blockdev-backup
+        operation"""
+        self.log.info("Removing cbw devices from virtual machine")
+        for device in devices:
+            targetdev = f"qmpbackup-{device.node_safe}-cbw"
+
+            await self._execute(
+                "blockdev-del",
+                arguments={
+                    "node-name": targetdev,
+                },
+            )
+
+    async def remove_fleece_devices(self, devices):
+        """Cleanup named devices after executing blockdev-backup
+        operation"""
+        self.log.info("Removing fleece devices from virtual machine")
+        for device in devices:
+            targetdev = f"qmpbackup-{device.node_safe}-fleece"
+
+            await self._execute(
+                "blockdev-del",
+                arguments={
+                    "node-name": targetdev,
+                },
+            )
 
     async def remove_target_devices(self, devices):
         """Cleanup named devices after executing blockdev-backup
