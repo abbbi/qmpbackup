@@ -84,6 +84,7 @@ def _get_options_cmd(backupdir, dev):
 
     return opt
 
+
 def create(argv, backupdir, blockdev):
     """Create target image used by qmp blockdev-backup image to dump
     data and returns a list of target images per-device, which will
@@ -131,7 +132,7 @@ def create(argv, backupdir, blockdev):
         fleece_filename = (
             f"{argv.level.upper()}-{timestamp}-{nodname}.fleece.{dev.format}"
         )
-        fleece_targetfile = os.path.join(targetdir, fleece_filename)
+        fleece_targetfile = os.path.join(dev.path, fleece_filename)
         fleece_cmd = [
             "qemu-img",
             "create",
