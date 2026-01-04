@@ -108,6 +108,9 @@ def create(argv, backupdir, blockdev):
             targetdir = backupdir
         else:
             targetdir = os.path.join(backupdir, nodname)
+        if argv.override_targetdir != "" and not dev.node.startswith("pflash"):
+            log.warning("Overriding backup target dir for device: %s", dev.node)
+            targetdir = argv.override_targetdir
         os.makedirs(targetdir, exist_ok=True)
         if argv.no_timestamp and argv.level in ("copy", "full"):
             filename = f"{os.path.basename(dev.filename)}.partial"
