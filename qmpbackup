@@ -30,9 +30,10 @@ from libqmpbackup import image
 from libqmpbackup import version
 
 SIGNAL_CATCHED = False
+done_event = asyncio.Event()
 
 
-async def stop_jobs(blockdev, log, qmp, signal):
+async def stop_jobs(log, qmp, signum):
     """Catch signal: for some reason, cancelling the
     running block jobs with block-job-cancel issues
     a regular BLOCK_JOB_COMPLETED in the event loop,
@@ -40,25 +41,44 @@ async def stop_jobs(blockdev, log, qmp, signal):
     by using global variable :/
     """
     global SIGNAL_CATCHED
-    log.error("Caught signal: %s", signal)
+    global done_event
+    log.error("Caught signal: %s", signum)
     log.error("Stopping backup jobs")
     SIGNAL_CATCHED = True
-    jobs = await qmp.execute("query-block-jobs")
-    if len(jobs) == 0:
-        log.info("No running jobs found")
-    for job in jobs:
-        if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
-            continue
-        try:
-            await qmp.execute(
-                "block-job-cancel",
-                arguments={
-                    "device": job["device"],
-                    "force": True,
-                },
-            )
-        except qmp_client.ExecuteError as err:
-            log.info(err)
+    limit = 60
+    for retry in range(limit):
+        if retry >= limit:
+            log.warning("Unable to cancel leftover backup jobs")
+            break
+
+        jobs = await qmp.execute("query-block-jobs")
+        if len(jobs) == 0:
+            log.info("All block jobs cancelled.")
+            done_event.set()
+            break
+
+        for job in jobs:
+            if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
+                continue
+
+            try:
+                if job["status"] == "concluded":
+                    await qmp.execute(
+                        "block-job-dismiss",
+                        arguments={"id": job["device"]},
+                    )
+                else:
+                    await qmp.execute(
+                        "block-job-cancel",
+                        arguments={
+                            "device": job["device"],
+                            "force": True,
+                        },
+                    )
+            except qmp_client.ExecuteError as err:
+                log.info(err)
+
+        await asyncio.sleep(1)
 
 
 async def main():
@@ -351,13 +371,11 @@ async def main():
         uuid,
     )
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     for signame in ("SIGINT", "SIGTERM"):
         loop.add_signal_handler(
             getattr(signal, signame),
-            lambda signame=signame: asyncio.create_task(
-                stop_jobs(blockdev, log, qmp, signame)
-            ),
+            lambda signame=signame: asyncio.create_task(stop_jobs(log, qmp, signame)),
         )
 
     if blockdev is None:
@@ -477,11 +495,17 @@ async def main():
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
         finally:
+            if SIGNAL_CATCHED is True:
+                log.info("Received signal, wait until all jobs have been cancelled.")
+                await done_event.wait()
+
             if int(argv.remove_delay) > 0:
                 log.info("Delay removal of devices by [%s] seconds", argv.remove_delay)
                 sleep(int(argv.remove_delay))
+
             if qga is not False:
                 fs.thaw(qga)
+
             try:
                 await qemu_client.remove_snapshot_access_devices(blockdev)
             except QMPError as errmsg:
