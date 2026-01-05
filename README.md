@@ -40,6 +40,7 @@ project:
   - [Compressing backups](#compressing-backups)
   - [List devices suitable for backup](#list-devices-suitable-for-backup)
   - [Including raw devices (lvm, zfs, ceph)](#including-raw-devices-lvm-zfs-ceph)
+    - [Metadata qcow files for raw devices (lvm, zfs, ceph)](#metadata-qcow-files-for-raw-devices-lvm-zfs-ceph)
   - [List existing bitmaps](#list-existing-bitmaps)
   - [Cleanup bitmaps](#cleanup-bitmaps)
   - [Speed limit](#speed-limit)
@@ -142,7 +143,7 @@ cleanup bitmaps that are not required via:
 ```
 
 Alternatively you can specify the uuid to be used for the bitmap names during
-the first full backup you create. This way the bitmaps will be re-used and must
+the first full backup you create. This way the bitmaps will be reused and must
 not be cleaned:
 
 ```
@@ -324,10 +325,32 @@ only way to create backups for these devices is to create a complete full
 or copy backup.
 
 By default `qmpbackup` will ignore such devices, but you can use the
-`--include-raw` option to create a backup for those devices too.
+`--include-raw` option to create a backup for those devices "as is".
 
-Of course, if you create an incremental backup for these devices, the complete
-image will be backed up.
+### Metadata qcow files for raw devices (lvm, zfs, ceph)
+
+A new possibility is to use the new qcow2 data-file setting that has been
+introduced in later qemu versions. It allows to create metadata qcow images
+that can store the persistent bitmap information, but the real data can reside
+on any storage backend. This allows to use the full backup featureset.
+
+As example, you can create a metadata qcow image like so:
+
+```
+ # point the data-file to a temporary file, as create will overwrite whatever it finds here
+ qemu-img create -f qcow2 /vm1/metadata.qcow2 -o data_file=/tmp/TEMPFILE,data_file_raw=true ..
+ rm -f /tmp/TEMPFILE
+```
+
+And then modify the image to point where the real data is provided (for example
+a lvm device):
+
+```
+ qemu-img amend /vm1/metadata.qcow2 -o data_file=/dev/lvm/vm1,data_file_raw=true
+```
+
+Now configure the metadata image `/vm1/metadata.qcow2` as primary disk in your
+qemu command call.
 
 ## List existing bitmaps
 
