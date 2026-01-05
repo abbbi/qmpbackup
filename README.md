@@ -47,6 +47,9 @@ project:
 - [Hypervisors](#hypervisors)
   - [Proxmox](#proxmox)
 - [Limitations](#limitations)
+  - [Backing up libvirt virtual machines](#backing-up-libvirt-virtual-machines)
+  - [Backup target considerations](#backup-target-considerations)
+  - [TPM/SWTPM devices](#tpmswtpm-devices)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -416,11 +419,20 @@ After the VM has started, a new qmp socket is available for backup:
 
 # Limitations
 
-1) Using the QMP protocol it cannot be used together with libvirt as libvirt
+## Backing up libvirt virtual machines
+
+Using the QMP protocol it cannot be used together with libvirt as libvirt
 exclusively uses the virtual machines monitor socket. See
 [virtnbdbackup](https://github.com/abbbi/virtnbdbackup).
 
-2) QEMUs ```drive-backup``` function does currently not support dumping
-data as a stream, it also cannot work with fifo pipes as the blockdriver
-expects functions like ftruncate and fseek to work on the target file, so the
-backup target must be a directory.
+## Backup target considerations
+
+QEMUs ```drive-backup``` function does currently not support dumping data as a
+stream, it also cannot work with fifo pipes as the blockdriver expects
+functions like ftruncate and fseek to work on the target file, so the backup
+target must be a directory.
+
+## TPM/SWTPM devices
+
+Currently the utility will not handled backup of related (SW)TPM devices
+attached to the virtual machine.
