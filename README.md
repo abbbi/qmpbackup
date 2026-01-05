@@ -434,5 +434,6 @@ target must be a directory.
 
 ## TPM/SWTPM devices
 
-Currently the utility will not handled backup of related (SW)TPM devices
-attached to the virtual machine.
+Currently the utility will not handle backup of related (SW)TPM devices
+attached to the virtual machine. A warning will be issued if such devices are
+detected during backup.
