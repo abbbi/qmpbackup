@@ -35,6 +35,22 @@ class QmpCommon:
             raise RuntimeError(f"VM not ready for backup, state: [{status}]")
         self.log.info("VM is in state: [%s]", status["status"])
 
+    async def query_tpm_state(self):
+        """Show and check if virtual machine has emulated tpm device"""
+        status = await self.qmp.execute("query-tpm")
+        if not status:
+            return
+
+        for state in status:
+            try:
+                tpm_type = state["options"]["type"]
+                if tpm_type == "emulator":
+                    self.log.warning(
+                        "VM seems to use emulated TPM device: additional files may require backup."
+                    )
+            except KeyError:
+                pass
+
     async def show_name(self):
         """Show qemu version"""
         name = await self.qmp.execute("query-name")

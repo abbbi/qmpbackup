@@ -10,6 +10,9 @@ cleanup() {
         echo "killing qemu process: ${PID}"
         kill -9 "${PID}"
     fi
+    SWTPMPID=$(cat /tmp/mytpm1/pid)
+    echo "killing swtpm process: ${SWTPMPID}"
+    kill -9 "${SWTPMPID}"
     rm -f ${AGENT_SOCKET}
     rm -f ${QMP_SOCKET}
     rm -f /tmp/file.qcow2
@@ -17,6 +20,7 @@ cleanup() {
     rm -f /tmp/disk2.qcow2
     rm -f /tmp/disk3.qcow2
     rm -f /tmp/qemu.pid
+    rm -f /tmp/mytpm1/pid
 }
 trap cleanup EXIT
 
@@ -67,6 +71,16 @@ rm -f /tmp/TEMPFILE
 KVMOPT=""
 [ -e /dev/kvm ] && KVMOPT="--enable-kvm" && echo "with kvm"
 
+rm -rf /tmp/mytpm1
+mkdir /tmp/mytpm1
+swtpm socket \
+    --tpmstate dir=/tmp/mytpm1 \
+    --ctrl type=unixio,path=/tmp/mytpm1/swtpm-sock \
+    --log level=20 \
+    -d \
+    -t \
+    --pid file=/tmp/mytpm1/pid
+
 if [ -z "$DEBUG_CONSOLE" ]; then
     echo "without console"
     KVMOPT="${KVMOPT} -daemonize -display none"
@@ -96,6 +110,9 @@ echo "Starting qemu process: $QEMU_EXE"
     -device scsi-hd,drive=disk.0,bus=scsi.0 \
     -blockdev driver=qcow2,node-name=datafile,file.driver=file,file.filename=/tmp/disk5.qcow2 \
     -device scsi-hd,drive=datafile,bus=scsi.0 \
+    -chardev socket,id=chrtpm,path=/tmp/mytpm1/swtpm-sock \
+    -tpmdev emulator,id=tpm0,chardev=chrtpm \
+    -device tpm-tis,tpmdev=tpm0 \
     -pidfile ${PIDFILE}
 
 # wait until qemu agent is reachable within booted Vm, then continue

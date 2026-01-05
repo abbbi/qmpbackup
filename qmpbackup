@@ -312,6 +312,8 @@ async def main():
     qemu_client.show_version()
     await qemu_client.show_name()
 
+    await qemu_client.query_tpm_state()
+
     excluded_disks = None
     included_disks = None
     uuid = None
