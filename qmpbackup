@@ -33,6 +33,17 @@ SIGNAL_CATCHED = False
 done_event = asyncio.Event()
 
 
+async def remove_fleece_files(log, fleecefiles):
+    """Remove temporary fleece image files"""
+    log.info("Removing fleece image files")
+    for _, fleeceimage in fleecefiles.items():
+        try:
+            os.remove(fleeceimage)
+        except OSError as errmsg:
+            log.error("Unable to remove file: %s", errmsg)
+            sys.exit(1)
+
+
 async def stop_jobs(log, qmp, signum):
     """Catch signal: for some reason, cancelling the
     running block jobs with block-job-cancel issues
@@ -528,6 +539,8 @@ async def main():
             except QMPError as errmsg:
                 log.warning("Unable to cleanup fleece device: %s", errmsg)
 
+            await remove_fleece_files(log, fleecefiles)
+
         if argv.level == "copy":
             blockdev = vm.get_block_devices(
                 await qemu_client.do_query_block(),
@@ -567,13 +580,7 @@ async def main():
                 tgtdir = os.path.dirname(new_filename)
                 os.symlink(new_filename, f"{tgtdir}/{argv.level.upper()}-{short}")
 
-        log.info("Removing fleece image files")
-        for _, fleeceimage in fleecefiles.items():
-            try:
-                os.remove(fleeceimage)
-            except OSError as errmsg:
-                log.error("Unable to remove file: %s", errmsg)
-                sys.exit(1)
+        await remove_fleece_files(log, fleecefiles)
 
 
 if __name__ == "__main__":
