@@ -33,35 +33,31 @@ from libqmpbackup import version
 SIGNAL_CATCHED = False
 
 
-async def cancel_jobs(qmp, log):
-    """Dismiss or cancel all running block jobs"""
+async def cancel_jobs(argv, log):
+    """Dismiss or cancel all running block jobs. Use new connection"""
+    qmp = QMPClient()
+    qemu_client = QmpCommon(qmp, argv.socket, argv.connection_retry)
     log.info("Cancelling all block jobs")
-    jobs = await qmp.execute("query-block-jobs")
-    if len(jobs) == 0:
-        log.info("No running jobs found")
-    retry = 60
-    limit = 0
-    while True:
-        if limit >= retry:
-            log.warning("Unable to stop all jobs within %s seconds.", retry)
-            return
-
-        jobs = await qmp.execute("query-block-jobs")
+    limit = 60
+    for retry in range(limit):
+        if retry >= limit:
+            log.warning("Unable to cancel leftover backup jobs")
+            break
+        jobs = await qmp._execute("query-block-jobs")
         if len(jobs) == 0:
             log.info("All jobs stopped")
             return
-
         for job in jobs:
             if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
                 continue
             try:
                 if job["status"] == "concluded":
-                    await qmp.execute(
+                    await qmp._execute(
                         "block-job-dismiss",
                         arguments={"id": job["device"]},
                     )
                 else:
-                    await qmp.execute(
+                    await qmp._execute(
                         "block-job-cancel",
                         arguments={
                             "device": job["device"],
@@ -70,20 +66,23 @@ async def cancel_jobs(qmp, log):
                     )
             except qmp_client.ExecuteError as err:
                 log.info(err)
-        limit += 1
         sleep(1)
 
+    tasks = asyncio.all_tasks()
+    for task in tasks:
+        task.cancel()
 
-async def stop_jobs(log, signal):
+
+async def stop_jobs(argv, log, signal):
     """Cancel all running asyncio tasks so we disconnect"""
     global SIGNAL_CATCHED
     log.error("Caught signal: %s", signal)
     log.error("Stopping all tasks")
     SIGNAL_CATCHED = True
-
-    tasks = asyncio.all_tasks()
-    for task in tasks:
-        task.cancel()
+    try:
+        await cancel_jobs(argv, log)
+    except TypeError:
+        pass
 
 
 async def main():
@@ -408,7 +407,7 @@ async def main():
     for signame in ("SIGINT", "SIGTERM"):
         loop.add_signal_handler(
             getattr(signal, signame),
-            lambda signame=signame: asyncio.create_task(stop_jobs(log, signame)),
+            lambda signame=signame: asyncio.create_task(stop_jobs(argv, log, signame)),
         )
 
     if blockdev is None:
@@ -598,4 +597,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except asyncio.exceptions.CancelledError:
+        sys.exit(1)
