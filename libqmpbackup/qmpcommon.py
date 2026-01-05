@@ -230,7 +230,7 @@ class QmpCommon:
     async def remove_snapshot_access_devices(self, devices):
         """Cleanup named devices after executing blockdev-backup
         operation"""
-        self.log.info("Removing cbw devices from virtual machine")
+        self.log.info("Removing snapshot-access devices from virtual machine")
         for device in devices:
             targetdev = f"qmpbackup-{device.node_safe}-snap"
 
