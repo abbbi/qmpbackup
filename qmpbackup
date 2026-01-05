@@ -37,6 +37,8 @@ async def remove_fleece_files(log, fleecefiles):
     """Remove temporary fleece image files"""
     log.info("Removing fleece image files")
     for _, fleeceimage in fleecefiles.items():
+        if not os.path.exists(fleeceimage):
+            continue
         try:
             os.remove(fleeceimage)
         except OSError as errmsg:
@@ -539,7 +541,8 @@ async def main():
             except QMPError as errmsg:
                 log.warning("Unable to cleanup fleece device: %s", errmsg)
 
-            await remove_fleece_files(log, fleecefiles)
+            if SIGNAL_CATCHED is True:
+                await remove_fleece_files(log, fleecefiles)
 
         if argv.level == "copy":
             blockdev = vm.get_block_devices(
