@@ -329,7 +329,7 @@ By default `qmpbackup` will ignore such devices, but you can use the
 
 ### Metadata qcow files for raw devices (lvm, zfs, ceph)
 
-A new possibility is to use the new qcow2 data-file setting that has been
+A better solution is to use the qcow2 data-file setting that has been
 introduced in later qemu versions. It allows to create metadata qcow images
 that can store the persistent bitmap information, but the real data can reside
 on any storage backend. This allows to use the full backup featureset.
