@@ -44,9 +44,11 @@ class QmpCommon:
         for state in status:
             try:
                 tpm_type = state["options"]["type"]
+                tpm_id = state["id"]
                 if tpm_type == "emulator":
                     self.log.warning(
-                        "VM seems to use emulated TPM device: additional files may require backup."
+                        "VM seems to use emulated TPM device [%s]: additional files may require backup.",
+                        tpm_id,
                     )
             except KeyError:
                 pass
