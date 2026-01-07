@@ -32,7 +32,7 @@ from libqmpbackup import version
 SIGNAL_CATCHED = False
 
 
-async def remove_fleece_files(log, fleecefiles):
+def remove_fleece_files(log, fleecefiles):
     """Remove temporary fleece image files"""
     log.info("Removing fleece image files")
     for _, fleeceimage in fleecefiles.items():
@@ -513,7 +513,7 @@ async def main():
                 log.warning("Unable to cleanup fleece device: %s", errmsg)
 
             if SIGNAL_CATCHED is True:
-                await remove_fleece_files(log, fleecefiles)
+                remove_fleece_files(log, fleecefiles)
 
         if argv.level == "copy":
             blockdev = vm.get_block_devices(
@@ -554,7 +554,7 @@ async def main():
                 tgtdir = os.path.dirname(new_filename)
                 os.symlink(new_filename, f"{tgtdir}/{argv.level.upper()}-{short}")
 
-        await remove_fleece_files(log, fleecefiles)
+        remove_fleece_files(log, fleecefiles)
 
 
 if __name__ == "__main__":
