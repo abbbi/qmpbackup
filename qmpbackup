@@ -33,6 +33,19 @@ from libqmpbackup import version
 SIGNAL_CATCHED = False
 
 
+async def cleanup_fleece_files(fleecefiles, log):
+    """Cleanup created fleece image files"""
+    log.info("Removing fleece image files")
+    for _, fleeceimage in fleecefiles.items():
+        if not os.path.exists(fleeceimage):
+            continue
+        try:
+            os.remove(fleeceimage)
+        except OSError as errmsg:
+            log.error("Unable to remove file: %s", errmsg)
+            sys.exit(1)
+
+
 async def stop_jobs(argv, log, signal, qemu_client):
     """Cancel all running asyncio tasks so we disconnect"""
     global SIGNAL_CATCHED
@@ -514,6 +527,8 @@ async def main():
             except QMPError as errmsg:
                 log.warning("Unable to cleanup fleece device: %s", errmsg)
 
+            await cleanup_fleece_files(fleecefiles, log)
+
         if argv.level == "copy":
             blockdev = vm.get_block_devices(
                 await qemu_client.do_query_block(),
@@ -546,14 +561,6 @@ async def main():
                 short = os.path.basename(new_filename)
                 tgtdir = os.path.dirname(new_filename)
                 os.symlink(new_filename, f"{tgtdir}/{argv.level.upper()}-{short}")
-
-        log.info("Removing fleece image files")
-        for _, fleeceimage in fleecefiles.items():
-            try:
-                os.remove(fleeceimage)
-            except OSError as errmsg:
-                log.error("Unable to remove file: %s", errmsg)
-                sys.exit(1)
 
 
 if __name__ == "__main__":
