@@ -11,4 +11,4 @@ This work is licensed under the terms of the GNU GPL, version 3.  See
 the LICENSE file in the top-level directory.
 """
 
-VERSION = "0.61"
+VERSION = "0.62"
