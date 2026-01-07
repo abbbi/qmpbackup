@@ -14,6 +14,7 @@ import sys
 import logging
 from time import sleep
 from libqmpbackup import fs
+from libqmpbackup.lib import json_pp
 from qemu.qmp import protocol
 
 
@@ -347,7 +348,9 @@ class QmpCommon:
                 or device.has_bitmap
                 and argv.level in ("copy")
             ):
-                self.log.info("Creating new bitmap: [%s] for device [%s]", bitmap, node)
+                self.log.info(
+                    "Creating new bitmap: [%s] for device [%s]", bitmap, device.node
+                )
                 actions.append(
                     self.transaction_bitmap_add(node, bitmap, persistent=persistent)
                 )
@@ -359,12 +362,14 @@ class QmpCommon:
                     node,
                     os.path.basename(device.filename),
                 )
-                actions.append(self.transaction_bitmap_clear(node, bitmap))
+                actions.append(self.transaction_bitmap_clear(device.node, bitmap))
 
             compress = argv.compress
             if device.format == "raw" and compress:
                 compress = False
-                self.log.info("Disabling compression for raw device: [%s]", node)
+                self.log.info("Disabling compression for raw device: [%s]", device.node)
+
+            snapshot_device = f"qmpbackup-{device.node_safe}-snap"
 
             if argv.level in ("full", "copy") or (
                 argv.level == "inc" and device.format == "raw"
@@ -372,9 +377,9 @@ class QmpCommon:
                 actions.append(
                     self.transaction_action(
                         "blockdev-backup",
-                        device=node,
+                        device=snapshot_device,
                         target=targetdev,
-                        sync="full",
+                        sync=sync,
                         job_id=job_id,
                         speed=argv.speed_limit,
                         compress=compress,
@@ -382,11 +387,27 @@ class QmpCommon:
                     )
                 )
             else:
+                actions.append(self.transaction_bitmap_add(snapshot_device, bitmap))
+                bm_source = {
+                    "name": bitmap,
+                    "node": node,
+                }
+                merge_bitmap = {
+                    "node": snapshot_device,
+                    "target": bitmap,
+                    "bitmaps": [bm_source],
+                }
+                actions.append(
+                    self.transaction_action(
+                        "block-dirty-bitmap-merge",
+                        **merge_bitmap,
+                    )
+                )
                 actions.append(
                     self.transaction_action(
                         "blockdev-backup",
                         bitmap=bitmap,
-                        device=node,
+                        device=snapshot_device,
                         target=targetdev,
                         sync=sync,
                         job_id=job_id,
@@ -395,8 +416,9 @@ class QmpCommon:
                         auto_dismiss=False,
                     )
                 )
+                actions.append(self.transaction_bitmap_clear(node, bitmap))
 
-        self.log.debug("Created transaction: %s", actions)
+        self.log.debug("Created transaction: %s", json_pp(actions))
 
         return actions
 
