@@ -45,20 +45,13 @@ class QmpCommon:
             for job in jobs:
                 if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
                     continue
-
-                if job["status"] == "concluded":
-                    await self.qmp.execute(
-                        "block-job-dismiss",
-                        arguments={"id": job["device"]},
-                    )
-                else:
-                    await self.qmp.execute(
-                        "block-job-cancel",
-                        arguments={
-                            "device": job["device"],
-                            "force": True,
-                        },
-                    )
+                await self.qmp.execute(
+                    "block-job-cancel",
+                    arguments={
+                        "device": job["device"],
+                        "force": True,
+                    },
+                )
 
             await asyncio.sleep(1)
 
