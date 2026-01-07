@@ -29,8 +29,6 @@ from libqmpbackup import vm
 from libqmpbackup import image
 from libqmpbackup import version
 
-SIGNAL_CATCHED = False
-
 
 def remove_fleece_files(log, fleecefiles):
     """Remove temporary fleece image files"""
@@ -51,10 +49,8 @@ async def stop_jobs(log, qemu_client, done_event, signum):
     for some reason. Thus exit with different exit code
     by using global variable :/
     """
-    global SIGNAL_CATCHED
     log.error("Caught signal: %s", signum)
     log.error("Stopping backup jobs")
-    SIGNAL_CATCHED = True
     qemu_client.stop_backup = True
     await qemu_client.cancel_jobs(done_event)
 
@@ -478,7 +474,7 @@ async def main():
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
         finally:
-            if SIGNAL_CATCHED is True:
+            if qemu_client.stop_backup is True:
                 log.info("Received signal, wait until all jobs have been cancelled.")
                 await done_event.wait()
 
@@ -511,7 +507,7 @@ async def main():
             except QMPError as errmsg:
                 log.warning("Unable to cleanup fleece device: %s", errmsg)
 
-            if SIGNAL_CATCHED is True:
+            if qemu_client.stop_backup is True:
                 remove_fleece_files(log, fleecefiles)
 
         if argv.level == "copy":
@@ -532,7 +528,7 @@ async def main():
                 task.cancel()
         await qmp.disconnect()
 
-        if SIGNAL_CATCHED is True:
+        if qemu_client.stop_backup is True:
             log.error("Backup aborted by signal.")
             sys.exit(1)
 
