@@ -156,14 +156,15 @@ def create(argv, backupdir, blockdev):
             subprocess.check_output(cmd)
             backup_targets[dev.node] = target
 
-            log.info(
-                "Create fleece image: [%s], virtual size: [%s]",
-                fleece_targetfile,
-                dev.virtual_size,
-            )
-            log.debug(fleece_cmd)
-            subprocess.check_output(fleece_cmd)
-            fleece_targets[dev.node] = fleece_targetfile
+            if argv.no_fleece is False:
+                log.info(
+                    "Create fleece image: [%s], virtual size: [%s]",
+                    fleece_targetfile,
+                    dev.virtual_size,
+                )
+                log.debug(fleece_cmd)
+                subprocess.check_output(fleece_cmd)
+                fleece_targets[dev.node] = fleece_targetfile
 
         except subprocess.CalledProcessError as errmsg:
             raise RuntimeError from errmsg
