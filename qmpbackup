@@ -500,7 +500,9 @@ async def main():
             if not argv.no_fleece:
                 await qemu_client.prepare_fleece_devices(blockdev, fleecefiles)
                 await qemu_client.add_cbw_device(argv, blockdev, uuid)
-                cbw_active = await qemu_client.blockdev_replace(blockdev, action="enable")
+                cbw_active = await qemu_client.blockdev_replace(
+                    blockdev, action="enable"
+                )
                 await qemu_client.add_snapshot_access_devices(blockdev)
             await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError) as errmsg:
