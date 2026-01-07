@@ -30,7 +30,6 @@ from libqmpbackup import image
 from libqmpbackup import version
 
 SIGNAL_CATCHED = False
-done_event = asyncio.Event()
 
 
 async def remove_fleece_files(log, fleecefiles):
@@ -46,7 +45,7 @@ async def remove_fleece_files(log, fleecefiles):
             sys.exit(1)
 
 
-async def stop_jobs(log, qmp, signum):
+async def stop_jobs(log, qemu_client, done_event, signum):
     """Catch signal: for some reason, cancelling the
     running block jobs with block-job-cancel issues
     a regular BLOCK_JOB_COMPLETED in the event loop,
@@ -54,44 +53,11 @@ async def stop_jobs(log, qmp, signum):
     by using global variable :/
     """
     global SIGNAL_CATCHED
-    global done_event
     log.error("Caught signal: %s", signum)
     log.error("Stopping backup jobs")
     SIGNAL_CATCHED = True
-    limit = 60
-    for retry in range(limit):
-        if retry >= limit:
-            log.warning("Unable to cancel leftover backup jobs")
-            break
-
-        jobs = await qmp.execute("query-block-jobs")
-        if len(jobs) == 0:
-            log.info("All block jobs cancelled.")
-            done_event.set()
-            break
-
-        for job in jobs:
-            if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
-                continue
-
-            try:
-                if job["status"] == "concluded":
-                    await qmp.execute(
-                        "block-job-dismiss",
-                        arguments={"id": job["device"]},
-                    )
-                else:
-                    await qmp.execute(
-                        "block-job-cancel",
-                        arguments={
-                            "device": job["device"],
-                            "force": True,
-                        },
-                    )
-            except qmp_client.ExecuteError as err:
-                log.info(err)
-
-        await asyncio.sleep(1)
+    qemu_client.stop_backup = True
+    await qemu_client.cancel_jobs(done_event)
 
 
 async def main():
@@ -386,11 +352,14 @@ async def main():
         uuid,
     )
 
+    done_event = asyncio.Event()
     loop = asyncio.get_running_loop()
     for signame in ("SIGINT", "SIGTERM"):
         loop.add_signal_handler(
             getattr(signal, signame),
-            lambda signame=signame: asyncio.create_task(stop_jobs(log, qmp, signame)),
+            lambda signame=signame: asyncio.create_task(
+                stop_jobs(log, qemu_client, done_event, signame)
+            ),
         )
 
     if blockdev is None:

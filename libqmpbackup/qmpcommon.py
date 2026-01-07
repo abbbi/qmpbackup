@@ -12,9 +12,9 @@ import os
 import logging
 from time import sleep
 import asyncio
-from qemu.qmp import EventListener, qmp_client
 from libqmpbackup import fs
 from libqmpbackup.lib import json_pp
+from qemu.qmp import EventListener, qmp_client
 
 
 class QmpCommon:
@@ -23,6 +23,44 @@ class QmpCommon:
     def __init__(self, qmp):
         self.qmp = qmp
         self.log = logging.getLogger(__name__)
+        self.stop_backup = False
+
+    async def cancel_jobs(self, done_event):
+        """Cancel running jobs during abort operation"""
+        limit = 60
+        for retry in range(limit):
+            if retry >= limit:
+                self.log.warning(
+                    "Unable to cancel leftover backup jobs without reaching limit [%s]",
+                    limit,
+                )
+                break
+
+            jobs = await self.qmp.execute("query-block-jobs")
+            if len(jobs) == 0:
+                self.log.info("All block jobs cancelled.")
+                done_event.set()
+                break
+
+            for job in jobs:
+                if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
+                    continue
+
+                if job["status"] == "concluded":
+                    await self.qmp.execute(
+                        "block-job-dismiss",
+                        arguments={"id": job["device"]},
+                    )
+                else:
+                    await self.qmp.execute(
+                        "block-job-cancel",
+                        arguments={
+                            "device": job["device"],
+                            "force": True,
+                        },
+                    )
+
+            await asyncio.sleep(1)
 
     async def show_vm_state(self):
         """Show and check if virtual machine is in required
@@ -457,6 +495,8 @@ class QmpCommon:
     async def progress(self):
         """Report progress for active block job"""
         while True:
+            if self.stop_backup is True:
+                return
             sleep(1)
             try:
                 jobs = await self.qmp.execute("query-block-jobs")
