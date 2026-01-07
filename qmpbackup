@@ -474,6 +474,9 @@ async def main():
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
         finally:
+            if qga is not False:
+                fs.thaw(qga)
+
             if qemu_client.stop_backup is True:
                 log.info("Received signal, wait until all jobs have been cancelled.")
                 await done_event.wait()
@@ -481,9 +484,6 @@ async def main():
             if int(argv.remove_delay) > 0:
                 log.info("Delay removal of devices by [%s] seconds", argv.remove_delay)
                 sleep(int(argv.remove_delay))
-
-            if qga is not False:
-                fs.thaw(qga)
 
             try:
                 await qemu_client.remove_snapshot_access_devices(blockdev)
