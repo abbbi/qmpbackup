@@ -41,8 +41,7 @@ def remove_fleece_files(log, fleecefiles):
         try:
             os.remove(fleeceimage)
         except OSError as errmsg:
-            log.error("Unable to remove file: %s", errmsg)
-            sys.exit(1)
+            log.warning("Unable to cleanup fleece file: %s", errmsg)
 
 
 async def stop_jobs(log, qemu_client, done_event, signum):
