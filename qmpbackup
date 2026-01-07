@@ -33,56 +33,13 @@ from libqmpbackup import version
 SIGNAL_CATCHED = False
 
 
-async def cancel_jobs(argv, log):
-    """Dismiss or cancel all running block jobs. Use new connection"""
-    qmp = QMPClient()
-    qemu_client = QmpCommon(qmp, argv.socket, argv.connection_retry)
-    log.info("Cancelling all block jobs")
-    limit = 60
-    for retry in range(limit):
-        if retry >= limit:
-            log.warning("Unable to cancel leftover backup jobs")
-            break
-        jobs = await qmp._execute("query-block-jobs")
-        if len(jobs) == 0:
-            log.info("All jobs stopped")
-            return
-        for job in jobs:
-            if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
-                continue
-            try:
-                if job["status"] == "concluded":
-                    await qmp._execute(
-                        "block-job-dismiss",
-                        arguments={"id": job["device"]},
-                    )
-                else:
-                    await qmp._execute(
-                        "block-job-cancel",
-                        arguments={
-                            "device": job["device"],
-                            "force": True,
-                        },
-                    )
-            except qmp_client.ExecuteError as err:
-                log.info(err)
-        sleep(1)
-
-    tasks = asyncio.all_tasks()
-    for task in tasks:
-        task.cancel()
-
-
-async def stop_jobs(argv, log, signal):
+async def stop_jobs(argv, log, signal, qemu_client):
     """Cancel all running asyncio tasks so we disconnect"""
     global SIGNAL_CATCHED
     log.error("Caught signal: %s", signal)
     log.error("Stopping all tasks")
     SIGNAL_CATCHED = True
-    try:
-        await cancel_jobs(argv, log)
-    except TypeError:
-        pass
+    qemu_client.stop_backup = True
 
 
 async def main():
@@ -407,7 +364,9 @@ async def main():
     for signame in ("SIGINT", "SIGTERM"):
         loop.add_signal_handler(
             getattr(signal, signame),
-            lambda signame=signame: asyncio.create_task(stop_jobs(argv, log, signame)),
+            lambda signame=signame: asyncio.create_task(
+                stop_jobs(argv, log, signame, qemu_client)
+            ),
         )
 
     if blockdev is None:
@@ -525,6 +484,7 @@ async def main():
             await qemu_client.backup(argv, blockdev, qga, uuid)
         except (QMPError, RuntimeError) as errmsg:
             log.fatal("Error executing backup: %s", errmsg)
+            await qemu_client.cancel_jobs()
             sys.exit(1)
         finally:
             if int(argv.remove_delay) > 0:

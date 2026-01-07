@@ -9,11 +9,12 @@ This work is licensed under the terms of the GNU GPL, version 3.  See
 the LICENSE file in the top-level directory.
 """
 import os
+import asyncio
 import sys
 import logging
 from time import sleep
-from qemu.qmp import protocol
 from libqmpbackup import fs
+from qemu.qmp import protocol
 
 
 class QmpCommon:
@@ -24,6 +25,37 @@ class QmpCommon:
         self.log = logging.getLogger(__name__)
         self.socket = socket
         self.connection_retry = connection_retry
+        self.stop_backup = False
+
+    async def cancel_jobs(self):
+        """Dismiss or cancel all running block jobs. Use new connection"""
+        self.log.info("Cancelling all block jobs")
+        limit = 60
+        for retry in range(limit):
+            if retry >= limit:
+                self.log.warning("Unable to cancel leftover backup jobs")
+                break
+            jobs = await self._execute("query-block-jobs")
+            if len(jobs) == 0:
+                self.log.info("All jobs stopped")
+                return
+            for job in jobs:
+                if job["type"] != "backup" or not job["device"].startswith("qmpbackup"):
+                    continue
+                if job["status"] == "concluded":
+                    await self._execute(
+                        "block-job-dismiss",
+                        arguments={"id": job["device"]},
+                    )
+                else:
+                    await self._execute(
+                        "block-job-cancel",
+                        arguments={
+                            "device": job["device"],
+                            "force": True,
+                        },
+                    )
+            await asyncio.sleep(1)
 
     async def _connect(self):
         self.log.debug("Connecting QMP socket: [%s]", self.socket)
@@ -378,6 +410,9 @@ class QmpCommon:
             fs.thaw(qga)
 
         while True:
+            if self.stop_backup is True:
+                raise RuntimeError("Signal received")
+
             jobs = await self._execute("query-block-jobs")
             for job in jobs:
                 if not job["type"] == "backup":
