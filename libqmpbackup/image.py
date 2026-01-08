@@ -94,7 +94,6 @@ def create(argv, backupdir, blockdev):
     fleece_targets = {}
     timestamp = int(time())
     for dev in blockdev:
-
         nodname = dev.node
         if dev.node.startswith("#block"):
             log.warning(
@@ -150,7 +149,7 @@ def create(argv, backupdir, blockdev):
                 dev.virtual_size,
             )
             log.debug(cmd)
-            subprocess.check_output(cmd)
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             backup_targets[dev.node] = target
 
             log.info(
