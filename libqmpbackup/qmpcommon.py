@@ -336,7 +336,7 @@ class QmpCommon:
                     node,
                     os.path.basename(device.filename),
                 )
-                actions.append(self.transaction_bitmap_clear(device.node, bitmap))
+                actions.append(self.transaction_bitmap_clear(node, bitmap))
 
             compress = argv.compress
             if device.format == "raw" and compress:
