@@ -40,7 +40,7 @@ class BlockDev:
 
 def get_node(device):
     """Return node name to use for operations depending on
-    existant child devices"""
+    existent child devices"""
     node = device.node
     if device.child_device is not None:
         node = device.child_device
