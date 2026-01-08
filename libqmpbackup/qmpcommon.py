@@ -517,7 +517,7 @@ class QmpCommon:
     async def clear_bitmaps(self, blockdev, prefix="qmpbackup", uuid=""):
         """Clear existing bitmaps for block devices"""
         for dev in blockdev:
-            if not dev.has_bitmap:
+            if not dev.has_bitmap or dev.format == "raw":
                 self.log.info("No bitmap set for device %s", dev.node)
                 continue
 

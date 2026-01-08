@@ -496,7 +496,7 @@ async def main():
 
         cbw_active = False
         try:
-            if argv.level in ("full") and device.format != "raw":
+            if argv.level in ("full"):
                 await qemu_client.clear_bitmaps(blockdev, uuid)
             await qemu_client.prepare_target_devices(argv, blockdev, targetfiles)
             if not argv.no_fleece:
