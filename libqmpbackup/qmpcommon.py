@@ -359,7 +359,7 @@ class QmpCommon:
                 self.log.info(
                     "Clearing existing bitmap [%s] for device: [%s:%s]",
                     bitmap,
-                    node,
+                    device.node,
                     os.path.basename(device.filename),
                 )
                 actions.append(self.transaction_bitmap_clear(device.node, bitmap))
@@ -496,6 +496,10 @@ class QmpCommon:
                 self.log.info("No bitmap set for device %s", dev.node)
                 continue
 
+            node = dev.node
+            if dev.child_device is not None:
+                node = dev.child_device
+
             for bitmap in dev.bitmaps:
                 bitmap_name = bitmap["name"]
                 self.log.debug("Bitmap name: %s", bitmap_name)
@@ -516,5 +520,5 @@ class QmpCommon:
                 self.log.info("Removing bitmap: %s", bitmap_name)
                 await self._execute(
                     "block-dirty-bitmap-remove",
-                    arguments={"node": dev.node, "name": bitmap_name},
+                    arguments={"node": node, "name": bitmap_name},
                 )
