@@ -355,6 +355,15 @@ class QmpCommon:
                     self.transaction_bitmap_add(node, bitmap, persistent=persistent)
                 )
 
+            if device.has_bitmap and argv.level in ("full") and device.format != "raw":
+                self.log.info(
+                    "Clearing existing bitmap [%s] for device: [%s:%s]",
+                    bitmap,
+                    node,
+                    os.path.basename(device.filename),
+                )
+                actions.append(self.transaction_bitmap_clear(node, bitmap))
+
             compress = argv.compress
             if device.format == "raw" and compress:
                 compress = False
@@ -511,39 +520,5 @@ class QmpCommon:
                 self.log.info("Removing bitmap: %s", bitmap_name)
                 await self._execute(
                     "block-dirty-bitmap-remove",
-                    arguments={"node": node, "name": bitmap_name},
-                )
-
-    async def clear_bitmaps(self, blockdev, prefix="qmpbackup", uuid=""):
-        """Clear existing bitmaps for block devices"""
-        for dev in blockdev:
-            if not dev.has_bitmap or dev.format == "raw":
-                self.log.info("No bitmap set for device %s", dev.node)
-                continue
-
-            node = dev.node
-            if dev.child_device is not None:
-                node = dev.child_device
-
-            for bitmap in dev.bitmaps:
-                bitmap_name = bitmap["name"]
-                self.log.debug("Bitmap name: %s", bitmap_name)
-                if prefix not in bitmap_name:
-                    self.log.debug(
-                        "Ignoring bitmap: [%s] not matching prefix [%s]",
-                        prefix,
-                        bitmap_name,
-                    )
-                    continue
-                if uuid != "" and not bitmap_name.endswith(uuid):
-                    self.log.debug(
-                        "Ignoring bitmap: [%s] not matching uuid [%s]",
-                        bitmap_name,
-                        uuid,
-                    )
-                    continue
-                self.log.info("Clearing bitmap: %s", bitmap_name)
-                await self._execute(
-                    "block-dirty-bitmap-clear",
                     arguments={"node": node, "name": bitmap_name},
                 )
