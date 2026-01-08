@@ -206,11 +206,11 @@ echo "------------------------------------------------"
 
 
 # at this point, block devices must show bitmaps
-../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "qmpbackup-disk1"
+../qmpbackup --socket $QMP_SOCKET info --show blockdev | grep "qmpbackup-disk"
 # bitmaps must be active
 ../qmpbackup --socket $QMP_SOCKET info --show bitmaps 2>&1 | grep "recording.*true"
 # at least one bitmap must be removed at this point
-../qmpbackup --socket $QMP_SOCKET cleanup --remove-bitmap 2>&1 | grep "Removing bitmap: qmpbackup-disk1"
+../qmpbackup --socket $QMP_SOCKET cleanup --remove-bitmap 2>&1 | grep "Removing bitmap: qmpbackup-disk"
 
 
 # exit code of qmpbackup must be errnous if partial backup is found in directory
