@@ -159,11 +159,10 @@ def create(argv, backupdir, blockdev):
                 dev.virtual_size,
             )
             log.debug(fleece_cmd)
-            subprocess.check_output(fleece_cmd)
+            subprocess.check_output(fleece_cmd, stderr=subprocess.STDOUT)
             fleece_targets[dev.node] = fleece_targetfile
-
         except subprocess.CalledProcessError as errmsg:
-            raise RuntimeError from errmsg
+            raise RuntimeError(errmsg.stdout.decode()) from errmsg
 
     return backup_targets, fleece_targets
 
