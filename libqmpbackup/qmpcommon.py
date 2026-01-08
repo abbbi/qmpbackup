@@ -13,6 +13,7 @@ import logging
 from time import sleep
 import asyncio
 from libqmpbackup import fs
+from libqmpbackup import vm
 from libqmpbackup.lib import json_pp
 from qemu.qmp import EventListener, qmp_client
 
@@ -271,9 +272,7 @@ class QmpCommon:
         if argv.level == "copy":
             bitmap_prefix = f"qmpbackup-{argv.level}"
         for device in devices:
-            node = device.node
-            if device.child_device is not None:
-                node = device.child_device
+            node = vm.get_node(device)
 
             cbwopt = {
                 "driver": "copy-before-write",
@@ -310,10 +309,7 @@ class QmpCommon:
             targetdev = f"qmpbackup-{device.node_safe}"
             bitmap = f"{bitmap_prefix}-{device.device}-{uuid}"
             job_id = f"qmpbackup.{device.node_safe}.{os.path.basename(device.filename)}"
-
-            node = device.node
-            if device.child_device is not None:
-                node = device.child_device
+            node = vm.get_node(device)
 
             if (
                 not device.has_bitmap
@@ -323,7 +319,10 @@ class QmpCommon:
                 and argv.level in ("copy")
             ):
                 self.log.info(
-                    "Creating new bitmap: [%s] for device [%s]", bitmap, device.node
+                    "Creating new bitmap: [%s] using node [%s]: [%s]",
+                    bitmap,
+                    node,
+                    os.path.basename(device.filename),
                 )
                 actions.append(
                     self.transaction_bitmap_add(node, bitmap, persistent=persistent)
@@ -331,7 +330,7 @@ class QmpCommon:
 
             if device.has_bitmap and argv.level in ("full") and device.format != "raw":
                 self.log.info(
-                    "Clearing existing bitmap [%s] for device: [%s:%s]",
+                    "Clearing existing bitmap: [%s] using node [%s]: [%s]",
                     bitmap,
                     node,
                     os.path.basename(device.filename),
@@ -469,10 +468,7 @@ class QmpCommon:
             if not dev.has_bitmap:
                 self.log.info("No bitmap set for device %s", dev.node)
                 continue
-
-            node = dev.node
-            if dev.child_device is not None:
-                node = dev.child_device
+            node = vm.get_node(dev)
 
             for bitmap in dev.bitmaps:
                 bitmap_name = bitmap["name"]
