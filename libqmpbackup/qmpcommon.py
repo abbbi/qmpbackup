@@ -345,8 +345,12 @@ class QmpCommon:
                 or device.has_bitmap
                 and argv.level in ("copy")
             ):
+
                 self.log.info(
-                    "Creating new bitmap: [%s] for device [%s]", bitmap, device.node
+                    "Creating new bitmap: [%s] using node [%s]: [%s]",
+                    bitmap,
+                    node,
+                    os.path.basename(device.filename),
                 )
                 actions.append(
                     self.transaction_bitmap_add(node, bitmap, persistent=persistent)
