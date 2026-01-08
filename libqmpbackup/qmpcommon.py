@@ -14,6 +14,7 @@ import sys
 import logging
 from time import sleep
 from libqmpbackup import fs
+from libqmpbackup import vm
 from libqmpbackup.lib import json_pp
 from qemu.qmp import protocol
 
@@ -193,9 +194,7 @@ class QmpCommon:
         if argv.level == "copy":
             bitmap_prefix = f"qmpbackup-{argv.level}"
         for device in devices:
-            node = device.node
-            if device.child_device is not None:
-                node = device.child_device
+            node = vm.get_node(device)
 
             cbwopt = {
                 "driver": "copy-before-write",
@@ -334,9 +333,7 @@ class QmpCommon:
 
         actions = []
         for device in devices:
-            node = device.node
-            if device.child_device is not None:
-                node = device.child_device
+            node = vm.get_node(device)
             targetdev = f"qmpbackup-{device.node_safe}"
             bitmap = f"{bitmap_prefix}-{device.device}-{uuid}"
             job_id = f"qmpbackup.{device.node_safe}.{os.path.basename(device.filename)}"
@@ -496,9 +493,7 @@ class QmpCommon:
                 self.log.info("No bitmap set for device %s", dev.node)
                 continue
 
-            node = dev.node
-            if dev.child_device is not None:
-                node = dev.child_device
+            node = vm.get_node(dev)
 
             for bitmap in dev.bitmaps:
                 bitmap_name = bitmap["name"]

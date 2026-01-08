@@ -38,6 +38,16 @@ class BlockDev:
     child_device: str
 
 
+def get_node(device):
+    """Return node name to use for operations depending on
+    existent child devices"""
+    node = device.node
+    if device.child_device is not None:
+        node = device.child_device
+
+    return node
+
+
 def get_block_devices(
     blockinfo, named_block_info, argv, excluded_disks, included_disks, uuid
 ):
