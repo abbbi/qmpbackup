@@ -62,13 +62,17 @@ async def main():
         epilog=(
             "Examples:\n"
             "   # full backup with all attached disks:\n"
-            "\t%(prog)s --socket /tmp/sock backup --level full --target /backup/\n"
+            "\t%(prog)s --socket /path/to/qmp_socket backup --level full --target /backup/\n"
             "   # incremental backup with all attached disks:\n"
-            "\t%(prog)s --socket /tmp/sock backup --level inc --target /backup/\n"
+            "\t%(prog)s --socket /path/to/qmp_socket backup --level inc --target /backup/\n"
             "   # show attached block devices:\n"
-            "\t%(prog)s --socket /tmp/socket info --show blockdev\n"
+            "\t%(prog)s --socket /path/to/qmp_socket info --show blockdev\n"
             "   # full backup but exclude disk:\n"
-            "\t%(prog)s --socket /tmp/sock backup --level full --exclude ide0-hd0"
+            "\t%(prog)s --socket /path/to/qmp_socket backup --level full --exclude ide0-hd0"
+            " --target /backup/\n"
+            "   # full backup freeze fileystems using qemu guest agent\n"
+            "\t%(prog)s --socket /path/to/qmp_socket --agent-socket /path/to/agent_socket "
+            "backup --level full --quiesce"
             " --target /backup/\n"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
@@ -198,7 +202,7 @@ async def main():
     )
     parser_backup.add_argument(
         "--remove-delay",
-        help="Delay removal of attached disks (seconds)",
+        help="Delay removal of attached backup target disks (seconds)",
         default=0,
         type=int,
     )
