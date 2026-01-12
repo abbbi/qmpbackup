@@ -19,6 +19,7 @@ cleanup() {
     rm -f /tmp/disk1.qcow2
     rm -f /tmp/disk2.qcow2
     rm -f /tmp/disk3.qcow2
+    rm -f /tmp/snapshot.qcow2
     rm -f /tmp/qemu.pid
     rm -f /tmp/mytpm1/pid
 }
@@ -59,9 +60,11 @@ rm -f /tmp/disk3.raw
 rm -f /tmp/file.qcow2
 rm -f /tmp/disk4.qcow2
 rm -f /tmp/disk5.qcow2
+rm -f /tmp/snapshot.qcow2
 [ ! -e /tmp/disk3.raw ] && qemu-img create -f raw /tmp/disk3.raw 10M
 [ ! -e /tmp/file.qcow2 ] &&  qemu-img create -f qcow2 /tmp/file.qcow2 10M
 [ ! -e /tmp/disk4.qcow2 ] &&  qemu-img create -f qcow2 /tmp/disk4.qcow2 10M
+[ ! -e /tmp/snapshot.qcow2 ] && qemu-img create -f qcow2 /tmp/snapshot.qcow2 10M
 [ ! -e /tmp/disk5.qcow2 ] && touch /tmp/TEMPFILE &&  qemu-img create -f qcow2 /tmp/disk5.qcow2 -o data_file=/tmp/TEMPFILE,data_file_raw=true 10M \
     && echo "raw" > /tmp/disk5.raw \
     && qemu-img amend /tmp/disk5.qcow2 -o data_file=/tmp/disk5.raw,data_file_raw=true
@@ -114,6 +117,7 @@ echo "Starting qemu process: $QEMU_EXE"
     -chardev socket,id=chrtpm,path=/tmp/mytpm1/swtpm-sock \
     -tpmdev emulator,id=tpm0,chardev=chrtpm \
     -device tpm-tis,tpmdev=tpm0 \
+    -drive id=snapshot,if=none,format=qcow2,snapshot=on,file=/tmp/snapshot.qcow2 \
     -pidfile ${PIDFILE}
 
 # wait until qemu agent is reachable within booted Vm, then continue
