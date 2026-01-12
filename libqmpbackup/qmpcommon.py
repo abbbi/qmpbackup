@@ -426,6 +426,7 @@ class QmpCommon:
         actions = self.prepare_transaction(argv, devices, uuid)
         with self.qmp.listen(listener):
             await self.qmp.execute("transaction", arguments={"actions": actions})
+            self.log.info("Started backup transaction for [%s] devices", len(devices))
             _ = asyncio.create_task(
                 self.progress(argv.progress_interval), name="progress"
             )
@@ -457,7 +458,7 @@ class QmpCommon:
                     finished += 1
                     self.log.info("Block job [%s] finished", event["data"]["device"])
                 if len(devices) == finished:
-                    self.log.info("Backups finished for all devices.")
+                    self.log.info("Backup for all [%s] devices finished.", finished)
                     break
 
     async def do_query_block(self):
