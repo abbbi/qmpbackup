@@ -102,6 +102,7 @@ echo "Starting qemu process: $QEMU_EXE"
     -drive file=/tmp/disk4.qcow2,format=qcow2 \
     -qmp unix:/tmp/socket,server=on,wait=off \
     -qmp unix:/tmp/socket2,server=on,wait=off \
+    -qmp tcp:localhost:4444,server,wait=off \
     -chardev socket,path=$AGENT_SOCKET,server=on,wait=off,id=qga0 \
     -device virtio-serial \
     -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \

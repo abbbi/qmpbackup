@@ -74,16 +74,21 @@ async def main():
             "\t%(prog)s --socket /path/to/qmp_socket --agent-socket /path/to/agent_socket "
             "backup --level full --quiesce"
             " --target /backup/\n"
+            "   # full backup using an tcp socket:\n"
+            "\t%(prog)s --socket tcp:localhost:4444 backup --level full --target /backup/\n"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
-        "--socket", dest="socket", help="qmp socket to connect", required=1
+        "--socket",
+        dest="socket",
+        help="path to qmp socket file or tcp endpoint to connect",
+        required=1,
     )
     parser.add_argument(
         "--agent-socket",
         dest="agentsocket",
-        help="socket to use for communication with qemu agent",
+        help="path to socket file used for communication with qemu agent",
         required=False,
     )
     parser.add_argument(
@@ -259,11 +264,19 @@ async def main():
 
     new_monthly = False
     qmp = QMPClient()
-    log.info("Connecting QMP socket: [%s]", argv.socket)
     try:
-        await qmp.connect(argv.socket)
+        if argv.socket.startswith("tcp"):
+            _, host, port = argv.socket.split(":")
+            log.info("Connecting QMP endpoint: [%s:%s]", host, port)
+            await qmp.connect((host, port))
+        else:
+            log.info("Connecting QMP socket: [%s]", argv.socket)
+            await qmp.connect(argv.socket)
     except protocol.ConnectError as errmsg:
         log.fatal("Can't connect QMP socket [%s]: %s", argv.socket, errmsg)
+        sys.exit(1)
+    except ValueError:
+        log.fatal("Unable to parse specified socket parameter, requires: tcp:host:port")
         sys.exit(1)
 
     qemu_client = QmpCommon(qmp)

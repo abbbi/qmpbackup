@@ -73,6 +73,12 @@ usually this happens by starting the virtual machine via:
  qemu-system-<arch> <options> -qmp unix:/path/to/socket,server,nowait
 ```
 
+You can also configure qemu to provide the QMP protocol via TCP endpoint:
+
+```
+ qemu-system-<arch> <options>  -qmp tcp:localhost:4444,server,wait=off
+```
+
 *qmpbackup* uses this socket to pass required commands to the virtual machine.
 
 `Note:` Use a dedicated socket for backup operations if possible, as qmp
@@ -94,6 +100,8 @@ In order to create a full backup use the following command:
  qmpbackup --socket /path/to/socket cleanup --remove-bitmaps
 # create a new full backup to an empty directory:
  qmpbackup --socket /path/to/socket backup --level full --target /tmp/backup/
+# example using a tcp endpoint:
+ qmpbackup --socket tcp:localhost:4444  backup --level full --target /tmp/backup/
 ```
 
 the command will create a new unique dirty bitmap and backup the virtual
