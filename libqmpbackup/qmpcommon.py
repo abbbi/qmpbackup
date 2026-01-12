@@ -502,7 +502,7 @@ class QmpCommon:
         while True:
             if self.stop_backup is True:
                 return
-            sleep(1)
+            await asyncio.sleep(1)
             try:
                 jobs = await self.qmp.execute("query-block-jobs")
             except qmp_client.ExecInterruptedError as err:
