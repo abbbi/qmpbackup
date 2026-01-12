@@ -426,7 +426,9 @@ class QmpCommon:
         actions = self.prepare_transaction(argv, devices, uuid)
         with self.qmp.listen(listener):
             await self.qmp.execute("transaction", arguments={"actions": actions})
-            _ = asyncio.create_task(self.progress(), name="progress")
+            _ = asyncio.create_task(
+                self.progress(argv.progress_interval), name="progress"
+            )
             if qga is not False:
                 fs.thaw(qga)
             async for event in listener:
@@ -497,12 +499,12 @@ class QmpCommon:
                     arguments={"node": node, "name": bitmap_name},
                 )
 
-    async def progress(self):
+    async def progress(self, progress_interval):
         """Report progress for active block job"""
         while True:
             if self.stop_backup is True:
                 return
-            await asyncio.sleep(1)
+            await asyncio.sleep(progress_interval)
             try:
                 jobs = await self.qmp.execute("query-block-jobs")
             except qmp_client.ExecInterruptedError as err:

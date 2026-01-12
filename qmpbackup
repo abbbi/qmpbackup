@@ -185,6 +185,13 @@ async def main():
         required=False,
     )
     parser_backup.add_argument(
+        "--progress-interval",
+        type=int,
+        default=20,
+        help="show backup job progress every X seconds default: %(default)s",
+        required=False,
+    )
+    parser_backup.add_argument(
         "--compress",
         action="store_true",
         default=False,
