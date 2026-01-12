@@ -423,7 +423,6 @@ class QmpCommon:
         )
 
         finished = 0
-        failure = 0
         actions = self.prepare_transaction(argv, devices, uuid)
         with self.qmp.listen(listener):
             await self.qmp.execute("transaction", arguments={"actions": actions})
@@ -431,9 +430,14 @@ class QmpCommon:
             if qga is not False:
                 fs.thaw(qga)
             async for event in listener:
-                if event["event"] in ("BLOCK_JOB_CANCELLED", "BLOCK_JOB_ERROR"):
-                    # catch the cancellation and/or error and set flag
-                    failure = 1
+                # block job was cancelled (likely by signal)
+                if event["event"] in ("BLOCK_JOB_CANCELLED"):
+                    self.log.error("Block job [%s] cancelled.", event["data"]["device"])
+                    break
+                # block job received an error, do not exit loop but wait for the
+                # BLOCK_JOB_COMPLETED event to report cause of error.
+                if event["event"] in ("BLOCK_JOB_ERROR"):
+                    self.log.error("Block job [%s] failed.", event["data"]["device"])
                 if event["event"] == "BLOCK_JOB_COMPLETED":
                     error = None
                     # check if the block completed event has an error set.
@@ -443,7 +447,7 @@ class QmpCommon:
                         pass
 
                     # report the failed job with correct reason
-                    if error and failure == 1:
+                    if error:
                         raise RuntimeError(
                             "Block job failed for device "
                             f"[{event['data']['device']}]: Reason: [{error}]",
@@ -451,7 +455,7 @@ class QmpCommon:
                     finished += 1
                     self.log.info("Block job [%s] finished", event["data"]["device"])
                 if len(devices) == finished:
-                    self.log.info("All backups finished")
+                    self.log.info("Backups finished for all devices.")
                     break
 
     async def do_query_block(self):
