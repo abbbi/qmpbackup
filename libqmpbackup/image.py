@@ -106,7 +106,7 @@ def create(argv, backupdir, blockdev):
         if argv.no_subdir is True:
             targetdir = backupdir
         else:
-            targetdir = os.path.join(backupdir, nodname)
+            targetdir = os.path.join(backupdir, os.path.basename(dev.filename))
         os.makedirs(targetdir, exist_ok=True)
         if argv.no_timestamp and argv.level in ("copy", "full"):
             filename = f"{os.path.basename(dev.filename)}.partial"
