@@ -251,12 +251,6 @@ class QmpCommon:
         else:
             self.log.info("Activate copy-before-write filter")
         for device in devices:
-            if device.backing_image is True:
-                self.log.info(
-                    "Skipping copy-before-write filter for snapshot/backing image: [%s]",
-                    device.device,
-                )
-                continue
             target = f"qmpbackup-{device.node_safe}-cbw"
             if action == "disable":
                 target = device.node
