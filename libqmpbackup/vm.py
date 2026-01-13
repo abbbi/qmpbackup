@@ -120,9 +120,13 @@ def get_block_devices(
 
         try:
             backing_image = inserted["image"]["backing-image"]
-            backing_image = True
             filename = inserted["image"]["backing-image"]["filename"]
             diskformat = inserted["image"]["backing-image"]["format"]
+            log.warning(
+                "Attached device [%s] appears to be an active snapshot for [%s]",
+                device["inserted"]["node-name"],
+                filename,
+            )
         except KeyError:
             filename = inserted["image"]["filename"]
             diskformat = inserted["image"]["format"]

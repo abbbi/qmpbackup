@@ -50,6 +50,7 @@ project:
   - [Backing up libvirt virtual machines](#backing-up-libvirt-virtual-machines)
   - [Backup target considerations](#backup-target-considerations)
   - [TPM/SWTPM devices](#tpmswtpm-devices)
+  - [External Snapshots](#external-snapshots)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -445,3 +446,15 @@ target must be a directory.
 Currently the utility will not handle backup of related (SW)TPM devices
 attached to the virtual machine. A warning will be issued if such devices are
 detected during backup.
+
+## External Snapshots
+
+In case a external snapshot is created for certain devices, as in:
+
+ ```
+ blockdev-add driver=qcow2 node-name=snap_1 file={"driver":"file","filename":"/mysnapshot.qcow2"}
+ blockdev-snapshot node=disk1 overlay=snap_1
+ ```
+
+the backup process will always backup the active snapshot device (the device
+"snap_1"), not the original file it is based on.
