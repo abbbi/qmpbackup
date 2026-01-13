@@ -202,14 +202,10 @@ def get_block_devices(
         try:
             qdev = device["qdev"]
         except KeyError:
-            # device has no qdev, check if its a backing image
-            # likely a snapshot
-            if backing_image is not True:
-                log.warning(
-                    "Device [%s] has no qdev required for CBW set, skipping.",
-                    device["device"],
-                )
-                continue
+            log.warning(
+                "Device [%s] has no qdev required for CBW set, skipping.",
+                device["device"],
+            )
 
         log.debug("Adding device to device list: %s", device)
         blockdevs.append(
