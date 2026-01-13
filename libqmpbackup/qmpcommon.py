@@ -10,7 +10,6 @@ the LICENSE file in the top-level directory.
 """
 import os
 import logging
-from time import sleep
 import asyncio
 from libqmpbackup import fs
 from libqmpbackup import vm
