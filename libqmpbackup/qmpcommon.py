@@ -283,7 +283,7 @@ class QmpCommon:
                 "cbw-timeout": 45,
             }
             if device.has_bitmap and argv.level in ("inc", "diff"):
-                bitmap = f"{bitmap_prefix}-{device.device}-{uuid}"
+                bitmap = f"{bitmap_prefix}-{uuid}"
                 cbwopt["bitmap"] = {
                     "node": node,
                     "name": bitmap,
@@ -307,7 +307,7 @@ class QmpCommon:
         actions = []
         for device in devices:
             targetdev = f"qmpbackup-{device.node_safe}"
-            bitmap = f"{bitmap_prefix}-{device.device}-{uuid}"
+            bitmap = f"{bitmap_prefix}-{uuid}"
             job_id = f"qmpbackup.{device.device}.{os.path.basename(device.filename)}"
             node = vm.get_node(device)
 
