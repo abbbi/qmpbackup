@@ -175,6 +175,13 @@ async def main():
         required=False,
     )
     parser_backup.add_argument(
+        "--pause",
+        action="store_true",
+        help="Pause VM during backup",
+        required=False,
+        default=False,
+    )
+    parser_backup.add_argument(
         "-t", "--target", type=str, help="backup target directory", required=True
     )
     parser_backup.add_argument(
@@ -478,10 +485,19 @@ async def main():
             sys.exit(1)
 
         qga = False
-        if argv.agentsocket and argv.quiesce:
+        if argv.agentsocket and argv.quiesce and not argv.pause:
             qga = lib.connect_qaagent(argv.agentsocket)
             if qga:
                 fs.quiesce(qga)
+
+        paused = False
+        if argv.pause:
+            try:
+                await qemu_client.qmp.execute("stop")
+                paused = True
+                log.info("Paused/suspended virtual machine")
+            except QMPError as e:
+                log.warning("Unable to pause VM: [%s]", e)
 
         cbw_active = False
         try:
@@ -495,6 +511,13 @@ async def main():
             log.fatal("Error executing backup: %s", errmsg)
             sys.exit(1)
         finally:
+            if paused is not False:
+                try:
+                    await qemu_client.qmp.execute("cont")
+                    log.info("Resumed virtual machine")
+                except QMPError:
+                    log.warning("Unable to resume VM: [%s]", e)
+
             if qga is not False:
                 fs.thaw(qga)
 
