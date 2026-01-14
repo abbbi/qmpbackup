@@ -397,7 +397,7 @@ async def main():
                         'No bitmaps found for device: "%s:%s"', dev.node, dev.filename
                     )
                     continue
-                log.info("%s:", dev.node)
+                log.info("%s [%s]:", dev.node, dev.filename)
                 log.info("%s", lib.json_pp(dev.bitmaps))
 
     if action == "cleanup":
