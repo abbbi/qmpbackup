@@ -207,7 +207,7 @@ Use the following options to QEMU to enable an guest agent socket:
 It is recommended to enable filesystem freeze during backup to ensure
 consistency.
 
-If the operation system running within the virtual machine does not include
+If the operating system running within the virtual machine does not include
 required agents and you need to ensure consistency, use the `--pause` option to
 suspend the virtual machine during backup operation and resume afterwards.
 
