@@ -204,6 +204,13 @@ Use the following options to QEMU to enable an guest agent socket:
    -device "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0" \
 ```
 
+It is recommended to enable filesystem freeze during backup to ensure
+consistency.
+
+If the operation system running within the virtual machine does not include
+required agents and you need to ensure consistency, use the `--pause` option to
+suspend the virtual machine during backup operation and resume afterwards.
+
 ## Offline virtual machines
 
 If you want to backup virtual machines without the virtual machine being in
