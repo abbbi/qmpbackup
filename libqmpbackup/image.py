@@ -141,6 +141,8 @@ def create(argv, backupdir, blockdev):
             "-o",
             f"size={dev.virtual_size}",
         ]
+        if dev.format != "raw":
+            fleece_cmd = fleece_cmd + opt
 
         try:
             log.info(
