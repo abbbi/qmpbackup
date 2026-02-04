@@ -474,6 +474,13 @@ async def main():
                         tdir,
                     )
                     sys.exit(1)
+                if argv.override_targetdir != "":
+                    if lib.has_partial(argv.override_targetdir):
+                        log.error(
+                            "Partial backup found in [%s], possible broken backup chain. Execute new full backup",
+                            argv.override_targetdir,
+                        )
+                        sys.exit(1)
                 if lib.has_partial(tdir):
                     log.error(
                         "Partial backup found in [%s], possible broken backup chain. Execute new full backup",
