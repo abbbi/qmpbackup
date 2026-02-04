@@ -279,7 +279,7 @@ class QmpCommon:
                 "file": node,
                 "target": f"qmpbackup-{device.node_safe}-fleece",
                 "on-cbw-error": "break-snapshot",
-                "cbw-timeout": 45,
+                "cbw-timeout": argv.cbw_timeout,
             }
             if device.has_bitmap and argv.level in ("inc", "diff"):
                 bitmap = f"{bitmap_prefix}-{uuid}"
