@@ -176,6 +176,13 @@ async def main():
         required=False,
     )
     parser_backup.add_argument(
+        "--cbw-timeout",
+        type=int,
+        default=45,
+        help="Copy-before-write timeout value default: %(default)s",
+        required=False,
+    )
+    parser_backup.add_argument(
         "--compress",
         action="store_true",
         default=False,
