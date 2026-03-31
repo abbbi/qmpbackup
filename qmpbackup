@@ -524,7 +524,7 @@ async def main():
             await qemu_client.cancel_jobs()
             sys.exit(1)
         finally:
-            cleanup_fleece_files = False
+            do_cleanup_fleece_files = False
             if qga is not False:
                 fs.thaw(qga)
 
@@ -553,11 +553,11 @@ async def main():
             try:
                 if not argv.no_fleece:
                     await qemu_client.remove_fleece_devices(blockdev)
-                    cleanup_fleece_files = True
+                    do_cleanup_fleece_files = True
             except QMPError as errmsg:
                 log.warning("Unable to cleanup fleece device: %s", errmsg)
 
-            if not argv.no_fleece and cleanup_fleece_files is True:
+            if not argv.no_fleece and do_cleanup_fleece_files is True:
                 await cleanup_fleece_files(fleecefiles, log)
 
         if argv.level == "copy":
