@@ -340,23 +340,33 @@ class QmpCommon:
 
             if (
                 not device.has_bitmap
-                and device.format != "raw"
                 and argv.level in ("full", "copy")
                 or device.has_bitmap
                 and argv.level in ("copy")
             ):
 
-                self.log.info(
-                    "Creating new bitmap: [%s] using node [%s]: [%s]",
-                    bitmap,
-                    node,
-                    os.path.basename(device.filename),
-                )
-                actions.append(
-                    self.transaction_bitmap_add(node, bitmap, persistent=persistent)
-                )
+                if device.format != "raw":
+                    self.log.info(
+                        "Creating new bitmap: [%s] using node [%s]: [%s]",
+                        bitmap,
+                        node,
+                        os.path.basename(device.filename),
+                    )
+                    actions.append(
+                        self.transaction_bitmap_add(node, bitmap, persistent=persistent)
+                    )
+                else:
+                    self.log.warning(
+                        "Creating new non-persistent bitmap: [%s] using node [%s] for raw device: [%s]",
+                        bitmap,
+                        node,
+                        os.path.basename(device.filename),
+                    )
+                    actions.append(
+                        self.transaction_bitmap_add(node, bitmap, persistent=False)
+                    )
 
-            if device.has_bitmap and argv.level in ("full") and device.format != "raw":
+            if device.has_bitmap and argv.level in ("full"):
                 self.log.info(
                     "Clearing existing bitmap [%s] for device: [%s:%s]",
                     bitmap,
@@ -375,9 +385,7 @@ class QmpCommon:
             else:
                 snapshot_device = device.node
 
-            if argv.level in ("full", "copy") or (
-                argv.level == "inc" and device.format == "raw"
-            ):
+            if argv.level in ("full", "copy"):
                 actions.append(
                     self.transaction_action(
                         "blockdev-backup",
