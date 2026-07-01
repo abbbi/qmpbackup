@@ -374,7 +374,7 @@ async def main():
     if action == "info":
         argv.include_raw = True
     if action == "cleanup":
-        argv.include_raw = False
+        argv.include_raw = True
 
     blockdev = vm.get_block_devices(
         await qemu_client.do_query_block(),
