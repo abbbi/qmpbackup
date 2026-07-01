@@ -433,10 +433,7 @@ async def main():
             tdir = backupdir
             if not argv.no_subdir:
                 tdir = os.path.join(backupdir, os.path.basename(device.filename))
-            if (
-                device.has_bitmap is False
-                and argv.level == "inc"
-            ):
+            if device.has_bitmap is False and argv.level == "inc":
                 log.error(
                     "[%s:%s] Incremental backup requested but no active bitmap has been found.",
                     device.node,
@@ -452,14 +449,10 @@ async def main():
                         tdir,
                     )
                     sys.exit(1)
-                if (
-                    not lib.check_bitmap_uuid(device.bitmaps, uuid)
-                ):
+                if not lib.check_bitmap_uuid(device.bitmaps, uuid):
                     log.error("Unable to find any bitmap with uuid: [%s]", uuid)
                     sys.exit(1)
-                if (
-                    not lib.check_bitmap_state(device.node, device.bitmaps)
-                ):
+                if not lib.check_bitmap_state(device.node, device.bitmaps):
                     log.error(
                         "Bitmap for device [%s:%s] is not in state ready for backup.",
                         device.node,
