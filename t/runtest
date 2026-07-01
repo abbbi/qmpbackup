@@ -85,7 +85,7 @@ if [ -z "$DEBUG_CONSOLE" ]; then
     echo "without console"
     KVMOPT="${KVMOPT} -daemonize -display none"
 else
-    KVMOPT="${KVMOPT} -net nic,model=virtio,macaddr=52:54:00:00:00:01 -net bridge,br=virtbr0"
+    KVMOPT="${KVMOPT} -net nic,model=virtio,macaddr=52:54:00:00:00:01 -net bridge,br=br0"
 fi
 
 if [ -z "$QEMU" ]; then

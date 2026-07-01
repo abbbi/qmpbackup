@@ -339,12 +339,29 @@ the created target images, but may slow down the backup operation.
 
 ## Including raw devices (lvm, zfs, ceph)
 
-Attached raw devices (format: raw) do not support incremental backup. The
-only way to create backups for these devices is to create a complete full
-or copy backup.
+Attached raw devices (format: raw) do not support persistent bitmaps, this
+means bitmaps will be lost if the qemu process is restarted.
 
 By default `qmpbackup` will ignore such devices, but you can use the
-`--include-raw` option to create a backup for those devices "as is".
+`--include-raw` option to create a backup for those devices.
+
+The Bitmap will then be created as non-persistent.
+
+The Resulting backup images are sparse files, incremental images will
+only contain the changed blocks:
+
+```
+ du -h *
+ 10M     FULL-1782888070-disk3.raw
+ 256K    INC-1782888113-disk3.raw
+```
+
+In order to restore them use regular cp commands:
+
+```
+ cp FULL-1782888070-disk3.raw restore.raw
+ cp --sparse=always INC-1782888113-disk3.raw restore.raw
+```
 
 ### Metadata qcow files for raw devices (lvm, zfs, ceph)
 
