@@ -371,9 +371,7 @@ async def main():
                 log.error("Unable to get UUID for incremental backup: [%s]", errmsg)
                 sys.exit(1)
 
-    if action == "info":
-        argv.include_raw = True
-    if action == "cleanup":
+    if action in ("info", "cleanup"):
         argv.include_raw = True
 
     blockdev = vm.get_block_devices(
