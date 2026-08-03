@@ -43,6 +43,12 @@ no_exist_files() {
         exit 1
     fi
 }
+count_files() {
+    if [ "$(ls ${2} 2> /dev/null | wc -l)" -ne "${1}" ]; then
+        echo "expected ${1} backup files matching ${2}"
+        exit 1
+    fi
+}
 
 echo "Downloading image"
 [ ! -e /tmp/libvirt.box ] && curl -L -s $IMAGE > /tmp/libvirt.box
@@ -206,6 +212,36 @@ python3 agent.py incdata3
 echo "------------------------------------------------"
 ../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --target /tmp/backup/ --quiesce --compress
 
+
+# auto backup with a ratio bigger than the chain must stay incremental and must
+# execute FULL backup once exceeded. Only disk1 is included: its increments are
+# small against the full backup, so the ratios below are not a close call
+RATIO_BACKUP="../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --include disk1 --target /tmp/ratio/ --quiesce"
+rm -rf /tmp/ratio
+$RATIO_BACKUP
+exist_files /tmp/ratio//disk1.qcow2/FULL*
+
+# a chain consisting of a single full backup is a full backup on its own:
+# replacing it saves no space, so it is kept whatever the ratio
+$RATIO_BACKUP --auto-full-ratio 0.0001
+exist_files /tmp/ratio//disk1.qcow2/INC*
+count_files 1 "/tmp/ratio/disk1.qcow2/FULL*"
+
+# the chain holds an increment now, but stays far below the ratio
+$RATIO_BACKUP --auto-full-ratio 100
+count_files 1 "/tmp/ratio/disk1.qcow2/FULL*"
+
+# chain outgrows the ratio: a new chain is started with a full backup
+$RATIO_BACKUP --auto-full-ratio 0.0001
+count_files 2 "/tmp/ratio/disk1.qcow2/FULL*"
+
+# the full backup started a new chain, so the older chain is not measured
+# anymore and the next backups stay incremental: the ratio used here is above
+# the new chain alone but below the size of the whole directory
+$RATIO_BACKUP --auto-full-ratio 1.5
+count_files 2 "/tmp/ratio/disk1.qcow2/FULL*"
+$RATIO_BACKUP --auto-full-ratio 1.5
+count_files 2 "/tmp/ratio/disk1.qcow2/FULL*"
 
 rm -rf /tmp/monthly
 ../qmpbackup --socket $QMP_SOCKET backup --level auto --monthly --target /tmp/monthly/
