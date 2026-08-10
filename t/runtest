@@ -243,6 +243,25 @@ count_files 2 "/tmp/ratio/disk1.qcow2/FULL*"
 $RATIO_BACKUP --auto-full-ratio 1.5
 count_files 2 "/tmp/ratio/disk1.qcow2/FULL*"
 
+# --auto-full-remove-chain replaces the outgrown chain instead of keeping it
+rm -rf /tmp/ratio_remove
+REMOVE_BACKUP="../qmpbackup --agent-socket $AGENT_SOCKET --socket $QMP_SOCKET backup --level auto --include disk1 --target /tmp/ratio_remove/ --quiesce"
+$REMOVE_BACKUP
+$REMOVE_BACKUP --auto-full-ratio 0.0001 --auto-full-remove-chain
+# a chain of a lone full backup is not replaced, so nothing is removed either
+count_files 1 "/tmp/ratio_remove/disk1.qcow2/FULL*"
+count_files 1 "/tmp/ratio_remove/disk1.qcow2/INC*"
+$REMOVE_BACKUP --auto-full-ratio 0.0001 --auto-full-remove-chain
+# the replaced chain is gone, leaving only the full backup which replaced it
+count_files 1 "/tmp/ratio_remove/disk1.qcow2/FULL*"
+count_files 0 "/tmp/ratio_remove/disk1.qcow2/INC*"
+
+# without the option the replaced chain is kept
+$REMOVE_BACKUP --auto-full-ratio 0.0001
+$REMOVE_BACKUP --auto-full-ratio 0.0001
+count_files 2 "/tmp/ratio_remove/disk1.qcow2/FULL*"
+count_files 1 "/tmp/ratio_remove/disk1.qcow2/INC*"
+
 rm -rf /tmp/monthly
 ../qmpbackup --socket $QMP_SOCKET backup --level auto --monthly --target /tmp/monthly/
 exist_files /tmp/monthly/*/*/FULL*

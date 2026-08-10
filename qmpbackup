@@ -162,6 +162,18 @@ async def main():
         required=False,
     )
     parser_backup.add_argument(
+        "--auto-full-remove-chain",
+        action="store_true",
+        default=False,
+        help=(
+            "With --auto-full-ratio: remove the outgrown backup chain before "
+            "the full backup replacing it is written, so that the full backup "
+            "needs no space next to the chain. The chain is gone if that full "
+            "backup fails, default: %(default)s"
+        ),
+        required=False,
+    )
+    parser_backup.add_argument(
         "--no-subdir",
         action="store_true",
         help="Use flat directory structure for storing the backup files",
@@ -354,6 +366,12 @@ async def main():
                 argv.level = "inc"
             log.info("Auto backup mode set to: %s", argv.level)
 
+        if argv.auto_full_remove_chain and argv.auto_full_ratio <= 0:
+            log.warning(
+                "Option --auto-full-remove-chain is without effect: "
+                "no backup chain is replaced without --auto-full-ratio."
+            )
+
         if argv.exclude is not None:
             excluded_disks = argv.exclude.split(",")
             log.debug("Excluded disks: %s", excluded_disks)
@@ -440,6 +458,7 @@ async def main():
             )
 
         backupdir = argv.target
+        remove_chain = False
         if auto_level and argv.level == "inc" and argv.auto_full_ratio > 0:
             # an incremental backup chain only grows, and a virtual machine
             # rewriting its disk makes it outgrow the disk image itself
@@ -487,7 +506,24 @@ async def main():
                         full_backup_size,
                     )
                     argv.level = "full"
+                    remove_chain = argv.auto_full_remove_chain
                     break
+
+        if remove_chain:
+            # the target holding a chain which outgrew the disk image is the
+            # least likely to have room for the full backup replacing it, so
+            # remove the chain before that full backup is written
+            for device in blockdev:
+                tdir = backupdir
+                if not argv.no_subdir:
+                    tdir = os.path.join(backupdir, os.path.basename(device.filename))
+                for backup_file in lib.get_chain(tdir, device.filename):
+                    log.info("Removing replaced backup: [%s]", backup_file)
+                    try:
+                        os.remove(backup_file)
+                    except OSError as errmsg:
+                        log.error("Unable to remove [%s]: [%s]", backup_file, errmsg)
+                        sys.exit(1)
 
         for device in blockdev:
             tdir = backupdir

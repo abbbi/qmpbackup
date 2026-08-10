@@ -216,6 +216,19 @@ reached.
 A virtual machine is backed up as a whole, so all included devices get a full
 backup as soon as the chain of any one of them outgrows the ratio.
 
+By default the replaced chain is kept, so the target has to hold both it and the
+full backup replacing it. A target sized for the disk image is the least likely
+to have room for both, exactly because the chain outgrew the image, so
+`--auto-full-remove-chain` removes the chain before writing the full backup that
+replaces it:
+
+`qmpbackup --socket /path/to/socket backup --level auto --auto-full-ratio 1.5 --auto-full-remove-chain --target /tmp/backup`
+
+This trades safety for space: should the full backup then fail, the target is
+left with no restorable backup at all, only a partial one which the next backup
+run replaces. Use it only where another copy of the backup exists, and leave it
+off wherever the target has room for both.
+
 ## Excluding disks from backup
 
 Disks can be excluded from the backup by using the *--exclude* option, the name
