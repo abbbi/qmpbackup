@@ -27,6 +27,7 @@ project:
 - [Backup](#backup)
   - [Backup chains / unique bitmap names](#backup-chains--unique-bitmap-names)
   - [Monthly Backups](#monthly-backups)
+  - [Size based backup chains](#size-based-backup-chains)
   - [Excluding disks from backup](#excluding-disks-from-backup)
   - [Filesystem Freeze](#filesystem-freeze)
   - [Offline virtual machines](#offline-virtual-machines)
@@ -177,6 +178,56 @@ will place backups in the following backup path: `/tmp/backup/2021-11/`
 
 When the date changes to 2021-12 and *qmpbackup* is executed, backups will be
 placed in `/tmp/backup/2021-12/` and a new full backup will be created.
+
+## Size based backup chains
+
+An incremental backup chain only grows, and a virtual machine which rewrites its
+disk (creating and deleting big files) makes the chain occupy more space than the
+disk image itself, as the same blocks are saved over and over again.
+
+Using the `--auto-full-ratio` option with the `auto` backup level, a new full
+backup is created as soon as the existing backup chain is bigger than the given
+multiple of the size a full backup requires:
+
+`qmpbackup --socket /path/to/socket backup --level auto --auto-full-ratio 1.5 --target /tmp/backup`
+
+With a disk image of 10 GB, the above creates incremental backups until the
+backup chain reaches 15 GB, and then creates a full backup. The previous chain is
+not removed, `qmprestore` ignores the older chains and the files can be deleted
+once they are not needed anymore. Only the latest chain counts towards the ratio,
+so the older chains left in the target directory do not trigger further full
+backups.
+
+A chain which consists of the full backup alone is never replaced, as a new full
+backup would not be any smaller: at least one incremental backup is created
+before the ratio is considered again. This matters for small or sparsely
+allocated disks, where a single full backup can already be bigger than the space
+the disk image occupies.
+
+The ratio is compared against the space a full backup requires: the size the disk
+image occupies on disk, as reported by `qemu-img info`, or the size of the full
+backup the chain starts with, whichever is bigger. A full backup of a small or
+sparsely allocated disk is bigger than the disk image itself, so measuring
+against the disk image alone would ask for a new full backup after every single
+increment. Backups created with `--compress` are smaller than the data they hold,
+so with compressed backups the chain holds more changes before the ratio is
+reached.
+
+A virtual machine is backed up as a whole, so all included devices get a full
+backup as soon as the chain of any one of them outgrows the ratio.
+
+By default the replaced chain is kept, so the target has to hold both it and the
+full backup replacing it. A target sized for the disk image is the least likely
+to have room for both, exactly because the chain outgrew the image, so
+`--auto-full-remove-chain` removes the chain before writing the full backup that
+replaces it:
+
+`qmpbackup --socket /path/to/socket backup --level auto --auto-full-ratio 1.5 --auto-full-remove-chain --target /tmp/backup`
+
+This trades safety for space: should the full backup then fail, the target is
+left with no restorable backup at all, only a partial one which the next backup
+run replaces. Use it only where another copy of the backup exists, and leave it
+off wherever the target has room for both.
 
 ## Excluding disks from backup
 

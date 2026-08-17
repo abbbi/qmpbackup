@@ -150,6 +150,30 @@ async def main():
         required=False,
     )
     parser_backup.add_argument(
+        "--auto-full-ratio",
+        type=float,
+        default=0,
+        help=(
+            "With backup level 'auto': create a full backup instead of an "
+            "incremental one as soon as the existing backup chain is bigger "
+            "than this multiple of the size a full backup requires, "
+            "default: %(default)s (disabled)"
+        ),
+        required=False,
+    )
+    parser_backup.add_argument(
+        "--auto-full-remove-chain",
+        action="store_true",
+        default=False,
+        help=(
+            "With --auto-full-ratio: remove the outgrown backup chain before "
+            "the full backup replacing it is written, so that the full backup "
+            "needs no space next to the chain. The chain is gone if that full "
+            "backup fails, default: %(default)s"
+        ),
+        required=False,
+    )
+    parser_backup.add_argument(
         "--no-subdir",
         action="store_true",
         help="Use flat directory structure for storing the backup files",
@@ -332,6 +356,7 @@ async def main():
             sys.exit(1)
 
         log.info("Backup target directory: %s", argv.target)
+        auto_level = argv.level == "auto"
         if argv.level == "auto":
             if new_monthly is True or not os.path.exists(
                 os.path.join(argv.target, "uuid")
@@ -340,6 +365,12 @@ async def main():
             else:
                 argv.level = "inc"
             log.info("Auto backup mode set to: %s", argv.level)
+
+        if argv.auto_full_remove_chain and argv.auto_full_ratio <= 0:
+            log.warning(
+                "Option --auto-full-remove-chain is without effect: "
+                "no backup chain is replaced without --auto-full-ratio."
+            )
 
         if argv.exclude is not None:
             excluded_disks = argv.exclude.split(",")
@@ -427,6 +458,73 @@ async def main():
             )
 
         backupdir = argv.target
+        remove_chain = False
+        if auto_level and argv.level == "inc" and argv.auto_full_ratio > 0:
+            # an incremental backup chain only grows, and a virtual machine
+            # rewriting its disk makes it outgrow the disk image itself
+            for device in blockdev:
+                tdir = backupdir
+                if not argv.no_subdir:
+                    tdir = os.path.join(backupdir, os.path.basename(device.filename))
+                chain = lib.get_chain(tdir, device.filename)
+                if not any(
+                    os.path.basename(backup_file).startswith("INC")
+                    for backup_file in chain
+                ):
+                    # a chain without increments is a full backup on its own,
+                    # replacing it by another one does not save any space
+                    continue
+                chain_size = sum(os.path.getsize(backup_file) for backup_file in chain)
+                try:
+                    image_size = image.get_actual_size(device.filename)
+                except RuntimeError as errmsg:
+                    log.warning(
+                        "Unable to get size of device [%s:%s]: [%s]",
+                        device.node,
+                        device.filename,
+                        errmsg,
+                    )
+                    continue
+                # starting a new chain costs a full backup, so measure against
+                # what one costs: at least the space the disk image occupies,
+                # and at least what the full backup of the current chain
+                # required, which is bigger for small or sparse disks
+                full_size = max(
+                    os.path.getsize(backup_file)
+                    for backup_file in chain
+                    if not os.path.basename(backup_file).startswith("INC")
+                )
+                full_backup_size = max(image_size, full_size)
+                if chain_size > full_backup_size * argv.auto_full_ratio:
+                    log.info(
+                        "[%s:%s] Backup chain of [%s] bytes exceeds [%s] times "
+                        "the full backup size of [%s] bytes: full backup required.",
+                        device.node,
+                        os.path.basename(device.filename),
+                        chain_size,
+                        argv.auto_full_ratio,
+                        full_backup_size,
+                    )
+                    argv.level = "full"
+                    remove_chain = argv.auto_full_remove_chain
+                    break
+
+        if remove_chain:
+            # the target holding a chain which outgrew the disk image is the
+            # least likely to have room for the full backup replacing it, so
+            # remove the chain before that full backup is written
+            for device in blockdev:
+                tdir = backupdir
+                if not argv.no_subdir:
+                    tdir = os.path.join(backupdir, os.path.basename(device.filename))
+                for backup_file in lib.get_chain(tdir, device.filename):
+                    log.info("Removing replaced backup: [%s]", backup_file)
+                    try:
+                        os.remove(backup_file)
+                    except OSError as errmsg:
+                        log.error("Unable to remove [%s]: [%s]", backup_file, errmsg)
+                        sys.exit(1)
+
         for device in blockdev:
             tdir = backupdir
             if not argv.no_subdir:

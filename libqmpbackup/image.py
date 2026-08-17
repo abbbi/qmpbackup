@@ -34,6 +34,14 @@ def get_info(filename):
         raise RuntimeError from errmsg
 
 
+def get_actual_size(filename):
+    """Query the size the qemu image occupies on disk"""
+    try:
+        return json.loads(get_info(filename))["actual-size"]
+    except (KeyError, ValueError) as errmsg:
+        raise RuntimeError(f"No size in qemu image info: [{errmsg}]") from errmsg
+
+
 def save_info(backupdir, blockdev):
     """Save qcow image information"""
     for dev in blockdev:

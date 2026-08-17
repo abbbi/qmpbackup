@@ -25,6 +25,31 @@ from libqmpbackup.qaclient import QemuGuestAgentClient
 log = logging.getLogger(__name__)
 
 
+def get_chain(directory, filename):
+    """Return the files of the latest backup chain for one device
+
+    Older chains are kept on purpose, so only the files from the most recent
+    full backup onwards belong to the chain. With --no-subdir all devices
+    share one directory, so only the files named after the given device are
+    part of its chain.
+    """
+    basename = os.path.basename(filename)
+    full_backup = [
+        candidate
+        for candidate in glob(f"{directory}/FULL-*-{basename}")
+        + [os.path.join(directory, basename)]
+        if os.path.isfile(candidate)
+    ]
+    if not full_backup:
+        return []
+    chain_start = max(os.path.getmtime(backup) for backup in full_backup)
+    return [
+        backup_file
+        for backup_file in full_backup + glob(f"{directory}/INC-*-{basename}")
+        if os.path.isfile(backup_file) and os.path.getmtime(backup_file) >= chain_start
+    ]
+
+
 def has_full(directory, filename):
     """Check if directory contains full backup, either by searching
     for files beginning with FULL* or the file name of the disk
